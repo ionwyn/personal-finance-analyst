@@ -1,0 +1,288 @@
+import { PlaidItemStatus, SyncRunStatus, SyncSource, TenantKind } from "@prisma/client";
+import type { RemovedTransaction, Transaction } from "plaid";
+
+import { prisma } from "@/lib/prisma";
+import { decryptToken } from "@/lib/security/token-crypto";
+import { getPlaidClient } from "@/lib/plaid/client";
+import { errorMessage, getPlaidErrorCode, getPlaidRequestId, isTransactionsMutationDuringPagination } from "@/lib/plaid/errors";
+import { normalizeTransaction, summarizeTransactionChanges } from "@/lib/plaid/normalize";
+import { refreshAccountsForItem, refreshBalancesForItem } from "@/lib/plaid/accounts";
+import { getPlaidEnv } from "@/lib/env";
+
+const PAGE_SIZE = 500;
+const ACTIVE_LOCK_MS = 15 * 60 * 1000;
+
+async function applyAddedOrModified(input: {
+  tenantId: string;
+  itemId: string;
+  transaction: Transaction;
+}) {
+  const normalized = normalizeTransaction(input.transaction);
+  const account = await prisma.plaidAccount.findUnique({
+    where: { plaidAccountId: normalized.plaidAccountId },
+    select: { id: true }
+  });
+
+  if (!account) {
+    throw new Error(`Missing Plaid account ${normalized.plaidAccountId} for transaction ${normalized.plaidTransactionId}`);
+  }
+
+  await prisma.plaidTransaction.upsert({
+    where: {
+      plaidTransactionId: normalized.plaidTransactionId
+    },
+    update: {
+      accountId: account.id,
+      pendingTransactionId: normalized.pendingTransactionId,
+      name: normalized.name,
+      merchantName: normalized.merchantName,
+      amount: normalized.amount,
+      isoCurrencyCode: normalized.isoCurrencyCode,
+      unofficialCurrencyCode: normalized.unofficialCurrencyCode,
+      date: normalized.date,
+      authorizedDate: normalized.authorizedDate,
+      datetime: normalized.datetime,
+      authorizedDatetime: normalized.authorizedDatetime,
+      paymentChannel: normalized.paymentChannel,
+      categoryPrimary: normalized.categoryPrimary,
+      categoryDetailed: normalized.categoryDetailed,
+      categoryConfidence: normalized.categoryConfidence,
+      pending: normalized.pending,
+      removed: false,
+      raw: normalized.raw
+    },
+    create: {
+      tenantId: input.tenantId,
+      itemId: input.itemId,
+      accountId: account.id,
+      plaidTransactionId: normalized.plaidTransactionId,
+      pendingTransactionId: normalized.pendingTransactionId,
+      name: normalized.name,
+      merchantName: normalized.merchantName,
+      amount: normalized.amount,
+      isoCurrencyCode: normalized.isoCurrencyCode,
+      unofficialCurrencyCode: normalized.unofficialCurrencyCode,
+      date: normalized.date,
+      authorizedDate: normalized.authorizedDate,
+      datetime: normalized.datetime,
+      authorizedDatetime: normalized.authorizedDatetime,
+      paymentChannel: normalized.paymentChannel,
+      categoryPrimary: normalized.categoryPrimary,
+      categoryDetailed: normalized.categoryDetailed,
+      categoryConfidence: normalized.categoryConfidence,
+      pending: normalized.pending,
+      raw: normalized.raw
+    }
+  });
+}
+
+async function applyRemoved(transaction: RemovedTransaction) {
+  await prisma.plaidTransaction.updateMany({
+    where: {
+      plaidTransactionId: transaction.transaction_id
+    },
+    data: {
+      removed: true
+    }
+  });
+}
+
+async function applyTransactionChanges(input: {
+  tenantId: string;
+  itemId: string;
+  added: Transaction[];
+  modified: Transaction[];
+  removed: RemovedTransaction[];
+}) {
+  for (const transaction of input.added) {
+    await applyAddedOrModified({ tenantId: input.tenantId, itemId: input.itemId, transaction });
+  }
+
+  for (const transaction of input.modified) {
+    await applyAddedOrModified({ tenantId: input.tenantId, itemId: input.itemId, transaction });
+  }
+
+  for (const transaction of input.removed) {
+    await applyRemoved(transaction);
+  }
+
+  return summarizeTransactionChanges(input);
+}
+
+export async function syncPlaidItem(itemId: string, source: SyncSource) {
+  const item = await prisma.plaidItem.findUniqueOrThrow({
+    where: { id: itemId },
+    include: { tenant: true }
+  });
+
+  const activeRun = await prisma.syncRun.findFirst({
+    where: {
+      itemId: item.id,
+      status: SyncRunStatus.RUNNING,
+      startedAt: {
+        gt: new Date(Date.now() - ACTIVE_LOCK_MS)
+      }
+    }
+  });
+
+  if (activeRun) {
+    return prisma.syncRun.create({
+      data: {
+        tenantId: item.tenantId,
+        itemId: item.id,
+        source,
+        status: SyncRunStatus.SKIPPED,
+        completedAt: new Date(),
+        errorMessage: `Skipped because sync run ${activeRun.id} is still active.`
+      }
+    });
+  }
+
+  const run = await prisma.syncRun.create({
+    data: {
+      tenantId: item.tenantId,
+      itemId: item.id,
+      source,
+      status: SyncRunStatus.RUNNING
+    }
+  });
+
+  await prisma.plaidItem.update({
+    where: { id: item.id },
+    data: {
+      status: PlaidItemStatus.SYNCING,
+      errorCode: null,
+      errorMessage: null
+    }
+  });
+
+  let addedCount = 0;
+  let modifiedCount = 0;
+  let removedCount = 0;
+  let accountsCount = 0;
+  let requestId: string | undefined;
+
+  try {
+    const accessToken = decryptToken(item.accessTokenEncrypted);
+    accountsCount = await refreshAccountsForItem(item.id);
+
+    const client = getPlaidClient();
+    const originalCursor = item.syncCursor ?? undefined;
+    let cursor = originalCursor;
+    let nextCursor = originalCursor;
+    let hasMore = true;
+    let mutationRestarts = 0;
+
+    while (hasMore) {
+      try {
+        const response = await client.transactionsSync({
+          access_token: accessToken,
+          cursor,
+          count: PAGE_SIZE
+        });
+
+        const changes = await applyTransactionChanges({
+          tenantId: item.tenantId,
+          itemId: item.id,
+          added: response.data.added,
+          modified: response.data.modified,
+          removed: response.data.removed
+        });
+
+        addedCount += changes.addedCount;
+        modifiedCount += changes.modifiedCount;
+        removedCount += changes.removedCount;
+        nextCursor = response.data.next_cursor;
+        cursor = response.data.next_cursor;
+        hasMore = response.data.has_more;
+        requestId = response.data.request_id;
+      } catch (error) {
+        if (isTransactionsMutationDuringPagination(error) && mutationRestarts < 2) {
+          mutationRestarts += 1;
+          cursor = originalCursor;
+          nextCursor = originalCursor;
+          hasMore = true;
+          addedCount = 0;
+          modifiedCount = 0;
+          removedCount = 0;
+          continue;
+        }
+        throw error;
+      }
+    }
+
+    await prisma.plaidItem.update({
+      where: { id: item.id },
+      data: {
+        syncCursor: nextCursor,
+        lastSyncAt: new Date(),
+        status: PlaidItemStatus.IDLE
+      }
+    });
+
+    return prisma.syncRun.update({
+      where: { id: run.id },
+      data: {
+        status: SyncRunStatus.SUCCESS,
+        completedAt: new Date(),
+        addedCount,
+        modifiedCount,
+        removedCount,
+        accountsCount,
+        plaidRequestId: requestId
+      }
+    });
+  } catch (error) {
+    const code = getPlaidErrorCode(error);
+    await prisma.plaidItem.update({
+      where: { id: item.id },
+      data: {
+        status: PlaidItemStatus.ERROR,
+        errorCode: code,
+        errorMessage: errorMessage(error)
+      }
+    });
+
+    return prisma.syncRun.update({
+      where: { id: run.id },
+      data: {
+        status: SyncRunStatus.ERROR,
+        completedAt: new Date(),
+        addedCount,
+        modifiedCount,
+        removedCount,
+        accountsCount,
+        errorCode: code,
+        errorMessage: errorMessage(error),
+        plaidRequestId: getPlaidRequestId(error)
+      }
+    });
+  }
+}
+
+function shouldRefreshBalance(input: {
+  tenantKind: TenantKind;
+  lastBalanceRefreshAt?: Date | null;
+}) {
+  if (getPlaidEnv() === "sandbox" || input.tenantKind === TenantKind.DEMO) return true;
+  if (!input.lastBalanceRefreshAt) return true;
+  return Date.now() - input.lastBalanceRefreshAt.getTime() > 23 * 60 * 60 * 1000;
+}
+
+export async function syncAllPlaidItems(source: SyncSource = SyncSource.SCHEDULED) {
+  const items = await prisma.plaidItem.findMany({
+    include: { tenant: true },
+    orderBy: { createdAt: "asc" }
+  });
+
+  const results = [];
+  for (const item of items) {
+    const syncRun = await syncPlaidItem(item.id, source);
+    if (shouldRefreshBalance({ tenantKind: item.tenant.kind, lastBalanceRefreshAt: item.lastBalanceRefreshAt })) {
+      await refreshBalancesForItem(item.id);
+    }
+    results.push(syncRun);
+  }
+
+  return results;
+}

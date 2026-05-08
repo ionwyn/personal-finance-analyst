@@ -1,0 +1,35 @@
+import { NextResponse } from "next/server";
+import { z } from "zod";
+
+import { requireUserTenant } from "@/lib/http";
+import { exchangeAndStorePlaidItem } from "@/lib/plaid/items";
+
+const bodySchema = z.object({
+  public_token: z.string().min(1),
+  institution: z
+    .object({
+      institution_id: z.string().optional().nullable(),
+      name: z.string().optional().nullable()
+    })
+    .optional()
+    .nullable()
+});
+
+export async function POST(request: Request) {
+  const auth = await requireUserTenant();
+  if ("error" in auth) return auth.error;
+
+  const userId = auth.session.user?.id;
+  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const body = bodySchema.parse(await request.json());
+  const item = await exchangeAndStorePlaidItem({
+    tenantId: auth.tenant.id,
+    userId,
+    publicToken: body.public_token,
+    institutionId: body.institution?.institution_id,
+    institutionName: body.institution?.name
+  });
+
+  return NextResponse.json({ item_id: item.id });
+}

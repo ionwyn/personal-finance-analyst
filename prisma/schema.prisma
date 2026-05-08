@@ -1,0 +1,243 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum TenantKind {
+  PERSONAL
+  DEMO
+}
+
+enum PlaidItemStatus {
+  IDLE
+  SYNCING
+  ERROR
+}
+
+enum SyncSource {
+  MANUAL
+  SCHEDULED
+  WEBHOOK
+  SEED
+}
+
+enum SyncRunStatus {
+  RUNNING
+  SUCCESS
+  ERROR
+  SKIPPED
+}
+
+model Tenant {
+  id        String     @id @default(cuid())
+  slug      String     @unique
+  name      String
+  kind      TenantKind
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  users            User[]
+  plaidItems       PlaidItem[]
+  plaidAccounts    PlaidAccount[]
+  transactions     PlaidTransaction[]
+  balanceSnapshots BalanceSnapshot[]
+  syncRuns         SyncRun[]
+
+  @@index([kind])
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  tenantId      String?
+
+  tenant     Tenant?     @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+  accounts   Account[]
+  sessions   Session[]
+  plaidItems PlaidItem[]
+
+  @@index([tenantId])
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model PlaidItem {
+  id                   String          @id @default(cuid())
+  tenantId             String
+  createdById          String?
+  plaidItemId          String          @unique
+  institutionId        String?
+  institutionName      String?
+  accessTokenEncrypted String          @db.Text
+  syncCursor           String?         @db.Text
+  status               PlaidItemStatus @default(IDLE)
+  lastSyncAt           DateTime?
+  lastBalanceRefreshAt DateTime?
+  errorCode            String?
+  errorMessage         String?         @db.Text
+  createdAt            DateTime        @default(now())
+  updatedAt            DateTime        @updatedAt
+
+  tenant       Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdBy    User?              @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  accounts     PlaidAccount[]
+  transactions PlaidTransaction[]
+  syncRuns     SyncRun[]
+
+  @@index([tenantId])
+  @@index([status])
+  @@index([createdById])
+}
+
+model PlaidAccount {
+  id                     String    @id @default(cuid())
+  tenantId               String
+  itemId                 String
+  plaidAccountId         String    @unique
+  name                   String
+  officialName           String?
+  type                   String
+  subtype                String?
+  mask                   String?
+  isoCurrencyCode        String?
+  unofficialCurrencyCode String?
+  availableBalance       Decimal?  @db.Decimal(18, 2)
+  currentBalance         Decimal?  @db.Decimal(18, 2)
+  limit                  Decimal?  @db.Decimal(18, 2)
+  lastBalanceAt          DateTime?
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
+
+  tenant           Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  item             PlaidItem          @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  transactions     PlaidTransaction[]
+  balanceSnapshots BalanceSnapshot[]
+
+  @@index([tenantId])
+  @@index([itemId])
+  @@index([type, subtype])
+}
+
+model PlaidTransaction {
+  id                     String    @id @default(cuid())
+  tenantId               String
+  itemId                 String
+  accountId              String
+  plaidTransactionId     String    @unique
+  pendingTransactionId   String?
+  name                   String
+  merchantName           String?
+  amount                 Decimal   @db.Decimal(18, 2)
+  isoCurrencyCode        String?
+  unofficialCurrencyCode String?
+  date                   DateTime
+  authorizedDate         DateTime?
+  datetime               DateTime?
+  authorizedDatetime     DateTime?
+  paymentChannel         String?
+  categoryPrimary        String?
+  categoryDetailed       String?
+  categoryConfidence     String?
+  pending                Boolean   @default(false)
+  removed                Boolean   @default(false)
+  raw                    Json
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
+
+  tenant  Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  item    PlaidItem    @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  account PlaidAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, date])
+  @@index([accountId, date])
+  @@index([itemId])
+  @@index([removed])
+  @@index([merchantName])
+  @@index([categoryPrimary])
+}
+
+model BalanceSnapshot {
+  id                     String   @id @default(cuid())
+  tenantId               String
+  accountId              String
+  availableBalance       Decimal? @db.Decimal(18, 2)
+  currentBalance         Decimal? @db.Decimal(18, 2)
+  limit                  Decimal? @db.Decimal(18, 2)
+  isoCurrencyCode        String?
+  unofficialCurrencyCode String?
+  capturedAt             DateTime @default(now())
+  raw                    Json
+
+  tenant  Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  account PlaidAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, capturedAt])
+  @@index([accountId, capturedAt])
+}
+
+model SyncRun {
+  id             String        @id @default(cuid())
+  tenantId       String
+  itemId         String?
+  source         SyncSource
+  status         SyncRunStatus @default(RUNNING)
+  startedAt      DateTime      @default(now())
+  completedAt    DateTime?
+  addedCount     Int           @default(0)
+  modifiedCount  Int           @default(0)
+  removedCount   Int           @default(0)
+  accountsCount  Int           @default(0)
+  errorCode      String?
+  errorMessage   String?       @db.Text
+  plaidRequestId String?
+
+  tenant Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  item   PlaidItem? @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, startedAt])
+  @@index([itemId, status])
+  @@index([source])
+}
