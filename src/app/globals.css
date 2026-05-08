@@ -34,6 +34,11 @@
   --info: #60a5fa;
   --warn: #fbbf24;
 
+  /* Investments — non-directional accent (NOT pos/neg) */
+  --invest: #5eead4;
+  --invest-dim: #2dd4bf;
+  --invest-bg: rgba(94, 234, 212, 0.08);
+
   /* Categorical palette */
   --cat-1: #f5a524;
   --cat-2: #60a5fa;
@@ -560,6 +565,10 @@ button:disabled { cursor: not-allowed; opacity: 0.6; }
 .status.syncing { color: var(--info); border-color: rgba(96,165,250,0.25); background: rgba(96,165,250,0.08); }
 .status.error { color: var(--neg); border-color: rgba(248,113,113,0.25); background: var(--neg-bg); }
 .status.success { color: var(--pos); border-color: rgba(74,222,128,0.25); background: var(--pos-bg); }
+.status.brokerage { color: var(--invest); border-color: rgba(94,234,212,0.22); background: var(--invest-bg); }
+.status.brokerage .pulse { display: none; }
+.status.reg { color: var(--text-2); border-color: var(--border-strong); background: var(--surface-2); }
+.status.reg .pulse { display: none; }
 .status .pulse {
   width: 6px; height: 6px; border-radius: 50%;
   background: currentColor;
@@ -928,4 +937,265 @@ svg.icon { display: inline-block; vertical-align: middle; }
   .kpi:last-child { border-bottom: none; }
   .inst-head { flex-wrap: wrap; }
   .inst-actions { margin-left: 0; width: 100%; }
+}
+
+/* ─── Investments dashboard card ─── */
+.invest-head {
+  padding: 14px 14px 12px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.invest-total { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.invest-total .v {
+  font-size: 22px;
+  font-weight: 500;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+}
+.invest-total .v .ccy { color: var(--text-4); margin-right: 3px; font-weight: 400; }
+.invest-total .v .frac { color: var(--text-3); font-size: 16px; }
+.invest-total .l {
+  font-size: 10px;
+  color: var(--text-4);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-top: 4px;
+  font-family: var(--font-sans);
+}
+.invest-pl {
+  text-align: right;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+.invest-pl .v {
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+.invest-pl .pct {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-size: 11px;
+  margin-left: 4px;
+}
+.invest-pl .pct.pos { color: var(--pos); background: var(--pos-bg); }
+.invest-pl .pct.neg { color: var(--neg); background: var(--neg-bg); }
+.invest-pl .l {
+  font-size: 10px;
+  color: var(--text-4);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-top: 4px;
+  font-family: var(--font-sans);
+}
+
+/* Holdings rows on the dashboard card */
+.hld-row {
+  display: grid;
+  grid-template-columns: 22px 56px 1fr auto auto;
+  gap: 10px;
+  align-items: center;
+  padding: 8px 14px;
+  font-size: 12px;
+  border-top: 1px solid var(--border-subtle);
+}
+.hld-row:hover { background: var(--surface-2); }
+.hld-row .sym { font-family: var(--font-mono); font-weight: 600; letter-spacing: -0.02em; color: var(--text); font-size: 12px; }
+.hld-row .desc { color: var(--text-3); font-size: 11.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hld-row .mv { font-family: var(--font-mono); font-variant-numeric: tabular-nums; color: var(--text); min-width: 64px; text-align: right; }
+.hld-row .pl-pct { font-family: var(--font-mono); font-variant-numeric: tabular-nums; min-width: 56px; text-align: right; font-size: 11px; padding: 1px 6px; border-radius: 3px; }
+.hld-row .pl-pct.pos { color: var(--pos); background: var(--pos-bg); }
+.hld-row .pl-pct.neg { color: var(--neg); background: var(--neg-bg); }
+
+.invest-card-foot {
+  display: block;
+  padding: 8px 14px;
+  border-top: 1px solid var(--border-subtle);
+  font-size: 11px;
+  color: var(--text-3);
+  font-family: var(--font-mono);
+  text-decoration: none;
+  transition: color 80ms ease;
+}
+.invest-card-foot:hover { color: var(--text); }
+
+/* Symbol logo (round-square mono initial) */
+.sym-logo {
+  width: 22px; height: 22px;
+  border-radius: 4px;
+  display: grid; place-items: center;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 9.5px;
+  letter-spacing: -0.04em;
+  color: #0a0a0b;
+  flex-shrink: 0;
+}
+
+/* ─── Investments page ─── */
+.alloc-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.alloc-bar {
+  display: flex;
+  height: 10px;
+  border-radius: 3px;
+  overflow: hidden;
+  margin: 14px 0 12px;
+  background: var(--surface-3);
+}
+.alloc-bar .seg { transition: filter 100ms ease; }
+.alloc-bar .seg:hover { filter: brightness(1.2); }
+
+.alloc-list {
+  display: flex; flex-direction: column;
+}
+.alloc-row {
+  display: grid;
+  grid-template-columns: 12px 1fr auto auto;
+  gap: 10px;
+  align-items: center;
+  font-size: 12px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.alloc-row:last-child { border-bottom: none; }
+.alloc-row .sw { width: 8px; height: 8px; border-radius: 2px; }
+.alloc-row .nm { color: var(--text); }
+.alloc-row .pct { color: var(--text-3); font-family: var(--font-mono); font-size: 11px; min-width: 40px; text-align: right; }
+.alloc-row .v { color: var(--text); font-family: var(--font-mono); font-variant-numeric: tabular-nums; min-width: 84px; text-align: right; }
+
+.fx-note {
+  margin-top: 10px;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--text-4);
+  display: flex; align-items: center; gap: 6px;
+}
+.fx-note .live-dot {
+  width: 5px; height: 5px; border-radius: 50%;
+  background: var(--pos); box-shadow: 0 0 0 2px rgba(74,222,128,0.15);
+}
+
+/* Holdings table */
+.hold-table th.sortable { cursor: pointer; user-select: none; }
+.hold-table th.sortable:hover { color: var(--text-2); }
+.hold-table th .sort-i {
+  display: inline-block; margin-left: 4px; opacity: 0.45; font-size: 9px;
+}
+.hold-table th.active .sort-i { opacity: 1; color: var(--accent); }
+
+.hold-table .sym-cell {
+  display: flex; align-items: center; gap: 10px;
+}
+.hold-table .ticker { font-family: var(--font-mono); font-weight: 600; letter-spacing: -0.02em; color: var(--text); font-size: 12px; }
+.hold-table .desc-cell { color: var(--text-3); font-size: 11.5px; }
+.hold-table .ccy-tag {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  color: var(--text-3);
+  padding: 1px 5px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+}
+.hold-table td.pl-pos { color: var(--pos); }
+.hold-table td.pl-neg { color: var(--neg); }
+.hold-table .pl-chip {
+  display: inline-block;
+  font-family: var(--font-mono); font-variant-numeric: tabular-nums;
+  font-size: 11px;
+  padding: 1px 6px;
+  border-radius: 3px;
+}
+.hold-table .pl-chip.pos { color: var(--pos); background: var(--pos-bg); }
+.hold-table .pl-chip.neg { color: var(--neg); background: var(--neg-bg); }
+
+/* Per-account compact strip */
+.brok-list .brok-row {
+  display: grid;
+  grid-template-columns: 28px 1fr auto auto auto auto;
+  gap: 14px;
+  align-items: center;
+  padding: 11px 16px;
+  border-bottom: 1px solid var(--border-subtle);
+  font-size: 12px;
+}
+.brok-list .brok-row:last-child { border-bottom: none; }
+.brok-list .brok-row:hover { background: var(--surface-2); }
+.brok-row .nm { color: var(--text); font-weight: 500; }
+.brok-row .meta { color: var(--text-4); font-family: var(--font-mono); font-size: 11px; }
+.brok-row .opened { color: var(--text-4); font-family: var(--font-mono); font-size: 11px; }
+.brok-row .val {
+  font-family: var(--font-mono); font-variant-numeric: tabular-nums;
+  font-size: 14px; font-weight: 500; letter-spacing: -0.01em;
+  text-align: right; min-width: 110px;
+}
+
+/* Section divider in accounts */
+.section-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 22px 0 12px;
+}
+.section-divider .lbl {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--text-3);
+  font-weight: 500;
+  white-space: nowrap;
+}
+.section-divider .line {
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+.section-divider .meta {
+  font-size: 11px;
+  color: var(--text-4);
+  font-family: var(--font-mono);
+}
+
+/* CCY toggle in toolbar */
+.ccy-toggle {
+  display: inline-flex;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: var(--surface);
+}
+.ccy-toggle button {
+  padding: 4px 10px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-3);
+  border-right: 1px solid var(--border);
+}
+.ccy-toggle button:last-child { border-right: none; }
+.ccy-toggle button.on { background: var(--surface-3); color: var(--text); }
+.ccy-toggle button:hover { color: var(--text); }
+
+/* History annotation note */
+.chart-anno {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--invest);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.chart-anno .dot { width: 5px; height: 5px; border-radius: 50%; background: var(--invest); }
+
+@media (max-width: 1100px) {
+  .alloc-grid { grid-template-columns: 1fr; }
 }

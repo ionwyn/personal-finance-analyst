@@ -2,6 +2,8 @@ import { endOfMonth, format, startOfMonth, subDays, subMonths } from "date-fns";
 import { Prisma } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
+import { getInvestmentDashboardData } from "@/lib/investments/analytics";
+import type { InvestmentDashboardData } from "@/lib/investments/types";
 
 const CATEGORY_COLORS = [
   "var(--cat-1)",
@@ -72,15 +74,17 @@ function isLikelySubscription(name: string, category: string | null) {
   return false;
 }
 
-function emptyDashboardData(slug: string) {
+function emptyDashboardData(slug: string, investments: InvestmentDashboardData) {
   return {
     tenantSlug: slug,
     hasTenant: false,
     totals: {
       accountCount: 0,
       transactionCount: 0,
-      currentBalance: 0,
-      totalAssets: 0,
+      currentBalance: investments.summary.portfolioCAD,
+      cashBalance: 0,
+      investmentBalance: investments.summary.portfolioCAD,
+      totalAssets: investments.summary.portfolioCAD,
       totalLiabilities: 0,
       monthlySpend: 0,
       monthlyIncome: 0,
@@ -117,6 +121,7 @@ function emptyDashboardData(slug: string) {
     categorySpend: [] as CategorySpend[],
     merchantSpend: [] as MerchantSpend[],
     balanceHistory: [] as BalancePoint[],
+    investments,
     currentMonthLabel: format(new Date(), "MMM"),
     previousMonthLabel: format(subMonths(new Date(), 1), "MMM")
   };
@@ -175,6 +180,8 @@ function colorForCategory(category: string, index: number) {
 }
 
 export async function getDashboardData(tenantSlug: string) {
+  const investments = getInvestmentDashboardData();
+
   const tenant = await prisma.tenant.findUnique({
     where: { slug: tenantSlug },
     include: {
@@ -192,7 +199,7 @@ export async function getDashboardData(tenantSlug: string) {
     }
   });
 
-  if (!tenant) return emptyDashboardData(tenantSlug);
+  if (!tenant) return emptyDashboardData(tenantSlug, investments);
 
   const now = new Date();
   const sixMonthsAgo = startOfMonth(subMonths(now, 5));
@@ -430,14 +437,20 @@ export async function getDashboardData(tenantSlug: string) {
   const subscriptionsCount = subscriptionMerchants.size;
   const savingsRate = monthlyIncome > 0 ? ((monthlyIncome - monthlySpend) / monthlyIncome) * 100 : null;
 
+  const cashBalance = currentBalance;
+  const investmentBalance = investments.summary.portfolioCAD;
+  const unifiedBalance = cashBalance + investmentBalance;
+
   return {
     tenantSlug,
     hasTenant: true,
     totals: {
       accountCount: tenant.plaidAccounts.length,
       transactionCount: transactions.length,
-      currentBalance,
-      totalAssets,
+      currentBalance: unifiedBalance,
+      cashBalance,
+      investmentBalance,
+      totalAssets: totalAssets + investmentBalance,
       totalLiabilities,
       monthlySpend,
       monthlyIncome,
@@ -476,6 +489,7 @@ export async function getDashboardData(tenantSlug: string) {
     categorySpend,
     merchantSpend,
     balanceHistory,
+    investments,
     currentMonthLabel: format(now, "MMM"),
     previousMonthLabel: format(subMonths(now, 1), "MMM")
   };

@@ -8,13 +8,14 @@ const ROUTE_LABELS: Record<string, [string, string]> = {
   "/app": ["Workspace", "Dashboard"],
   "/app/accounts": ["Workspace", "Accounts"],
   "/app/transactions": ["Workspace", "Transactions"],
+  "/app/investments": ["Workspace", "Investments"],
   "/app/settings": ["Workspace", "Settings"],
   "/demo": ["Public", "Demo (read-only)"]
 };
 
 function labelsFor(pathname: string): [string, string] {
   if (ROUTE_LABELS[pathname]) return ROUTE_LABELS[pathname];
-  for (const key of Object.keys(ROUTE_LABELS)) {
+  for (const key of Object.keys(ROUTE_LABELS).sort((a, b) => b.length - a.length)) {
     if (pathname.startsWith(key + "/")) return ROUTE_LABELS[key];
   }
   return ["Workspace", "Dashboard"];

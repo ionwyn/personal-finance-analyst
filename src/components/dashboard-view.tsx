@@ -3,6 +3,7 @@ import { ArrowDown, ArrowUp, ChevronRight, Download } from "lucide-react";
 
 import { BigNumber, formatMoney } from "@/components/big-number";
 import { BalanceChart, CashflowChart, CategoryDonut } from "@/components/charts";
+import { InvestmentsCard } from "@/components/investments-card";
 import { PlaidLinkButton } from "@/components/plaid-link-button";
 import { Sparkline } from "@/components/sparkline";
 import { SyncAllButton } from "@/components/sync-all-button";
@@ -81,6 +82,7 @@ export function DashboardView({
           versus={data.previousMonthLabel}
           spark={data.sparks.balance}
           sparkColor="var(--accent)"
+          subline={`cash ${formatThousands(totals.cashBalance)} · inv ${formatThousands(totals.investmentBalance)}`}
         />
         <KpiCell
           label={`Income · ${data.currentMonthLabel}`}
@@ -141,7 +143,15 @@ export function DashboardView({
           {/* Net worth */}
           <div className="panel">
             <div className="panel-head">
-              <div className="panel-title">Net worth · 6M</div>
+              <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                <div className="panel-title">Net worth · 6M</div>
+                {data.investments.summary.lastSync ? (
+                  <span className="chart-anno">
+                    <i className="dot" />
+                    Investments added {formatMonthDay(data.investments.summary.lastSync)}
+                  </span>
+                ) : null}
+              </div>
               <div className="panel-meta">{netWorthChange(data.balanceHistory)}</div>
             </div>
             <div className="panel-body" style={{ height: 200 }}>
@@ -205,6 +215,11 @@ export function DashboardView({
         </div>
 
         <div className="col">
+          {/* Investments — slotted above categories */}
+          {data.investments.summary.positionCount > 0 ? (
+            <InvestmentsCard data={data.investments} />
+          ) : null}
+
           {/* Pie + categories */}
           <div className="panel">
             <div className="panel-head">
@@ -393,7 +408,8 @@ function KpiCell({
   versus,
   spark,
   sparkColor,
-  deltaInvert = false
+  deltaInvert = false,
+  subline
 }: {
   label: string;
   dot: string;
@@ -403,6 +419,7 @@ function KpiCell({
   spark: number[];
   sparkColor: string;
   deltaInvert?: boolean;
+  subline?: string;
 }) {
   const deltaIsPositive = delta == null ? null : delta >= 0;
   const isGood = deltaIsPositive == null ? null : deltaInvert ? !deltaIsPositive : deltaIsPositive;
@@ -422,7 +439,7 @@ function KpiCell({
         ) : (
           <span className="delta" style={{ color: "var(--text-4)" }}>—</span>
         )}
-        <span>vs {versus}</span>
+        <span>{subline ?? `vs ${versus}`}</span>
       </div>
       {spark.length > 1 ? (
         <div className="kpi-spark">
@@ -485,4 +502,15 @@ function netWorthChange(balanceHistory: { balance: number }[]) {
   const pct = first ? (diff / Math.abs(first)) * 100 : 0;
   const sign = diff >= 0 ? "+" : "−";
   return `${sign}${formatMoney(Math.abs(diff))} (${sign}${Math.abs(pct).toFixed(1)}%)`;
+}
+
+function formatThousands(value: number) {
+  const abs = Math.abs(value);
+  if (abs >= 1000) return `$${(value / 1000).toFixed(1)}k`;
+  return `$${value.toFixed(0)}`;
+}
+
+function formatMonthDay(iso: string) {
+  const d = new Date(iso);
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }

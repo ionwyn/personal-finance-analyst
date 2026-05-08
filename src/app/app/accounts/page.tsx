@@ -1,6 +1,14 @@
 import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
-import { CreditCard, Landmark, MoreHorizontal, TrendingUp } from "lucide-react";
+import {
+  CreditCard,
+  Landmark,
+  MoreHorizontal,
+  Plus,
+  RefreshCw,
+  TrendingUp,
+  Unlink
+} from "lucide-react";
 
 import { AppShell } from "@/components/app-shell";
 import { ItemActions } from "@/components/item-actions";
@@ -108,12 +116,154 @@ export default async function AccountsPage() {
         </div>
       )}
 
+      <InvestmentsSection data={data.investments} />
+
       <div className="foot-note">
         <span>Plaid items stored encrypted at rest · webhook /api/webhooks/plaid online</span>
         <span>⌘R sync all · ⌘N link new</span>
       </div>
     </AppShell>
   );
+}
+
+function InvestmentsSection({
+  data
+}: {
+  data: Awaited<ReturnType<typeof getDashboardData>>["investments"];
+}) {
+  const { summary, accounts } = data;
+  const plPos = summary.plCAD >= 0;
+
+  return (
+    <>
+      <div className="section-divider">
+        <span className="lbl">Investment accounts</span>
+        <span className="line" />
+        <span className="meta">
+          {accounts.length} {accounts.length === 1 ? "account" : "accounts"} ·{" "}
+          {summary.positionCount} positions · SnapTrade
+        </span>
+      </div>
+
+      {accounts.length > 0 ? (
+        <div className="inst-card">
+          <div className="inst-head">
+            <div
+              className="inst-logo"
+              style={{ background: summary.institutionLogoBg }}
+            >
+              {summary.institutionLogoText}
+            </div>
+            <div className="inst-meta">
+              <div className="inst-name">
+                {summary.institution}
+                <span className="status brokerage">
+                  <i className="pulse" />
+                  BROKERAGE
+                </span>
+                <span className="status idle">
+                  <i className="pulse" />
+                  IDLE
+                </span>
+              </div>
+              <div className="inst-sub">
+                <span>
+                  {accounts.length} {accounts.length === 1 ? "account" : "accounts"} ·{" "}
+                  {summary.positionCount} positions
+                </span>
+                <span className="sep">·</span>
+                <span>
+                  Last sync {summary.lastSync ? formatRelative(summary.lastSync) : "never"}
+                </span>
+                <span className="sep">·</span>
+                <span style={{ color: "var(--invest)" }}>
+                  P&amp;L {plPos ? "+" : "−"}
+                  {formatMoney(Math.abs(summary.plCAD))} ({plPos ? "+" : "−"}
+                  {Math.abs(summary.plPct).toFixed(2)}%)
+                </span>
+              </div>
+            </div>
+            <div className="inst-balance">
+              <div className="v">{formatMoney(summary.portfolioCAD)}</div>
+              <div className="l">Portfolio</div>
+            </div>
+            <div className="inst-actions">
+              <button className="btn btn-sm" type="button" title="SnapTrade integration coming soon">
+                <RefreshCw size={11} />
+                Sync
+              </button>
+              <button className="btn btn-sm" type="button" title="SnapTrade integration coming soon">
+                Refresh balance
+              </button>
+              <button className="btn btn-sm btn-danger" type="button" title="SnapTrade integration coming soon">
+                <Unlink size={11} />
+                Unlink
+              </button>
+            </div>
+          </div>
+
+          <div className="acct-list">
+            {accounts.map((a) => (
+              <div className="acct-row" key={a.id}>
+                <div
+                  className="acct-icon"
+                  style={{ width: 28, height: 28, color: "var(--invest)" }}
+                >
+                  <TrendingUp size={14} />
+                </div>
+                <div>
+                  <div>
+                    <span className="acct-name">{a.name}</span>
+                    <span className="acct-mask">··{a.registration}</span>
+                  </div>
+                  <div className="acct-type">
+                    {a.registration} · {a.currency}
+                    {a.openedAt ? ` · OPENED ${formatOpenedYear(a.openedAt)}` : ""}
+                  </div>
+                </div>
+                <div className="acct-bal">{formatMoney(a.totalValue)}</div>
+                <button
+                  className="btn btn-ghost btn-sm"
+                  style={{ padding: 4 }}
+                  type="button"
+                  aria-label="More actions"
+                >
+                  <MoreHorizontal size={14} />
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
+
+      <button
+        className="inst-card"
+        type="button"
+        style={{
+          width: "100%",
+          background: "transparent",
+          border: "1px dashed var(--border-strong)",
+          padding: 20,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 10,
+          color: "var(--text-3)",
+          fontSize: 13,
+          cursor: "pointer"
+        }}
+        title="SnapTrade integration coming soon"
+      >
+        <Plus size={14} />
+        Link a brokerage via SnapTrade
+      </button>
+    </>
+  );
+}
+
+function formatOpenedYear(iso: string) {
+  const d = new Date(iso);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
 }
 
 type Institution = Awaited<ReturnType<typeof getDashboardData>>["institutions"][number];
@@ -253,4 +403,3 @@ function pickLogoBg(name: string) {
   for (let i = 0; i < name.length; i += 1) h = (h * 31 + name.charCodeAt(i)) | 0;
   return LOGO_PALETTE[Math.abs(h) % LOGO_PALETTE.length];
 }
-
