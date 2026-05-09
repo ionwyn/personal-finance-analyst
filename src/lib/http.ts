@@ -39,3 +39,40 @@ export async function requireOwnedPlaidItem(itemId: string) {
 
   return { ...auth, item };
 }
+
+export async function requireOwnedSnapTradeConnection(connectionId: string) {
+  const auth = await requireUserTenant();
+  if ("error" in auth) return auth;
+
+  const connection = await prisma.snapTradeConnection.findFirst({
+    where: {
+      id: connectionId,
+      tenantId: auth.tenant.id
+    }
+  });
+
+  if (!connection) {
+    return { error: NextResponse.json({ error: "SnapTrade connection not found" }, { status: 404 }) };
+  }
+
+  return { ...auth, connection };
+}
+
+export async function requireOwnedSnapTradeLogo(logoId: string) {
+  const auth = await requireUserTenant();
+  if ("error" in auth) return auth;
+
+  const position = await prisma.snapTradePosition.findFirst({
+    where: {
+      tenantId: auth.tenant.id,
+      logoId
+    },
+    select: { id: true }
+  });
+
+  if (!position) {
+    return { error: NextResponse.json({ error: "SnapTrade logo not found" }, { status: 404 }) };
+  }
+
+  return { ...auth, logoId };
+}
