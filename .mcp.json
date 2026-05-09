@@ -1,0 +1,19 @@
+{
+  "mcpServers": {
+    "snaptrade": {
+      "command": "snaptrade",
+      "args": ["mcp"]
+    },
+    "postgres": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-postgres"],
+      "env": {
+        "PG_CONNECTION_STRING": "${DATABASE_URL}"
+      }
+    },
+    "next-devtools": {
+      "command": "npx",
+      "args": ["-y", "next-devtools-mcp@latest"]
+    }
+  }
+}
