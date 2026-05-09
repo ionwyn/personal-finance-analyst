@@ -31,6 +31,13 @@ enum SyncRunStatus {
   SKIPPED
 }
 
+enum SnapTradeConnectionStatus {
+  IDLE
+  SYNCING
+  ERROR
+  DISABLED
+}
+
 model Tenant {
   id        String     @id @default(cuid())
   slug      String     @unique
@@ -39,12 +46,17 @@ model Tenant {
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
 
-  users            User[]
-  plaidItems       PlaidItem[]
-  plaidAccounts    PlaidAccount[]
-  transactions     PlaidTransaction[]
-  balanceSnapshots BalanceSnapshot[]
-  syncRuns         SyncRun[]
+  users                 User[]
+  plaidItems            PlaidItem[]
+  plaidAccounts         PlaidAccount[]
+  transactions          PlaidTransaction[]
+  balanceSnapshots      BalanceSnapshot[]
+  syncRuns              SyncRun[]
+  snapTradeConnections  SnapTradeConnection[]
+  snapTradeAccounts     SnapTradeAccount[]
+  snapTradePositions    SnapTradePosition[]
+  snapTradeCashBalances SnapTradeCashBalance[]
+  snapTradeSyncRuns     SnapTradeSyncRun[]
 
   @@index([kind])
 }
@@ -240,4 +252,169 @@ model SyncRun {
   @@index([tenantId, startedAt])
   @@index([itemId, status])
   @@index([source])
+}
+
+model SnapTradeConnection {
+  id                       String                    @id @default(cuid())
+  tenantId                 String
+  snapTradeAuthorizationId String                    @unique
+  name                     String?
+  type                     String?
+  brokerageName            String?
+  brokerageSlug            String?
+  disabled                 Boolean                   @default(false)
+  disabledAt               DateTime?
+  status                   SnapTradeConnectionStatus @default(IDLE)
+  lastSyncAt               DateTime?
+  lastManualRefreshAt      DateTime?
+  errorCode                String?
+  errorMessage             String?                   @db.Text
+  createdAt                DateTime                  @default(now())
+  updatedAt                DateTime                  @updatedAt
+
+  tenant   Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  accounts SnapTradeAccount[]
+  syncRuns SnapTradeSyncRun[]
+
+  @@index([tenantId])
+  @@index([status])
+  @@index([disabled])
+}
+
+model SnapTradeAccount {
+  id                          String    @id @default(cuid())
+  tenantId                    String
+  connectionId                String
+  snapTradeAccountId          String    @unique
+  name                        String
+  institutionName             String?
+  rawType                     String?
+  accountCategory             String?
+  currency                    String?
+  totalValue                  Decimal?  @db.Decimal(24, 8)
+  openedAt                    DateTime?
+  snapTradeCreatedAt          DateTime?
+  status                      String?
+  isPaper                     Boolean   @default(false)
+  lastHoldingsSyncAt          DateTime?
+  holdingsInitialSyncComplete Boolean   @default(false)
+  createdAt                   DateTime  @default(now())
+  updatedAt                   DateTime  @updatedAt
+
+  tenant     Tenant                 @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  connection SnapTradeConnection    @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+  positions  SnapTradePosition[]
+  balances   SnapTradeCashBalance[]
+
+  @@index([tenantId])
+  @@index([connectionId])
+  @@index([accountCategory])
+}
+
+model SnapTradePosition {
+  id                String   @id @default(cuid())
+  tenantId          String
+  accountId         String
+  snapTradeSymbolId String?
+  symbol            String
+  rawSymbol         String?
+  description       String?
+  assetType         String
+  exchange          String?
+  currency          String
+  units             Decimal  @db.Decimal(24, 8)
+  price             Decimal? @db.Decimal(24, 8)
+  avgCost           Decimal? @db.Decimal(24, 8)
+  marketValueNative Decimal  @db.Decimal(24, 8)
+  marketValueCad    Decimal  @db.Decimal(24, 8)
+  costNative        Decimal? @db.Decimal(24, 8)
+  costCad           Decimal? @db.Decimal(24, 8)
+  pnlCad            Decimal? @db.Decimal(24, 8)
+  pnlPct            Decimal? @db.Decimal(18, 8)
+  cashEquivalent    Boolean  @default(false)
+  logoId            String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  tenant  Tenant                 @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  account SnapTradeAccount       @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  logo    SnapTradeSecurityLogo? @relation(fields: [logoId], references: [id], onDelete: SetNull)
+
+  @@unique([accountId, symbol, currency])
+  @@index([tenantId])
+  @@index([accountId])
+  @@index([symbol])
+  @@index([assetType])
+}
+
+model SnapTradeCashBalance {
+  id          String   @id @default(cuid())
+  tenantId    String
+  accountId   String
+  currency    String
+  cash        Decimal  @db.Decimal(24, 8)
+  buyingPower Decimal? @db.Decimal(24, 8)
+  cashCad     Decimal  @db.Decimal(24, 8)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  tenant  Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  account SnapTradeAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@unique([accountId, currency])
+  @@index([tenantId])
+}
+
+model SnapTradeSyncRun {
+  id                    String        @id @default(cuid())
+  tenantId              String
+  connectionId          String?
+  source                SyncSource
+  status                SyncRunStatus @default(RUNNING)
+  startedAt             DateTime      @default(now())
+  completedAt           DateTime?
+  connectionsCount      Int           @default(0)
+  accountsCount         Int           @default(0)
+  positionsCount        Int           @default(0)
+  balancesCount         Int           @default(0)
+  omittedPositionsCount Int           @default(0)
+  errorCode             String?
+  errorMessage          String?       @db.Text
+
+  tenant     Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  connection SnapTradeConnection? @relation(fields: [connectionId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, startedAt])
+  @@index([connectionId, status])
+  @@index([source])
+}
+
+model SnapTradeFxRate {
+  id             String   @id @default(cuid())
+  pair           String   @unique
+  sourceCurrency String
+  targetCurrency String
+  rate           Decimal  @db.Decimal(24, 10)
+  fetchedAt      DateTime
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([sourceCurrency, targetCurrency])
+  @@index([fetchedAt])
+}
+
+model SnapTradeSecurityLogo {
+  id           String    @id
+  sourceUrl    String    @db.Text
+  status       String    @default("PENDING")
+  contentType  String?
+  data         Bytes?
+  errorMessage String?   @db.Text
+  fetchedAt    DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  positions SnapTradePosition[]
+
+  @@index([status])
 }
