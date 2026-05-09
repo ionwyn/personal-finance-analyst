@@ -1,8 +1,9 @@
-export type AssetType = "Stock" | "ETF" | "ADR" | "Mutual Fund" | "Other";
-export type Currency = "CAD" | "USD";
+export type AssetType = string;
+export type Currency = string;
 
 export type InvestmentAccount = {
   id: string;
+  connectionId: string;
   name: string;
   registration: string;
   institution: string;
@@ -14,7 +15,7 @@ export type InvestmentAccount = {
   openedAt: string | null;
   lastSyncAt: string | null;
   positionCount: number;
-  status: "IDLE" | "SYNCING" | "ERROR";
+  status: "IDLE" | "SYNCING" | "ERROR" | "DISABLED";
 };
 
 export type InvestmentPosition = {
@@ -27,14 +28,15 @@ export type InvestmentPosition = {
   currency: Currency;
   units: number;
   price: number;
-  avgCost: number;
+  avgCost: number | null;
   mvNative: number;
   mvCAD: number;
-  costNative: number;
-  costCAD: number;
-  plCAD: number;
-  plPct: number;
+  costNative: number | null;
+  costCAD: number | null;
+  plCAD: number | null;
+  plPct: number | null;
   logoBg: string;
+  logoId: string | null;
 };
 
 export type InvestmentCashBalance = {
@@ -64,7 +66,8 @@ export type InvestmentSummary = {
   cashCAD: number;
   cashByCcy: InvestmentCashBalance[];
   lastSync: string | null;
-  fxUSDtoCAD: number;
+  fxUSDtoCAD: number | null;
+  omittedPositionCount: number;
 };
 
 export type InvestmentDashboardData = {

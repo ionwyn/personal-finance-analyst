@@ -74,10 +74,10 @@ export function InvestmentsCard({ data }: { data: InvestmentDashboardData }) {
 
       <div>
         {top3.map((h) => {
-          const plPos2 = h.plPct >= 0;
+          const plPos2 = (h.plPct ?? 0) >= 0;
           return (
             <div className="hld-row" key={h.id}>
-              <SymLogo symbol={h.symbol} bg={h.logoBg} />
+              <SymLogo symbol={h.symbol} bg={h.logoBg} logoId={h.logoId} />
               <div className="sym">{h.symbol}</div>
               <div className="desc">{h.description}</div>
               <div className="mv">
@@ -86,10 +86,14 @@ export function InvestmentsCard({ data }: { data: InvestmentDashboardData }) {
                   maximumFractionDigits: 0
                 })}
               </div>
-              <div className={`pl-pct ${plPos2 ? "pos" : "neg"}`}>
-                {plPos2 ? "+" : "−"}
-                {Math.abs(h.plPct).toFixed(1)}%
-              </div>
+              {h.plPct == null ? (
+                <div className="pl-pct">—</div>
+              ) : (
+                <div className={`pl-pct ${plPos2 ? "pos" : "neg"}`}>
+                  {plPos2 ? "+" : "−"}
+                  {Math.abs(h.plPct).toFixed(1)}%
+                </div>
+              )}
             </div>
           );
         })}

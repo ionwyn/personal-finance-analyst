@@ -180,8 +180,6 @@ function colorForCategory(category: string, index: number) {
 }
 
 export async function getDashboardData(tenantSlug: string) {
-  const investments = getInvestmentDashboardData();
-
   const tenant = await prisma.tenant.findUnique({
     where: { slug: tenantSlug },
     include: {
@@ -199,6 +197,7 @@ export async function getDashboardData(tenantSlug: string) {
     }
   });
 
+  const investments = await getInvestmentDashboardData(tenant?.id);
   if (!tenant) return emptyDashboardData(tenantSlug, investments);
 
   const now = new Date();

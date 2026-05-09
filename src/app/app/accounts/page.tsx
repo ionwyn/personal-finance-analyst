@@ -4,15 +4,17 @@ import {
   CreditCard,
   Landmark,
   MoreHorizontal,
-  Plus,
-  RefreshCw,
-  TrendingUp,
-  Unlink
+  TrendingUp
 } from "lucide-react";
 
 import { AppShell } from "@/components/app-shell";
 import { ItemActions } from "@/components/item-actions";
 import { PlaidLinkButton } from "@/components/plaid-link-button";
+import {
+  SnapTradeConnectionActions,
+  SnapTradeLinkButton,
+  SnapTradeSyncButton
+} from "@/components/snaptrade-actions";
 import { SyncAllButton } from "@/components/sync-all-button";
 import { formatMoney } from "@/components/big-number";
 import { getDashboardData } from "@/lib/analytics";
@@ -133,6 +135,8 @@ function InvestmentsSection({
 }) {
   const { summary, accounts } = data;
   const plPos = summary.plCAD >= 0;
+  const connectionIds = [...new Set(accounts.map((account) => account.connectionId))];
+  const singleConnectionId = connectionIds.length === 1 ? connectionIds[0] : null;
 
   return (
     <>
@@ -188,17 +192,11 @@ function InvestmentsSection({
               <div className="l">Portfolio</div>
             </div>
             <div className="inst-actions">
-              <button className="btn btn-sm" type="button" title="SnapTrade integration coming soon">
-                <RefreshCw size={11} />
-                Sync
-              </button>
-              <button className="btn btn-sm" type="button" title="SnapTrade integration coming soon">
-                Refresh balance
-              </button>
-              <button className="btn btn-sm btn-danger" type="button" title="SnapTrade integration coming soon">
-                <Unlink size={11} />
-                Unlink
-              </button>
+              {singleConnectionId ? (
+                <SnapTradeConnectionActions connectionId={singleConnectionId} />
+              ) : (
+                <SnapTradeSyncButton compact />
+              )}
             </div>
           </div>
 
@@ -236,9 +234,8 @@ function InvestmentsSection({
         </div>
       ) : null}
 
-      <button
+      <div
         className="inst-card"
-        type="button"
         style={{
           width: "100%",
           background: "transparent",
@@ -250,13 +247,11 @@ function InvestmentsSection({
           gap: 10,
           color: "var(--text-3)",
           fontSize: 13,
-          cursor: "pointer"
+          cursor: "default"
         }}
-        title="SnapTrade integration coming soon"
       >
-        <Plus size={14} />
-        Link a brokerage via SnapTrade
-      </button>
+        <SnapTradeLinkButton />
+      </div>
     </>
   );
 }

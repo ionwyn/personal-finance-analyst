@@ -1,8 +1,9 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Plus, RefreshCw, Search } from "lucide-react";
+import { Search } from "lucide-react";
 
+import { SnapTradeLinkButton, SnapTradeSyncButton } from "@/components/snaptrade-actions";
 import { SymLogo } from "@/components/sym-logo";
 import type {
   InvestmentDashboardData,
@@ -92,14 +93,8 @@ export function InvestmentsView({ data }: { data: InvestmentDashboardData }) {
           </div>
         </div>
         <div className="page-actions">
-          <button className="btn" type="button">
-            <RefreshCw size={12} />
-            Sync
-          </button>
-          <button className="btn btn-primary" type="button">
-            <Plus size={12} />
-            Add brokerage
-          </button>
+          <SnapTradeSyncButton />
+          <SnapTradeLinkButton compact />
         </div>
       </div>
 
@@ -188,7 +183,9 @@ export function InvestmentsView({ data }: { data: InvestmentDashboardData }) {
             </div>
             <div className="fx-note">
               <i className="live-dot" />
-              FX live · 1 USD = {summary.fxUSDtoCAD.toFixed(4)} CAD
+              {summary.fxUSDtoCAD
+                ? `FX cached · 1 USD = ${summary.fxUSDtoCAD.toFixed(4)} CAD`
+                : "FX cached during SnapTrade sync"}
             </div>
           </div>
         </div>
@@ -329,16 +326,20 @@ export function InvestmentsView({ data }: { data: InvestmentDashboardData }) {
             </thead>
             <tbody>
               {sorted.map((h) => {
-                const plPos2 = h.plCAD >= 0;
+                const plPos2 = (h.plCAD ?? 0) >= 0;
                 const mv = showCAD ? h.mvCAD : h.mvNative;
-                const plDollar = showCAD
-                  ? h.plCAD
-                  : h.mvNative - h.units * h.avgCost;
+                const plDollar = h.plCAD == null
+                  ? null
+                  : showCAD
+                    ? h.plCAD
+                    : h.avgCost == null
+                      ? null
+                      : h.mvNative - h.units * h.avgCost;
                 return (
                   <tr key={h.id}>
                     <td>
                       <div className="sym-cell">
-                        <SymLogo symbol={h.symbol} bg={h.logoBg} />
+                        <SymLogo symbol={h.symbol} bg={h.logoBg} logoId={h.logoId} />
                         <span className="ticker">{h.symbol}</span>
                         <span
                           className="ccy-tag"
@@ -360,20 +361,24 @@ export function InvestmentsView({ data }: { data: InvestmentDashboardData }) {
                       })}
                     </td>
                     <td className="num" style={{ color: "var(--text-3)" }}>
-                      {h.avgCost.toFixed(2)}
+                      {h.avgCost == null ? "—" : h.avgCost.toFixed(2)}
                     </td>
                     <td className="num">{h.price.toFixed(2)}</td>
                     <td className="num" style={{ fontWeight: 500 }}>
                       ${fmt2(mv)}
                     </td>
                     <td className={`num ${plPos2 ? "pl-pos" : "pl-neg"}`}>
-                      {plPos2 ? "+" : "−"}${fmt2(Math.abs(plDollar))}
+                      {plDollar == null ? "—" : `${plPos2 ? "+" : "−"}$${fmt2(Math.abs(plDollar))}`}
                     </td>
                     <td className="num">
-                      <span className={`pl-chip ${plPos2 ? "pos" : "neg"}`}>
-                        {plPos2 ? "+" : "−"}
-                        {Math.abs(h.plPct).toFixed(2)}%
-                      </span>
+                      {h.plPct == null ? (
+                        "—"
+                      ) : (
+                        <span className={`pl-chip ${plPos2 ? "pos" : "neg"}`}>
+                          {plPos2 ? "+" : "−"}
+                          {Math.abs(h.plPct).toFixed(2)}%
+                        </span>
+                      )}
                     </td>
                     <td className="num">
                       <span className="ccy-tag">{h.currency}</span>
@@ -421,10 +426,13 @@ export function InvestmentsView({ data }: { data: InvestmentDashboardData }) {
 
       <div className="foot-note">
         <span>
-          SnapTrade webhook /api/snaptrade/webhook online · positions cached{" "}
+          SnapTrade positions cached{" "}
           {formatRelative(summary.lastSync)}
         </span>
-        <span>Click column headers to sort · NATIVE/CAD toggle preserves listing currency</span>
+        <span>
+          Click column headers to sort · NATIVE/CAD toggle preserves listing currency
+          {summary.omittedPositionCount > 0 ? ` · ${summary.omittedPositionCount} positions omitted` : ""}
+        </span>
       </div>
     </>
   );

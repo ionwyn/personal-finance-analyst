@@ -1,7 +1,6 @@
 import type { Currency } from "./types";
+import { getFxRate } from "@/lib/snaptrade/fx";
 
-export const FX_USD_TO_CAD = 1.362;
-
-export function toCAD(amount: number, ccy: Currency): number {
-  return ccy === "USD" ? amount * FX_USD_TO_CAD : amount;
+export async function toCAD(amount: number, ccy: Currency): Promise<number> {
+  return amount * await getFxRate(ccy, "CAD");
 }
