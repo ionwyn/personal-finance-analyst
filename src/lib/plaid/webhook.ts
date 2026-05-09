@@ -7,7 +7,17 @@ import { getPlaidClient } from "@/lib/plaid/client";
 const keyCache = new Map<string, JWK>();
 
 export async function verifyPlaidWebhook(rawBody: string, signedJwt: string | null) {
-  if (process.env.PLAID_VERIFY_WEBHOOKS !== "true") return true;
+  const explicitOptOut = process.env.PLAID_VERIFY_WEBHOOKS === "false";
+
+  if (explicitOptOut) {
+    if (process.env.NODE_ENV === "production") {
+      throw new Error(
+        "PLAID_VERIFY_WEBHOOKS=false is not allowed in production. Configure webhook signing in the Plaid dashboard."
+      );
+    }
+    return true;
+  }
+
   if (!signedJwt) return false;
 
   const header = decodeProtectedHeader(signedJwt);

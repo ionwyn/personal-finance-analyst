@@ -115,17 +115,22 @@ export async function syncPlaidItem(itemId: string, source: SyncSource) {
     include: { tenant: true }
   });
 
-  const activeRun = await prisma.syncRun.findFirst({
+  const lockResult = await prisma.plaidItem.updateMany({
     where: {
-      itemId: item.id,
-      status: SyncRunStatus.RUNNING,
-      startedAt: {
-        gt: new Date(Date.now() - ACTIVE_LOCK_MS)
-      }
+      id: item.id,
+      OR: [
+        { status: { in: [PlaidItemStatus.IDLE, PlaidItemStatus.ERROR] } },
+        { status: PlaidItemStatus.SYNCING, updatedAt: { lt: new Date(Date.now() - ACTIVE_LOCK_MS) } }
+      ]
+    },
+    data: {
+      status: PlaidItemStatus.SYNCING,
+      errorCode: null,
+      errorMessage: null
     }
   });
 
-  if (activeRun) {
+  if (lockResult.count === 0) {
     return prisma.syncRun.create({
       data: {
         tenantId: item.tenantId,
@@ -133,7 +138,7 @@ export async function syncPlaidItem(itemId: string, source: SyncSource) {
         source,
         status: SyncRunStatus.SKIPPED,
         completedAt: new Date(),
-        errorMessage: `Skipped because sync run ${activeRun.id} is still active.`
+        errorMessage: "Skipped: another sync is in progress."
       }
     });
   }
@@ -144,15 +149,6 @@ export async function syncPlaidItem(itemId: string, source: SyncSource) {
       itemId: item.id,
       source,
       status: SyncRunStatus.RUNNING
-    }
-  });
-
-  await prisma.plaidItem.update({
-    where: { id: item.id },
-    data: {
-      status: PlaidItemStatus.SYNCING,
-      errorCode: null,
-      errorMessage: null
     }
   });
 
@@ -269,8 +265,32 @@ function shouldRefreshBalance(input: {
   return Date.now() - input.lastBalanceRefreshAt.getTime() > 23 * 60 * 60 * 1000;
 }
 
-export async function syncAllPlaidItems(source: SyncSource = SyncSource.SCHEDULED) {
+async function recoverStuckSyncRuns() {
+  const cutoff = new Date(Date.now() - ACTIVE_LOCK_MS);
+
+  await prisma.syncRun.updateMany({
+    where: { status: SyncRunStatus.RUNNING, startedAt: { lt: cutoff } },
+    data: {
+      status: SyncRunStatus.ERROR,
+      completedAt: new Date(),
+      errorCode: "STUCK_SYNC_RECOVERY",
+      errorMessage: "Sync run was stuck in RUNNING state and was reset by the watchdog."
+    }
+  });
+
+  await prisma.plaidItem.updateMany({
+    where: { status: PlaidItemStatus.SYNCING, updatedAt: { lt: cutoff } },
+    data: {
+      status: PlaidItemStatus.ERROR,
+      errorCode: "STUCK_SYNC_RECOVERY",
+      errorMessage: "PlaidItem was stuck in SYNCING state and was reset by the watchdog."
+    }
+  });
+}
+
+async function syncAllPlaidItemsForTenant(tenantId: string, source: SyncSource) {
   const items = await prisma.plaidItem.findMany({
+    where: { tenantId },
     include: { tenant: true },
     orderBy: { createdAt: "asc" }
   });
@@ -283,6 +303,16 @@ export async function syncAllPlaidItems(source: SyncSource = SyncSource.SCHEDULE
     }
     results.push(syncRun);
   }
+  return results;
+}
 
+export async function syncAllPlaidItems(source: SyncSource = SyncSource.SCHEDULED) {
+  await recoverStuckSyncRuns();
+
+  const tenants = await prisma.tenant.findMany({ select: { id: true } });
+  const results = [];
+  for (const tenant of tenants) {
+    results.push(...(await syncAllPlaidItemsForTenant(tenant.id, source)));
+  }
   return results;
 }

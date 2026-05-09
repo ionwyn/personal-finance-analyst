@@ -1,6 +1,7 @@
 import { SyncSource } from "@prisma/client";
 import { NextResponse } from "next/server";
 
+import { assertWebhookConfig } from "@/lib/env";
 import { prisma } from "@/lib/prisma";
 import { syncPlaidItem } from "@/lib/plaid/sync";
 import { verifyPlaidWebhook } from "@/lib/plaid/webhook";
@@ -12,6 +13,8 @@ type PlaidWebhookBody = {
 };
 
 export async function POST(request: Request) {
+  assertWebhookConfig();
+
   const rawBody = await request.text();
   const signedJwt = request.headers.get("plaid-verification");
 

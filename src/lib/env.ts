@@ -36,3 +36,9 @@ export function getBaseUrl(): string {
 export function getPlaidWebhookUrl(): string {
   return process.env.PLAID_WEBHOOK_URL || `${getBaseUrl()}/api/webhooks/plaid`;
 }
+
+export function assertWebhookConfig() {
+  if (process.env.NODE_ENV === "production" && process.env.PLAID_VERIFY_WEBHOOKS === "false") {
+    throw new Error("PLAID_VERIFY_WEBHOOKS=false is not allowed in production.");
+  }
+}
