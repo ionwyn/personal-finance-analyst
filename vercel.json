@@ -3,6 +3,10 @@
     {
       "path": "/api/jobs/plaid-sync",
       "schedule": "0 */6 * * *"
+    },
+    {
+      "path": "/api/jobs/snaptrade-sync",
+      "schedule": "30 */6 * * *"
     }
   ]
 }
