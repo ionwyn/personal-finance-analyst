@@ -38,8 +38,15 @@ function fallbackColor(name: string) {
 }
 
 export async function getInvestmentDashboardData(tenantId?: string | null): Promise<InvestmentDashboardData> {
-  const { accounts, holdings, cashBalances, fxUSDtoCAD, omittedPositionCount } =
-    await loadInvestments(tenantId);
+  const {
+    accounts,
+    holdings,
+    cashBalances,
+    fxUSDtoCAD,
+    omittedPositionCount,
+    connectionHealth,
+    lastRunErrorMessage
+  } = await loadInvestments(tenantId);
 
   const cashCAD = cashBalances.reduce((s, c) => s + c.valueCAD, 0);
   const holdingsCAD = holdings.reduce((s, h) => s + h.mvCAD, 0);
@@ -68,7 +75,12 @@ export async function getInvestmentDashboardData(tenantId?: string | null): Prom
     cashByCcy: cashBalances,
     lastSync,
     fxUSDtoCAD,
-    omittedPositionCount
+    omittedPositionCount,
+    status: connectionHealth.status,
+    errorCode: connectionHealth.errorCode,
+    errorMessage: connectionHealth.errorMessage ?? lastRunErrorMessage,
+    connectionCount: connectionHealth.connectionCount,
+    failingConnectionCount: connectionHealth.failingConnectionCount
   };
 
   const totalAlloc = holdingsCAD || 1;

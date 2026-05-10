@@ -165,10 +165,7 @@ function InvestmentsSection({
                   <i className="pulse" />
                   BROKERAGE
                 </span>
-                <span className="status idle">
-                  <i className="pulse" />
-                  IDLE
-                </span>
+                <StatusPill status={summary.status} />
               </div>
               <div className="inst-sub">
                 <span>
@@ -185,7 +182,26 @@ function InvestmentsSection({
                   {formatMoney(Math.abs(summary.plCAD))} ({plPos ? "+" : "−"}
                   {Math.abs(summary.plPct).toFixed(2)}%)
                 </span>
+                {summary.errorCode || summary.errorMessage ? (
+                  <>
+                    <span className="sep">·</span>
+                    <span style={{ color: "var(--neg)" }}>
+                      {summary.errorCode ?? "ERROR"}
+                      {summary.failingConnectionCount > 1
+                        ? ` (${summary.failingConnectionCount} connections)`
+                        : ""}
+                    </span>
+                  </>
+                ) : null}
               </div>
+              {summary.errorMessage ? (
+                <div
+                  className="inst-sub"
+                  style={{ color: "var(--neg)", marginTop: 4 }}
+                >
+                  {summary.errorMessage}
+                </div>
+              ) : null}
             </div>
             <div className="inst-balance">
               <div className="v">{formatMoney(summary.portfolioCAD)}</div>

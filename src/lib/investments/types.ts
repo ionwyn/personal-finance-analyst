@@ -53,6 +53,8 @@ export type Allocation = {
   color: string;
 };
 
+export type ConnectionStatus = "IDLE" | "SYNCING" | "ERROR" | "DISABLED";
+
 export type InvestmentSummary = {
   institution: string;
   institutionLogoBg: string;
@@ -68,6 +70,11 @@ export type InvestmentSummary = {
   lastSync: string | null;
   fxUSDtoCAD: number | null;
   omittedPositionCount: number;
+  status: ConnectionStatus;
+  errorCode: string | null;
+  errorMessage: string | null;
+  connectionCount: number;
+  failingConnectionCount: number;
 };
 
 export type InvestmentDashboardData = {
