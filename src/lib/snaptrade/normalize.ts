@@ -59,6 +59,11 @@ export type NormalizedPosition = {
   logoUrl: string | null;
 };
 
+export function isClosedSnapTradeAccountStatus(status: string | null | undefined) {
+  const normalized = status?.trim().toLowerCase().replace(/[\s-]+/g, "_");
+  return normalized === "closed" || normalized === "account_closed";
+}
+
 function dateOrNull(value: string | null | undefined) {
   if (!value) return null;
   const date = new Date(value);

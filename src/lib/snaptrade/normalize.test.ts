@@ -77,4 +77,14 @@ describe("SnapTrade normalization", () => {
     expect(normalized?.pnlPct).toBeNull();
     expect(normalized?.logoUrl).toBeNull();
   });
+
+  it("identifies closed account statuses before per-account sync", async () => {
+    const { isClosedSnapTradeAccountStatus } = await import("@/lib/snaptrade/normalize");
+
+    expect(isClosedSnapTradeAccountStatus("closed")).toBe(true);
+    expect(isClosedSnapTradeAccountStatus("CLOSED")).toBe(true);
+    expect(isClosedSnapTradeAccountStatus("account-closed")).toBe(true);
+    expect(isClosedSnapTradeAccountStatus("open")).toBe(false);
+    expect(isClosedSnapTradeAccountStatus(null)).toBe(false);
+  });
 });
