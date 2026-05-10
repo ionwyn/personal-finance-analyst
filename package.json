@@ -19,6 +19,7 @@
     "dev:db": "docker compose up -d postgres",
     "sync:plaid": "tsx scripts/sync-plaid.ts",
     "seed:demo": "tsx scripts/seed-demo.ts",
+    "backfill:cycles": "tsx scripts/backfill-cycles.ts",
     "secrets": "tsx scripts/print-secret.ts"
   },
   "keywords": [],

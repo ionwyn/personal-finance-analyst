@@ -8,14 +8,33 @@ import { errorMessage, getPlaidErrorCode, getPlaidRequestId, isTransactionsMutat
 import { normalizeTransaction, summarizeTransactionChanges } from "@/lib/plaid/normalize";
 import { refreshAccountsForItem, refreshBalancesForItem } from "@/lib/plaid/accounts";
 import { getPlaidEnv } from "@/lib/env";
+import { classifyTransaction, type ClassifyContext } from "@/lib/cycles/classify";
+import { loadClassifyContext } from "@/lib/cycles/context";
+import { ensureCycleForDate } from "@/lib/cycles/generate";
+import { reconcileSweeps } from "@/lib/cycles/sweepReconcile";
 
 const PAGE_SIZE = 500;
 const ACTIVE_LOCK_MS = 15 * 60 * 1000;
+
+type CycleSyncState = {
+  context: ClassifyContext;
+  affectedCycleIds: Set<string>;
+  errors: string[];
+};
+
+function isCycleStartDay(txDate: Date, cycleStart: Date) {
+  return (
+    txDate.getUTCFullYear() === cycleStart.getUTCFullYear() &&
+    txDate.getUTCMonth() === cycleStart.getUTCMonth() &&
+    txDate.getUTCDate() === cycleStart.getUTCDate()
+  );
+}
 
 async function applyAddedOrModified(input: {
   tenantId: string;
   itemId: string;
   transaction: Transaction;
+  cycleState?: CycleSyncState;
 }) {
   const normalized = normalizeTransaction(input.transaction);
   const account = await prisma.plaidAccount.findUnique({
@@ -25,6 +44,46 @@ async function applyAddedOrModified(input: {
 
   if (!account) {
     throw new Error(`Missing Plaid account ${normalized.plaidAccountId} for transaction ${normalized.plaidTransactionId}`);
+  }
+
+  const existing = await prisma.plaidTransaction.findUnique({
+    where: { plaidTransactionId: normalized.plaidTransactionId },
+    select: { id: true, isManuallyCategorized: true, txnType: true, categoryId: true }
+  });
+
+  const cycleFields: { cycleId?: string; txnType?: string; categoryId?: string | null } = {};
+  let cycleStartHit: { cycleId: string; startDate: Date } | null = null;
+  let classified: ReturnType<typeof classifyTransaction> | null = null;
+
+  if (input.cycleState) {
+    try {
+      const cycle = await ensureCycleForDate(input.tenantId, normalized.date);
+      cycleFields.cycleId = cycle.id;
+      input.cycleState.affectedCycleIds.add(cycle.id);
+
+      classified = classifyTransaction(
+        {
+          amount: normalized.amount,
+          merchantName: normalized.merchantName,
+          name: normalized.name,
+          date: normalized.date,
+          isManuallyCategorized: existing?.isManuallyCategorized ?? false,
+          existingTxnType: existing?.txnType ?? null,
+          existingCategoryId: existing?.categoryId ?? null
+        },
+        input.cycleState.context
+      );
+      cycleFields.txnType = classified.txnType;
+      cycleFields.categoryId = classified.categoryId;
+
+      if (isCycleStartDay(normalized.date, cycle.startDate)) {
+        cycleStartHit = { cycleId: cycle.id, startDate: cycle.startDate };
+      }
+    } catch (error) {
+      input.cycleState.errors.push(
+        `classify ${normalized.plaidTransactionId}: ${error instanceof Error ? error.message : String(error)}`
+      );
+    }
   }
 
   await prisma.plaidTransaction.upsert({
@@ -49,7 +108,8 @@ async function applyAddedOrModified(input: {
       categoryConfidence: normalized.categoryConfidence,
       pending: normalized.pending,
       removed: false,
-      raw: normalized.raw
+      raw: normalized.raw,
+      ...cycleFields
     },
     create: {
       tenantId: input.tenantId,
@@ -71,9 +131,31 @@ async function applyAddedOrModified(input: {
       categoryDetailed: normalized.categoryDetailed,
       categoryConfidence: normalized.categoryConfidence,
       pending: normalized.pending,
-      raw: normalized.raw
+      raw: normalized.raw,
+      ...cycleFields
     }
   });
+
+  if (input.cycleState && classified && cycleStartHit) {
+    try {
+      const amountAbs = normalized.amount.abs();
+      if (classified.txnType === "income") {
+        await prisma.payCycle.update({
+          where: { id: cycleStartHit.cycleId },
+          data: { incomeReceived: amountAbs }
+        });
+      } else if (classified.txnType === "savings") {
+        await prisma.payCycle.update({
+          where: { id: cycleStartHit.cycleId },
+          data: { fixedSavingsPull: amountAbs }
+        });
+      }
+    } catch (error) {
+      input.cycleState.errors.push(
+        `cycle update ${cycleStartHit.cycleId}: ${error instanceof Error ? error.message : String(error)}`
+      );
+    }
+  }
 }
 
 async function applyRemoved(transaction: RemovedTransaction) {
@@ -93,13 +175,24 @@ async function applyTransactionChanges(input: {
   added: Transaction[];
   modified: Transaction[];
   removed: RemovedTransaction[];
+  cycleState?: CycleSyncState;
 }) {
   for (const transaction of input.added) {
-    await applyAddedOrModified({ tenantId: input.tenantId, itemId: input.itemId, transaction });
+    await applyAddedOrModified({
+      tenantId: input.tenantId,
+      itemId: input.itemId,
+      transaction,
+      cycleState: input.cycleState
+    });
   }
 
   for (const transaction of input.modified) {
-    await applyAddedOrModified({ tenantId: input.tenantId, itemId: input.itemId, transaction });
+    await applyAddedOrModified({
+      tenantId: input.tenantId,
+      itemId: input.itemId,
+      transaction,
+      cycleState: input.cycleState
+    });
   }
 
   for (const transaction of input.removed) {
@@ -157,8 +250,17 @@ export async function syncPlaidItem(itemId: string, source: SyncSource) {
   let removedCount = 0;
   let accountsCount = 0;
   let requestId: string | undefined;
+  let cycleState: CycleSyncState | undefined;
 
   try {
+    try {
+      const context = await loadClassifyContext(item.tenantId);
+      cycleState = { context, affectedCycleIds: new Set(), errors: [] };
+    } catch (error) {
+      // Classification is non-fatal — log the failure but proceed with the raw sync.
+      console.warn("Failed to load cycle classification context", error);
+    }
+
     const accessToken = decryptToken(item.accessTokenEncrypted);
     accountsCount = await refreshAccountsForItem(item.id);
 
@@ -182,7 +284,8 @@ export async function syncPlaidItem(itemId: string, source: SyncSource) {
           itemId: item.id,
           added: response.data.added,
           modified: response.data.modified,
-          removed: response.data.removed
+          removed: response.data.removed,
+          cycleState
         });
 
         addedCount += changes.addedCount;
@@ -201,9 +304,20 @@ export async function syncPlaidItem(itemId: string, source: SyncSource) {
           addedCount = 0;
           modifiedCount = 0;
           removedCount = 0;
+          if (cycleState) cycleState.affectedCycleIds.clear();
           continue;
         }
         throw error;
+      }
+    }
+
+    if (cycleState && cycleState.affectedCycleIds.size > 0) {
+      try {
+        await reconcileSweeps(item.tenantId, Array.from(cycleState.affectedCycleIds));
+      } catch (error) {
+        cycleState.errors.push(
+          `reconcileSweeps: ${error instanceof Error ? error.message : String(error)}`
+        );
       }
     }
 
@@ -216,6 +330,10 @@ export async function syncPlaidItem(itemId: string, source: SyncSource) {
       }
     });
 
+    const cycleErrorMessage = cycleState?.errors.length
+      ? cycleState.errors.slice(0, 5).join("; ")
+      : null;
+
     return prisma.syncRun.update({
       where: { id: run.id },
       data: {
@@ -225,7 +343,8 @@ export async function syncPlaidItem(itemId: string, source: SyncSource) {
         modifiedCount,
         removedCount,
         accountsCount,
-        plaidRequestId: requestId
+        plaidRequestId: requestId,
+        errorMessage: cycleErrorMessage
       }
     });
   } catch (error) {

@@ -57,6 +57,13 @@ model Tenant {
   snapTradePositions    SnapTradePosition[]
   snapTradeCashBalances SnapTradeCashBalance[]
   snapTradeSyncRuns     SnapTradeSyncRun[]
+  payCycles             PayCycle[]
+  categories            Category[]
+  categoryRules         CategoryRule[]
+  recurringExpenses     RecurringExpense[]
+  savingsDestinations   SavingsDestination[]
+  settlementPatterns    SettlementPattern[]
+  userSettings          UserSettings?
 
   @@index([kind])
 }
@@ -196,12 +203,22 @@ model PlaidTransaction {
   pending                Boolean   @default(false)
   removed                Boolean   @default(false)
   raw                    Json
+  cycleId                String?
+  txnType                String    @default("expense")
+  categoryId             String?
+  isManuallyCategorized  Boolean   @default(false)
+  source                 String    @default("plaid")
+  supersededById         String?   @unique
   createdAt              DateTime  @default(now())
   updatedAt              DateTime  @updatedAt
 
-  tenant  Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  item    PlaidItem    @relation(fields: [itemId], references: [id], onDelete: Cascade)
-  account PlaidAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  tenant       Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  item         PlaidItem         @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  account      PlaidAccount      @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  cycle        PayCycle?         @relation(fields: [cycleId], references: [id], onDelete: SetNull)
+  category     Category?         @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  supersededBy PlaidTransaction? @relation("ManualSweepSupersession", fields: [supersededById], references: [id], onDelete: SetNull)
+  supersedes   PlaidTransaction? @relation("ManualSweepSupersession")
 
   @@index([tenantId, date])
   @@index([accountId, date])
@@ -209,6 +226,9 @@ model PlaidTransaction {
   @@index([removed])
   @@index([merchantName])
   @@index([categoryPrimary])
+  @@index([tenantId, cycleId])
+  @@index([tenantId, txnType, date])
+  @@index([categoryId])
 }
 
 model BalanceSnapshot {
@@ -417,4 +437,129 @@ model SnapTradeSecurityLogo {
   positions SnapTradePosition[]
 
   @@index([status])
+}
+
+model PayCycle {
+  id                    String    @id @default(cuid())
+  tenantId              String
+  startDate             DateTime
+  endDate               DateTime
+  incomeReceived        Decimal?  @db.Decimal(18, 2)
+  fixedSavingsPull      Decimal?  @db.Decimal(18, 2)
+  sweptAmount           Decimal?  @db.Decimal(18, 2)
+  carryover             Decimal   @default(0) @db.Decimal(18, 2)
+  creditCardPaymentDate DateTime?
+  notes                 String?
+  closedAt              DateTime?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  tenant       Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  transactions PlaidTransaction[]
+
+  @@unique([tenantId, startDate])
+  @@index([tenantId, startDate, endDate])
+}
+
+model Category {
+  id        String   @id @default(cuid())
+  tenantId  String
+  name      String
+  parentId  String?
+  color     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant       Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  parent       Category?          @relation("CategoryParent", fields: [parentId], references: [id], onDelete: SetNull)
+  children     Category[]         @relation("CategoryParent")
+  rules        CategoryRule[]
+  expenses     RecurringExpense[]
+  transactions PlaidTransaction[]
+
+  @@unique([tenantId, name, parentId])
+  @@index([tenantId])
+}
+
+model CategoryRule {
+  id              String   @id @default(cuid())
+  tenantId        String
+  merchantPattern String
+  categoryId      String
+  priority        Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  tenant   Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, priority])
+  @@index([categoryId])
+}
+
+model RecurringExpense {
+  id              String    @id @default(cuid())
+  tenantId        String
+  name            String
+  merchantPattern String?
+  amount          Decimal   @db.Decimal(18, 2)
+  frequency       String
+  anchorDate      Int?
+  accrualPerCycle Decimal   @db.Decimal(18, 2)
+  categoryId      String?
+  confirmed       Boolean   @default(false)
+  active          Boolean   @default(true)
+  dismissedAt     DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  tenant   Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  category Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, active])
+  @@index([categoryId])
+}
+
+model SavingsDestination {
+  id           String   @id @default(cuid())
+  tenantId     String
+  accountName  String
+  matchPattern String
+  label        String?
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, active])
+}
+
+model SettlementPattern {
+  id           String   @id @default(cuid())
+  tenantId     String
+  label        String
+  matchPattern String
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, active])
+}
+
+model UserSettings {
+  id                      String    @id @default(cuid())
+  tenantId                String    @unique
+  payFrequencyDays        Int       @default(14)
+  lastPaycheckDate        DateTime?
+  employerMerchantPattern String?
+  defaultFixedSavings     Decimal?  @db.Decimal(18, 2)
+  sweepBuffer             Decimal   @default(100) @db.Decimal(18, 2)
+  ccPaymentDayOfMonth     Int?
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 }
