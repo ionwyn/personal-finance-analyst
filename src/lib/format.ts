@@ -15,6 +15,16 @@ export function formatDate(value?: Date | string | null) {
   }).format(new Date(value));
 }
 
+export function formatUtcDate(value?: Date | string | null) {
+  if (!value) return "Never";
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    timeZone: "UTC"
+  }).format(new Date(value));
+}
+
 export function formatDateTime(value?: Date | string | null) {
   if (!value) return "Never";
   return new Intl.DateTimeFormat("en-US", {
