@@ -26,7 +26,7 @@ export function getPlaidClient() {
 export async function createTransactionsLinkToken(clientUserId: string) {
   const response = await getPlaidClient().linkTokenCreate({
     client_name: "TD Finance Analytics",
-    country_codes: [CountryCode.Us],
+    country_codes: [CountryCode.Ca],
     language: "en",
     products: [Products.Transactions],
     webhook: getPlaidWebhookUrl(),
