@@ -2,8 +2,11 @@ import Link from "next/link";
 import { CheckCircle2, Clock, Hourglass } from "lucide-react";
 
 import { BigNumber, formatMoney } from "@/components/big-number";
+import { DiscoveryPanel } from "@/components/discovery-panel";
+import { SweepPrompt } from "@/components/sweep-prompt";
 import { formatDate } from "@/lib/format";
 import type { CommittedItem, CurrentCycleData } from "@/lib/cycles/getCurrentCycle";
+import type { DiscoveryCandidate } from "@/lib/cycles/discovery";
 
 function toNumber(value: { toString(): string } | null | undefined): number {
   if (value == null) return 0;
@@ -34,7 +37,13 @@ function StatusBadge({ status }: { status: CommittedItem["status"] }) {
   );
 }
 
-export function CycleView({ data }: { data: CurrentCycleData }) {
+export function CycleView({
+  data,
+  discoveryCandidates
+}: {
+  data: CurrentCycleData;
+  discoveryCandidates: DiscoveryCandidate[];
+}) {
   const {
     cycle,
     daysRemaining,
@@ -48,7 +57,8 @@ export function CycleView({ data }: { data: CurrentCycleData }) {
     creditCardBalanceInCycle,
     sweepBuffer,
     safeToSweep,
-    settingsConfigured
+    settingsConfigured,
+    breakdown
   } = data;
 
   const cycleLabel = `${formatDate(cycle.startDate)} – ${formatDate(cycle.endDate)}`;
@@ -75,6 +85,9 @@ export function CycleView({ data }: { data: CurrentCycleData }) {
           </div>
         </div>
         <div className="page-actions">
+          <Link className="btn btn-sm" href={"/app/cycles/history" as never}>
+            History
+          </Link>
           <Link className="btn btn-sm" href={"/app/settings" as never}>
             Settings
           </Link>
@@ -96,6 +109,13 @@ export function CycleView({ data }: { data: CurrentCycleData }) {
         </section>
       ) : null}
 
+      {settingsConfigured && daysRemaining <= 1 ? (
+        <SweepPrompt
+          suggestedAmount={Math.max(0, safe)}
+          alreadySwept={toNumber(cycle.sweptAmount)}
+        />
+      ) : null}
+
       {safeToSweep.overCommitted ? (
         <section
           className="panel"
@@ -106,6 +126,12 @@ export function CycleView({ data }: { data: CurrentCycleData }) {
             Safe-to-sweep is clamped to zero.
           </div>
         </section>
+      ) : null}
+
+      {discoveryCandidates.length > 0 ? (
+        <div style={{ marginBottom: 16 }}>
+          <DiscoveryPanel candidates={discoveryCandidates} />
+        </div>
       ) : null}
 
       <div className="kpi-grid">
@@ -303,7 +329,135 @@ export function CycleView({ data }: { data: CurrentCycleData }) {
           </div>
         </div>
       </div>
+
+      <div className="panel" style={{ marginTop: 16 }}>
+        <div className="panel-head">
+          <div className="panel-title">Spending breakdown</div>
+          <div className="panel-meta">
+            {breakdown.rows.length} {breakdown.rows.length === 1 ? "CATEGORY" : "CATEGORIES"} ·{" "}
+            DISCRETIONARY {formatMoney(breakdown.discretionaryRemaining, { sign: true })} LEFT
+          </div>
+        </div>
+        <div className="panel-body">
+          {breakdown.rows.length === 0 ? (
+            <div style={{ color: "var(--text-3)", fontSize: 12 }}>
+              No categorized expenses this cycle yet.
+            </div>
+          ) : (
+            <>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  marginBottom: 8,
+                  fontSize: 11,
+                  color: "var(--text-3)",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.06em"
+                }}
+              >
+                <span>
+                  This cycle{" "}
+                  <span className="mono" style={{ color: "var(--text)" }}>
+                    {formatMoney(breakdown.total)}
+                  </span>
+                </span>
+                <span>
+                  Last cycle{" "}
+                  <span className="mono" style={{ color: "var(--text-3)" }}>
+                    {formatMoney(breakdown.previousTotal)}
+                  </span>{" "}
+                  ({formatMoney(breakdown.total - breakdown.previousTotal, { sign: true })})
+                </span>
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                {breakdown.rows.map((r) => (
+                  <CategoryBar
+                    key={r.categoryId ?? r.category}
+                    label={r.category}
+                    color={r.color}
+                    amount={r.amount}
+                    pct={r.pct}
+                    delta={r.delta}
+                  />
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+      </div>
     </>
+  );
+}
+
+function CategoryBar({
+  label,
+  color,
+  amount,
+  pct,
+  delta
+}: {
+  label: string;
+  color: string;
+  amount: number;
+  pct: number;
+  delta: number | null;
+}) {
+  return (
+    <div>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          fontSize: 12,
+          marginBottom: 3
+        }}
+      >
+        <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <i
+            style={{
+              width: 8,
+              height: 8,
+              borderRadius: "50%",
+              background: color
+            }}
+          />
+          {label}
+        </span>
+        <span
+          className="mono"
+          style={{ fontVariantNumeric: "tabular-nums", display: "flex", gap: 8 }}
+        >
+          <span>{formatMoney(amount)}</span>
+          {delta !== null ? (
+            <span
+              style={{
+                fontSize: 10,
+                color: delta > 0 ? "var(--neg)" : "var(--pos)",
+                width: 56,
+                textAlign: "right"
+              }}
+            >
+              {delta > 0 ? "+" : ""}
+              {formatMoney(delta, { sign: false })}
+            </span>
+          ) : (
+            <span style={{ width: 56 }} />
+          )}
+        </span>
+      </div>
+      <div
+        style={{
+          height: 4,
+          background: "var(--surface-2)",
+          borderRadius: 2,
+          overflow: "hidden"
+        }}
+      >
+        <div style={{ width: `${pct}%`, height: "100%", background: color }} />
+      </div>
+    </div>
   );
 }
 

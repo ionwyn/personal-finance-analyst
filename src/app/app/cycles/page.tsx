@@ -5,6 +5,7 @@ import { AppShell } from "@/components/app-shell";
 import { CycleView } from "@/components/cycle-view";
 import { authOptions } from "@/lib/auth";
 import { getCurrentCycleData } from "@/lib/cycles/getCurrentCycle";
+import { discoverRecurringCandidates } from "@/lib/cycles/discovery";
 import { getUserTenant } from "@/lib/tenant";
 
 export const dynamic = "force-dynamic";
@@ -16,7 +17,10 @@ export default async function CyclesPage() {
   const tenant = await getUserTenant(session.user.id);
   if (!tenant) redirect("/signin");
 
-  const data = await getCurrentCycleData(tenant.id);
+  const [data, discoveryCandidates] = await Promise.all([
+    getCurrentCycleData(tenant.id),
+    discoverRecurringCandidates(tenant.id)
+  ]);
 
   return (
     <AppShell
@@ -29,7 +33,7 @@ export default async function CyclesPage() {
       }}
     >
       {data ? (
-        <CycleView data={data} />
+        <CycleView data={data} discoveryCandidates={discoveryCandidates} />
       ) : (
         <section className="empty-state">
           <h2>No active cycle</h2>

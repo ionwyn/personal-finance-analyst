@@ -4,6 +4,11 @@ import { prisma } from "@/lib/prisma";
 import { closeOverdueCycles, getActiveCarryover } from "@/lib/cycles/close";
 import { computeSafeToSweep, type SafeToSweepResult } from "@/lib/cycles/safeToSweep";
 import { ensureCycleForDate } from "@/lib/cycles/generate";
+import {
+  findPreviousCycleId,
+  getSpendingBreakdown,
+  type SpendingBreakdownData
+} from "@/lib/cycles/getSpendingBreakdown";
 
 export type CommittedStatus = "debited" | "accrued" | "upcoming";
 
@@ -41,6 +46,7 @@ export type CurrentCycleData = {
   sweepBuffer: Prisma.Decimal;
   safeToSweep: SafeToSweepResult;
   settingsConfigured: boolean;
+  breakdown: SpendingBreakdownData;
 };
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -199,6 +205,26 @@ export async function getCurrentCycleData(tenantId: string, now: Date = new Date
 
   const daysRemaining = Math.max(0, Math.ceil((cycleEnd.getTime() - today.getTime()) / DAY_MS));
 
+  const incomeReceivedNum = cycle.incomeReceived
+    ? Number(cycle.incomeReceived.toString())
+    : 0;
+  const fixedSavingsPullNum = cycle.fixedSavingsPull
+    ? Number(cycle.fixedSavingsPull.toString())
+    : 0;
+  const committedAccrualsNum = Number(committedTotalAccrued.toString());
+  const discretionaryBudget = Math.max(
+    0,
+    incomeReceivedNum - fixedSavingsPullNum - committedAccrualsNum
+  );
+
+  const previousCycleId = await findPreviousCycleId(tenantId, cycle.startDate);
+  const breakdown = await getSpendingBreakdown(
+    tenantId,
+    cycle.id,
+    previousCycleId,
+    discretionaryBudget
+  );
+
   return {
     cycle: {
       id: cycle.id,
@@ -222,6 +248,7 @@ export async function getCurrentCycleData(tenantId: string, now: Date = new Date
     creditCardBalanceInCycle,
     sweepBuffer,
     safeToSweep,
-    settingsConfigured
+    settingsConfigured,
+    breakdown
   };
 }

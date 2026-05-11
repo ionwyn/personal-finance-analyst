@@ -4,9 +4,15 @@ import { getServerSession } from "next-auth";
 import { AppShell } from "@/components/app-shell";
 import { formatMoney } from "@/components/big-number";
 import { ExportCsvButton, TransactionsToolbar } from "@/components/transactions-toolbar";
+import {
+  UncategorizedQueue,
+  type CategoryOption,
+  type UncategorizedRow
+} from "@/components/uncategorized-queue";
 import { getDashboardData, getTransactionsForTenant } from "@/lib/analytics";
 import { authOptions } from "@/lib/auth";
 import { formatDate } from "@/lib/format";
+import { prisma } from "@/lib/prisma";
 import { getUserTenant } from "@/lib/tenant";
 
 export const dynamic = "force-dynamic";
@@ -29,7 +35,7 @@ export default async function TransactionsPage({ searchParams }: Props) {
   const tenant = await getUserTenant(session.user.id);
   const slug = tenant?.slug ?? "personal";
 
-  const [transactions, dashboard] = await Promise.all([
+  const [transactions, dashboard, uncategorizedData, categories] = await Promise.all([
     getTransactionsForTenant({
       tenantSlug: slug,
       q: params.q,
@@ -38,8 +44,40 @@ export default async function TransactionsPage({ searchParams }: Props) {
       category: params.category,
       account: params.account
     }),
-    getDashboardData(slug)
+    getDashboardData(slug),
+    tenant
+      ? prisma.plaidTransaction.findMany({
+          where: {
+            tenantId: tenant.id,
+            removed: false,
+            supersededById: null,
+            txnType: "expense",
+            categoryId: null,
+            isManuallyCategorized: false
+          },
+          orderBy: { date: "desc" },
+          take: 30,
+          include: { account: { select: { name: true } } }
+        })
+      : Promise.resolve([]),
+    tenant
+      ? prisma.category.findMany({
+          where: { tenantId: tenant.id },
+          orderBy: { name: "asc" },
+          select: { id: true, name: true, color: true }
+        })
+      : Promise.resolve([])
   ]);
+
+  const uncategorized: UncategorizedRow[] = uncategorizedData.map((t) => ({
+    id: t.id,
+    date: t.date.toISOString(),
+    name: t.name,
+    merchantName: t.merchantName,
+    amount: Number(t.amount.toString()),
+    account: t.account.name
+  }));
+  const categoryOptionsForQueue: CategoryOption[] = categories;
 
   const totalCount = dashboard.totals.transactionCount;
   const income = transactions.filter((t) => t.amount < 0).reduce((s, t) => s + Math.abs(t.amount), 0);
@@ -112,6 +150,8 @@ export default async function TransactionsPage({ searchParams }: Props) {
         accountOptions={accountOptions}
         categoryColors={categoryColors}
       />
+
+      <UncategorizedQueue rows={uncategorized} categories={categoryOptionsForQueue} />
 
       <div className="panel">
         <div
