@@ -54,7 +54,6 @@ export function CycleView({
     carryover,
     chequingBalance,
     creditCardBalance,
-    creditCardBalanceInCycle,
     sweepBuffer,
     safeToSweep,
     settingsConfigured,
@@ -70,7 +69,6 @@ export function CycleView({
   const carry = toNumber(carryover);
   const chequing = toNumber(chequingBalance);
   const ccBalance = toNumber(creditCardBalance);
-  const ccInCycle = toNumber(creditCardBalanceInCycle);
   const buffer = toNumber(sweepBuffer);
   const safe = toNumber(safeToSweep.amount);
 
@@ -244,14 +242,12 @@ export function CycleView({
               />
               <BreakdownRow
                 label={
-                  ccInCycle > 0
-                    ? `Credit card due this cycle (${cycle.creditCardPaymentDate ? formatDate(cycle.creditCardPaymentDate) : ""})`
+                  cycle.creditCardPaymentDate
+                    ? `Credit card balance (due this cycle ${formatDate(cycle.creditCardPaymentDate)})`
                     : "Credit card balance (not due this cycle)"
                 }
-                value={ccInCycle}
+                value={ccBalance}
                 sign="−"
-                muted={ccInCycle === 0}
-                hint={ccInCycle === 0 && ccBalance > 0 ? `${formatMoney(ccBalance)} outstanding` : undefined}
               />
               <BreakdownRow label="Sweep buffer" value={buffer} sign="−" />
               <BreakdownRow
@@ -322,7 +318,7 @@ export function CycleView({
               <Row label="Credit card outstanding" value={formatMoney(ccBalance)} />
               <Row
                 label="CC due this cycle"
-                value={ccInCycle > 0 ? formatMoney(ccInCycle) : "—"}
+                value={cycle.creditCardPaymentDate ? formatDate(cycle.creditCardPaymentDate) : "—"}
               />
               <Row label="Sweep buffer setting" value={formatMoney(buffer)} />
             </div>
@@ -490,15 +486,11 @@ function Row({ label, value, accent }: { label: string; value: string; accent?: 
 function BreakdownRow({
   label,
   value,
-  sign,
-  muted,
-  hint
+  sign
 }: {
   label: string;
   value: number;
   sign: "+" | "−";
-  muted?: boolean;
-  hint?: string;
 }) {
   return (
     <div
@@ -507,14 +499,10 @@ function BreakdownRow({
         justifyContent: "space-between",
         alignItems: "center",
         padding: "3px 0",
-        fontSize: 12,
-        opacity: muted ? 0.5 : 1
+        fontSize: 12
       }}
     >
-      <span style={{ color: "var(--text-3)" }}>
-        {label}
-        {hint ? <span style={{ marginLeft: 6, color: "var(--text-4)" }}>{hint}</span> : null}
-      </span>
+      <span style={{ color: "var(--text-3)" }}>{label}</span>
       <span
         className="mono"
         style={{

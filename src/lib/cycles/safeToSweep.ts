@@ -6,7 +6,7 @@ export type SafeToSweepInput = {
   chequingBalance: Numeric;
   pendingExpenses?: Numeric;
   unsettledAccruals?: Numeric;
-  creditCardBalanceThisCycle?: Numeric;
+  creditCardBalance?: Numeric;
   sweepBuffer?: Numeric;
   carryover?: Numeric;
 };
@@ -19,7 +19,7 @@ export type SafeToSweepResult = {
     chequingBalance: Prisma.Decimal;
     pendingExpenses: Prisma.Decimal;
     unsettledAccruals: Prisma.Decimal;
-    creditCardBalanceThisCycle: Prisma.Decimal;
+    creditCardBalance: Prisma.Decimal;
     sweepBuffer: Prisma.Decimal;
     carryover: Prisma.Decimal;
   };
@@ -35,14 +35,14 @@ export function computeSafeToSweep(input: SafeToSweepInput): SafeToSweepResult {
   const chequingBalance = toDecimal(input.chequingBalance);
   const pendingExpenses = toDecimal(input.pendingExpenses);
   const unsettledAccruals = toDecimal(input.unsettledAccruals);
-  const creditCardBalanceThisCycle = toDecimal(input.creditCardBalanceThisCycle);
+  const creditCardBalance = toDecimal(input.creditCardBalance);
   const sweepBuffer = toDecimal(input.sweepBuffer);
   const carryover = toDecimal(input.carryover);
 
   const raw = chequingBalance
     .sub(pendingExpenses)
     .sub(unsettledAccruals)
-    .sub(creditCardBalanceThisCycle)
+    .sub(creditCardBalance)
     .sub(sweepBuffer)
     .add(carryover);
 
@@ -57,7 +57,7 @@ export function computeSafeToSweep(input: SafeToSweepInput): SafeToSweepResult {
       chequingBalance,
       pendingExpenses,
       unsettledAccruals,
-      creditCardBalanceThisCycle,
+      creditCardBalance,
       sweepBuffer,
       carryover
     }

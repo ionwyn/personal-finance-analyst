@@ -42,7 +42,6 @@ export type CurrentCycleData = {
   carryover: Prisma.Decimal;
   chequingBalance: Prisma.Decimal;
   creditCardBalance: Prisma.Decimal;
-  creditCardBalanceInCycle: Prisma.Decimal;
   sweepBuffer: Prisma.Decimal;
   safeToSweep: SafeToSweepResult;
   settingsConfigured: boolean;
@@ -101,7 +100,6 @@ export async function getCurrentCycleData(tenantId: string, now: Date = new Date
   }
 
   const ccDate = ccPaymentDateInCycle(cycle.startDate, cycle.endDate, settings?.ccPaymentDayOfMonth ?? null);
-  const creditCardBalanceInCycle = ccDate ? creditCardBalance : new Prisma.Decimal(0);
 
   const cycleTxAgg = await prisma.plaidTransaction.groupBy({
     by: ["txnType"],
@@ -198,7 +196,7 @@ export async function getCurrentCycleData(tenantId: string, now: Date = new Date
     chequingBalance,
     pendingExpenses: pendingSum,
     unsettledAccruals,
-    creditCardBalanceThisCycle: creditCardBalanceInCycle,
+    creditCardBalance,
     sweepBuffer,
     carryover
   });
@@ -245,7 +243,6 @@ export async function getCurrentCycleData(tenantId: string, now: Date = new Date
     carryover,
     chequingBalance,
     creditCardBalance,
-    creditCardBalanceInCycle,
     sweepBuffer,
     safeToSweep,
     settingsConfigured,

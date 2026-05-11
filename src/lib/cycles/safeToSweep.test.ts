@@ -24,10 +24,10 @@ describe("computeSafeToSweep", () => {
     expect(result.rawAmount.toNumber()).toBe(-200);
   });
 
-  it("includes CC balance when within this cycle", () => {
+  it("subtracts credit card balance from sweepable cash", () => {
     const result = computeSafeToSweep({
       chequingBalance: 3000,
-      creditCardBalanceThisCycle: 1500,
+      creditCardBalance: 1500,
       sweepBuffer: 100
     });
     expect(result.amount.toNumber()).toBe(1400);
