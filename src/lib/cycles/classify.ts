@@ -35,7 +35,7 @@ function toAmountNumber(value: Prisma.Decimal | number) {
 }
 
 function searchableMerchant(input: ClassifyInput) {
-  return `${input.merchantName ?? ""} ${input.name ?? ""}`.toUpperCase().trim();
+  return `${input.name ?? ""} ${input.merchantName ?? ""}`.toUpperCase().trim();
 }
 
 function matchesPattern(haystack: string, pattern: string) {
