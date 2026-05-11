@@ -2,6 +2,7 @@ import Link from "next/link";
 import { CheckCircle2, Clock, Hourglass } from "lucide-react";
 
 import { BigNumber, formatMoney } from "@/components/big-number";
+import { CategoryBar } from "@/components/category-bar";
 import { DiscoveryPanel } from "@/components/discovery-panel";
 import { SweepPrompt } from "@/components/sweep-prompt";
 import { formatUtcDate } from "@/lib/format";
@@ -383,77 +384,6 @@ export function CycleView({
         </div>
       </div>
     </>
-  );
-}
-
-function CategoryBar({
-  label,
-  color,
-  amount,
-  pct,
-  delta
-}: {
-  label: string;
-  color: string;
-  amount: number;
-  pct: number;
-  delta: number | null;
-}) {
-  return (
-    <div>
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          fontSize: 12,
-          marginBottom: 3
-        }}
-      >
-        <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          <i
-            style={{
-              width: 8,
-              height: 8,
-              borderRadius: "50%",
-              background: color
-            }}
-          />
-          {label}
-        </span>
-        <span
-          className="mono"
-          style={{ fontVariantNumeric: "tabular-nums", display: "flex", gap: 8 }}
-        >
-          <span>{formatMoney(amount)}</span>
-          {delta !== null ? (
-            <span
-              style={{
-                fontSize: 10,
-                color: delta > 0 ? "var(--neg)" : "var(--pos)",
-                width: 56,
-                textAlign: "right"
-              }}
-            >
-              {delta > 0 ? "+" : ""}
-              {formatMoney(delta, { sign: false })}
-            </span>
-          ) : (
-            <span style={{ width: 56 }} />
-          )}
-        </span>
-      </div>
-      <div
-        style={{
-          height: 4,
-          background: "var(--surface-2)",
-          borderRadius: 2,
-          overflow: "hidden"
-        }}
-      >
-        <div style={{ width: `${pct}%`, height: "100%", background: color }} />
-      </div>
-    </div>
   );
 }
 

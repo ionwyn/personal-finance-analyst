@@ -9,6 +9,7 @@ import {
   CalendarClock,
   LayoutGrid,
   LogOut,
+  PieChart,
   PlayCircle,
   Settings,
   TrendingUp,
@@ -48,8 +49,9 @@ export function Sidebar({
           { key: "dashboard", label: "Dashboard", href: "/app", icon: <LayoutGrid size={ICON_SIZE} />, kbd: "⌘1" },
           { key: "accounts", label: "Accounts", href: "/app/accounts", icon: <Wallet size={ICON_SIZE} />, kbd: "⌘2" },
           { key: "transactions", label: "Transactions", href: "/app/transactions", icon: <ArrowLeftRight size={ICON_SIZE} />, kbd: "⌘3" },
-          { key: "investments", label: "Investments", href: "/app/investments", icon: <TrendingUp size={ICON_SIZE} />, kbd: "⌘4" },
-          { key: "cycles", label: "Pay cycles", href: "/app/cycles", icon: <CalendarClock size={ICON_SIZE} />, kbd: "⌘5" }
+          { key: "spending-insight", label: "Spending Insight", href: "/app/spending-insight", icon: <PieChart size={ICON_SIZE} />, kbd: "⌘4" },
+          { key: "investments", label: "Investments", href: "/app/investments", icon: <TrendingUp size={ICON_SIZE} />, kbd: "⌘5" },
+          { key: "cycles", label: "Pay cycles", href: "/app/cycles", icon: <CalendarClock size={ICON_SIZE} />, kbd: "⌘6" }
         ]
       : [
           { key: "demo", label: "Dashboard", href: "/demo", icon: <LayoutGrid size={ICON_SIZE} />, kbd: "⌘1" }
@@ -70,8 +72,9 @@ export function Sidebar({
       "1": mode === "private" ? "/app" : "/demo",
       "2": mode === "private" ? "/app/accounts" : "/demo",
       "3": mode === "private" ? "/app/transactions" : "/demo",
-      "4": mode === "private" ? "/app/investments" : "/demo",
-      "5": mode === "private" ? "/app/cycles" : "/demo"
+      "4": mode === "private" ? "/app/spending-insight" : "/demo",
+      "5": mode === "private" ? "/app/investments" : "/demo",
+      "6": mode === "private" ? "/app/cycles" : "/demo"
     };
     const onKey = (e: KeyboardEvent) => {
       if (!(e.metaKey || e.ctrlKey)) return;

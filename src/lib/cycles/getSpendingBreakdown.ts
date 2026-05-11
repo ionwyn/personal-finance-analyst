@@ -1,6 +1,7 @@
 import { Prisma } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
+import { hashColor } from "@/lib/spending/color";
 
 export type SpendingBreakdownRow = {
   category: string;
@@ -19,28 +20,11 @@ export type SpendingBreakdownData = {
   discretionaryRemaining: number;
 };
 
-const FALLBACK_COLORS = [
-  "var(--cat-1)",
-  "var(--cat-2)",
-  "var(--cat-3)",
-  "var(--cat-4)",
-  "var(--cat-5)",
-  "var(--cat-6)",
-  "var(--cat-7)",
-  "var(--cat-8)"
-];
-
 const UNCATEGORIZED = "Uncategorized";
 
 function num(value: Prisma.Decimal | number | null | undefined): number {
   if (value == null) return 0;
   return typeof value === "number" ? value : value.toNumber();
-}
-
-function hashColor(str: string): string {
-  let h = 0;
-  for (let i = 0; i < str.length; i++) h = str.charCodeAt(i) + ((h << 5) - h);
-  return FALLBACK_COLORS[Math.abs(h) % FALLBACK_COLORS.length];
 }
 
 function formatCategoryName(raw: string | null): string {
