@@ -7,7 +7,7 @@ import { formatMoney } from "@/components/big-number";
 import { authOptions } from "@/lib/auth";
 import { closeOverdueCycles } from "@/lib/cycles/close";
 import { getCycleHistory } from "@/lib/cycles/getCycleHistory";
-import { formatDate } from "@/lib/format";
+import { formatUtcDate } from "@/lib/format";
 import { getUserTenant } from "@/lib/tenant";
 
 export const dynamic = "force-dynamic";
@@ -81,7 +81,7 @@ export default async function CycleHistoryPage() {
                           href={`/app/cycles?id=${row.id}` as never}
                           style={{ color: "var(--text)" }}
                         >
-                          {formatDate(row.startDate)} – {formatDate(row.endDate)}
+                          {formatUtcDate(row.startDate)} – {formatUtcDate(row.endDate)}
                         </Link>
                       </td>
                       <td style={{ fontSize: 11, color: "var(--text-3)" }}>

@@ -4,7 +4,7 @@ import { CheckCircle2, Clock, Hourglass } from "lucide-react";
 import { BigNumber, formatMoney } from "@/components/big-number";
 import { DiscoveryPanel } from "@/components/discovery-panel";
 import { SweepPrompt } from "@/components/sweep-prompt";
-import { formatDate } from "@/lib/format";
+import { formatUtcDate } from "@/lib/format";
 import type { CommittedItem, CurrentCycleData } from "@/lib/cycles/getCurrentCycle";
 import type { DiscoveryCandidate } from "@/lib/cycles/discovery";
 
@@ -60,7 +60,7 @@ export function CycleView({
     breakdown
   } = data;
 
-  const cycleLabel = `${formatDate(cycle.startDate)} – ${formatDate(cycle.endDate)}`;
+  const cycleLabel = `${formatUtcDate(cycle.startDate)} – ${formatUtcDate(cycle.endDate)}`;
   const incomeReceived = toNumber(cycle.incomeReceived);
   const fixedSavingsPull = toNumber(cycle.fixedSavingsPull);
   const sweptAmount = toNumber(cycle.sweptAmount);
@@ -136,7 +136,7 @@ export function CycleView({
         <div className="kpi">
           <div className="kpi-label">
             <span className="dot" style={{ background: "var(--accent)" }} />
-            Safe to sweep
+            Sweep Space
           </div>
           <BigNumber value={safe} />
           <div className="kpi-meta">
@@ -243,7 +243,7 @@ export function CycleView({
               <BreakdownRow
                 label={
                   cycle.creditCardPaymentDate
-                    ? `Credit card balance (due this cycle ${formatDate(cycle.creditCardPaymentDate)})`
+                    ? `Credit card balance (due this cycle ${formatUtcDate(cycle.creditCardPaymentDate)})`
                     : "Credit card balance (not due this cycle)"
                 }
                 value={ccBalance}
@@ -273,7 +273,7 @@ export function CycleView({
                     color: "var(--text-3)"
                   }}
                 >
-                  Safe to sweep
+                  Sweep Space
                 </span>
                 <span
                   className="mono"
@@ -318,7 +318,7 @@ export function CycleView({
               <Row label="Credit card outstanding" value={formatMoney(ccBalance)} />
               <Row
                 label="CC due this cycle"
-                value={cycle.creditCardPaymentDate ? formatDate(cycle.creditCardPaymentDate) : "—"}
+                value={cycle.creditCardPaymentDate ? formatUtcDate(cycle.creditCardPaymentDate) : "—"}
               />
               <Row label="Sweep buffer setting" value={formatMoney(buffer)} />
             </div>
