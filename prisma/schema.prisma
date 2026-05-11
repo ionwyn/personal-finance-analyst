@@ -58,8 +58,6 @@ model Tenant {
   snapTradeCashBalances SnapTradeCashBalance[]
   snapTradeSyncRuns     SnapTradeSyncRun[]
   payCycles             PayCycle[]
-  categories            Category[]
-  categoryRules         CategoryRule[]
   recurringExpenses     RecurringExpense[]
   savingsDestinations   SavingsDestination[]
   settlementPatterns    SettlementPattern[]
@@ -205,8 +203,6 @@ model PlaidTransaction {
   raw                    Json
   cycleId                String?
   txnType                String    @default("expense")
-  categoryId             String?
-  isManuallyCategorized  Boolean   @default(false)
   source                 String    @default("plaid")
   supersededById         String?   @unique
   createdAt              DateTime  @default(now())
@@ -216,7 +212,6 @@ model PlaidTransaction {
   item         PlaidItem         @relation(fields: [itemId], references: [id], onDelete: Cascade)
   account      PlaidAccount      @relation(fields: [accountId], references: [id], onDelete: Cascade)
   cycle        PayCycle?         @relation(fields: [cycleId], references: [id], onDelete: SetNull)
-  category     Category?         @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   supersededBy PlaidTransaction? @relation("ManualSweepSupersession", fields: [supersededById], references: [id], onDelete: SetNull)
   supersedes   PlaidTransaction? @relation("ManualSweepSupersession")
 
@@ -228,7 +223,6 @@ model PlaidTransaction {
   @@index([categoryPrimary])
   @@index([tenantId, cycleId])
   @@index([tenantId, txnType, date])
-  @@index([categoryId])
 }
 
 model BalanceSnapshot {
@@ -461,42 +455,6 @@ model PayCycle {
   @@index([tenantId, startDate, endDate])
 }
 
-model Category {
-  id        String   @id @default(cuid())
-  tenantId  String
-  name      String
-  parentId  String?
-  color     String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  tenant       Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  parent       Category?          @relation("CategoryParent", fields: [parentId], references: [id], onDelete: SetNull)
-  children     Category[]         @relation("CategoryParent")
-  rules        CategoryRule[]
-  expenses     RecurringExpense[]
-  transactions PlaidTransaction[]
-
-  @@unique([tenantId, name, parentId])
-  @@index([tenantId])
-}
-
-model CategoryRule {
-  id              String   @id @default(cuid())
-  tenantId        String
-  merchantPattern String
-  categoryId      String
-  priority        Int      @default(0)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-
-  tenant   Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
-
-  @@index([tenantId, priority])
-  @@index([categoryId])
-}
-
 model RecurringExpense {
   id              String    @id @default(cuid())
   tenantId        String
@@ -506,7 +464,6 @@ model RecurringExpense {
   frequency       String
   anchorDate      Int?
   accrualPerCycle Decimal   @db.Decimal(18, 2)
-  categoryId      String?
   confirmed       Boolean   @default(false)
   active          Boolean   @default(true)
   dismissedAt     DateTime?
@@ -514,10 +471,8 @@ model RecurringExpense {
   updatedAt       DateTime  @updatedAt
 
   tenant   Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  category Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
 
   @@index([tenantId, active])
-  @@index([categoryId])
 }
 
 model SavingsDestination {

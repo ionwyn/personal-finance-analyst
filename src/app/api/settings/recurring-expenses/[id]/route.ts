@@ -12,7 +12,6 @@ const bodySchema = z.object({
   amount: z.number().optional(),
   frequency: z.enum(FREQUENCIES).optional(),
   anchorDate: z.number().int().min(1).max(31).nullable().optional(),
-  categoryId: z.string().nullable().optional(),
   confirmed: z.boolean().optional(),
   active: z.boolean().optional()
 });
@@ -37,13 +36,6 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
     );
   }
 
-  if (body.categoryId) {
-    const category = await prisma.category.findFirst({
-      where: { id: body.categoryId, tenantId: auth.tenant.id }
-    });
-    if (!category) return NextResponse.json({ error: "Category not found" }, { status: 404 });
-  }
-
   const nextAmount = body.amount ?? Number(existing.amount.toString());
   const nextFrequency = (body.frequency ?? existing.frequency) as Frequency;
   const accrualPerCycle = computeAccrualPerCycle(nextAmount, nextFrequency);
@@ -58,7 +50,6 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
       ...(body.amount !== undefined ? { amount: body.amount } : {}),
       ...(body.frequency !== undefined ? { frequency: body.frequency } : {}),
       ...(body.anchorDate !== undefined ? { anchorDate: body.anchorDate } : {}),
-      ...(body.categoryId !== undefined ? { categoryId: body.categoryId } : {}),
       ...(body.confirmed !== undefined ? { confirmed: body.confirmed } : {}),
       ...(body.active !== undefined ? { active: body.active } : {}),
       accrualPerCycle

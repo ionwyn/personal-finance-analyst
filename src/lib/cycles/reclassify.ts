@@ -5,10 +5,9 @@ import { ensureCycleForDate } from "@/lib/cycles/generate";
 import { recomputeCycleTotals } from "@/lib/cycles/recomputeTotals";
 
 /**
- * Recompute txnType + categoryId for every non-manual transaction in a tenant.
- * Called after the user changes category rules, savings destinations, settlement
- * patterns, or the employer pattern. Skips rows where isManuallyCategorized is
- * true.
+ * Recompute txnType for every transaction in a tenant.
+ * Called after the user changes savings destinations, settlement patterns,
+ * or the employer pattern.
  *
  * Also backfills cycleId for any transactions still missing it, then
  * re-aggregates incomeReceived / fixedSavingsPull for every cycle touched.
@@ -19,7 +18,7 @@ export async function reclassifyTenant(tenantId: string) {
   const context = await loadClassifyContext(tenantId);
 
   const transactions = await prisma.plaidTransaction.findMany({
-    where: { tenantId, removed: false, isManuallyCategorized: false },
+    where: { tenantId, removed: false },
     select: {
       id: true,
       amount: true,
@@ -27,7 +26,6 @@ export async function reclassifyTenant(tenantId: string) {
       name: true,
       date: true,
       txnType: true,
-      categoryId: true,
       cycleId: true
     }
   });
@@ -42,9 +40,7 @@ export async function reclassifyTenant(tenantId: string) {
         merchantName: tx.merchantName,
         name: tx.name,
         date: tx.date,
-        isManuallyCategorized: false,
-        existingTxnType: tx.txnType,
-        existingCategoryId: tx.categoryId
+        existingTxnType: tx.txnType
       },
       context
     );
@@ -55,8 +51,7 @@ export async function reclassifyTenant(tenantId: string) {
       nextCycleId = cycle.id;
     }
 
-    const classificationChanged =
-      result.txnType !== tx.txnType || result.categoryId !== tx.categoryId;
+    const classificationChanged = result.txnType !== tx.txnType;
     const cycleChanged = nextCycleId !== tx.cycleId;
 
     if (!classificationChanged && !cycleChanged) continue;
@@ -65,7 +60,6 @@ export async function reclassifyTenant(tenantId: string) {
       where: { id: tx.id },
       data: {
         txnType: result.txnType,
-        categoryId: result.categoryId,
         cycleId: nextCycleId
       }
     });

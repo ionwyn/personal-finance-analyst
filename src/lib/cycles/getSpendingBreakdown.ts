@@ -3,7 +3,6 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 
 export type SpendingBreakdownRow = {
-  categoryId: string | null;
   category: string;
   color: string;
   amount: number;
@@ -38,9 +37,23 @@ function num(value: Prisma.Decimal | number | null | undefined): number {
   return typeof value === "number" ? value : value.toNumber();
 }
 
+function hashColor(str: string): string {
+  let h = 0;
+  for (let i = 0; i < str.length; i++) h = str.charCodeAt(i) + ((h << 5) - h);
+  return FALLBACK_COLORS[Math.abs(h) % FALLBACK_COLORS.length];
+}
+
+function formatCategoryName(raw: string | null): string {
+  if (!raw) return UNCATEGORIZED;
+  return raw
+    .toLowerCase()
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
 async function spendByCategory(tenantId: string, cycleId: string) {
   const rows = await prisma.plaidTransaction.groupBy({
-    by: ["categoryId"],
+    by: ["categoryPrimary"],
     where: {
       tenantId,
       cycleId,
@@ -52,7 +65,7 @@ async function spendByCategory(tenantId: string, cycleId: string) {
   });
   const map = new Map<string | null, number>();
   for (const r of rows) {
-    map.set(r.categoryId, num(r._sum.amount));
+    map.set(r.categoryPrimary, num(r._sum.amount));
   }
   return map;
 }
@@ -63,30 +76,23 @@ export async function getSpendingBreakdown(
   previousCycleId: string | null,
   discretionaryBudget: number
 ): Promise<SpendingBreakdownData> {
-  const [categories, currentMap, previousMap] = await Promise.all([
-    prisma.category.findMany({
-      where: { tenantId },
-      select: { id: true, name: true, color: true }
-    }),
+  const [currentMap, previousMap] = await Promise.all([
     spendByCategory(tenantId, cycleId),
-    previousCycleId ? spendByCategory(tenantId, previousCycleId) : Promise.resolve(new Map())
+    previousCycleId ? spendByCategory(tenantId, previousCycleId) : Promise.resolve(new Map<string | null, number>())
   ]);
 
-  const catLookup = new Map(categories.map((c) => [c.id, { name: c.name, color: c.color }]));
   const total = [...currentMap.values()].reduce((s, v) => s + v, 0);
   const previousTotal = [...previousMap.values()].reduce((s, v) => s + v, 0);
 
   const rows: SpendingBreakdownRow[] = [];
-  let fallbackIndex = 0;
 
-  for (const [categoryId, amount] of currentMap.entries()) {
+  for (const [categoryPrimary, amount] of currentMap.entries()) {
     if (amount <= 0) continue;
-    const cat = categoryId ? catLookup.get(categoryId) : null;
-    const previousAmount = previousMap.get(categoryId) ?? 0;
+    const name = formatCategoryName(categoryPrimary);
+    const previousAmount = previousMap.get(categoryPrimary) ?? 0;
     rows.push({
-      categoryId,
-      category: cat?.name ?? UNCATEGORIZED,
-      color: cat?.color ?? FALLBACK_COLORS[fallbackIndex++ % FALLBACK_COLORS.length],
+      category: name,
+      color: hashColor(name),
       amount,
       pct: total > 0 ? (amount / total) * 100 : 0,
       delta: previousAmount > 0 ? amount - previousAmount : null
@@ -116,3 +122,4 @@ export async function findPreviousCycleId(tenantId: string, currentStartDate: Da
   });
   return prev?.id ?? null;
 }
+

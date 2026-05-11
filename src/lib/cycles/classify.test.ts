@@ -7,7 +7,6 @@ function ctx(partial: Partial<ClassifyContext> = {}): ClassifyContext {
   return {
     savingsDestinations: [],
     settlementPatterns: [],
-    categoryRules: [],
     employerMerchantPattern: null,
     expectedPaycheckDates: [],
     ...partial
@@ -69,43 +68,11 @@ describe("classifyTransaction", () => {
     expect(result.txnType).toBe("expense");
   });
 
-  it("applies highest-priority category rule", () => {
-    const result = classifyTransaction(
-      { amount: new Prisma.Decimal(15), merchantName: "Loblaws", date: DATE },
-      ctx({
-        categoryRules: [
-          { merchantPattern: "LOBLAW", categoryId: "cat-groceries", priority: 5 },
-          { merchantPattern: "LO", categoryId: "cat-other", priority: 1 }
-        ]
-      })
-    );
-    expect(result.txnType).toBe("expense");
-    expect(result.categoryId).toBe("cat-groceries");
-  });
-
-  it("preserves manual categorization", () => {
-    const result = classifyTransaction(
-      {
-        amount: new Prisma.Decimal(15),
-        merchantName: "Loblaws",
-        date: DATE,
-        isManuallyCategorized: true,
-        existingTxnType: "expense",
-        existingCategoryId: "cat-manual"
-      },
-      ctx({
-        categoryRules: [{ merchantPattern: "LOBLAW", categoryId: "cat-rule", priority: 5 }]
-      })
-    );
-    expect(result.categoryId).toBe("cat-manual");
-  });
-
-  it("falls back to expense + null category", () => {
+  it("falls back to expense type", () => {
     const result = classifyTransaction(
       { amount: new Prisma.Decimal(7), merchantName: "Unknown Merchant", date: DATE },
       ctx()
     );
     expect(result.txnType).toBe("expense");
-    expect(result.categoryId).toBeNull();
   });
 });

@@ -36,6 +36,12 @@ export async function POST(request: Request) {
     if (item) {
       await syncPlaidItem(item.id, SyncSource.WEBHOOK);
     }
+  } else if (
+    body.webhook_type === "ITEM" &&
+    body.webhook_code === "NEW_ACCOUNTS_AVAILABLE" &&
+    body.item_id
+  ) {
+    console.info(`Plaid new accounts available webhook received for item ${body.item_id}`);
   }
 
   return NextResponse.json({ ok: true });

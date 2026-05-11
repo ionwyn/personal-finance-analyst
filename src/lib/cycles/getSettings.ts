@@ -6,22 +6,12 @@ export type SettingsData = Awaited<ReturnType<typeof getSettingsData>>;
 export async function getSettingsData(tenantId: string) {
   await seedCycleDefaultsForTenant(tenantId);
 
-  const [settings, categories, categoryRules, recurringExpenses, savingsDestinations, settlementPatterns] =
+  const [settings, recurringExpenses, savingsDestinations, settlementPatterns] =
     await Promise.all([
       prisma.userSettings.findUniqueOrThrow({ where: { tenantId } }),
-      prisma.category.findMany({
-        where: { tenantId },
-        orderBy: [{ parentId: { sort: "asc", nulls: "first" } }, { name: "asc" }]
-      }),
-      prisma.categoryRule.findMany({
-        where: { tenantId },
-        orderBy: [{ priority: "desc" }, { merchantPattern: "asc" }],
-        include: { category: { select: { id: true, name: true, color: true } } }
-      }),
       prisma.recurringExpense.findMany({
         where: { tenantId },
-        orderBy: [{ active: "desc" }, { name: "asc" }],
-        include: { category: { select: { id: true, name: true, color: true } } }
+        orderBy: [{ active: "desc" }, { name: "asc" }]
       }),
       prisma.savingsDestination.findMany({
         where: { tenantId },
@@ -39,8 +29,6 @@ export async function getSettingsData(tenantId: string) {
       defaultFixedSavings: settings.defaultFixedSavings ? Number(settings.defaultFixedSavings.toString()) : null,
       sweepBuffer: Number(settings.sweepBuffer.toString())
     },
-    categories,
-    categoryRules,
     recurringExpenses: recurringExpenses.map((r) => ({
       ...r,
       amount: Number(r.amount.toString()),

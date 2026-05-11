@@ -41,10 +41,10 @@ async function applyAddedOrModified(input: {
 
   const existing = await prisma.plaidTransaction.findUnique({
     where: { plaidTransactionId: normalized.plaidTransactionId },
-    select: { id: true, isManuallyCategorized: true, txnType: true, categoryId: true }
+    select: { id: true, txnType: true }
   });
 
-  const cycleFields: { cycleId?: string; txnType?: string; categoryId?: string | null } = {};
+  const cycleFields: { cycleId?: string; txnType?: string } = {};
 
   if (input.cycleState) {
     try {
@@ -58,14 +58,11 @@ async function applyAddedOrModified(input: {
           merchantName: normalized.merchantName,
           name: normalized.name,
           date: normalized.date,
-          isManuallyCategorized: existing?.isManuallyCategorized ?? false,
-          existingTxnType: existing?.txnType ?? null,
-          existingCategoryId: existing?.categoryId ?? null
+          existingTxnType: existing?.txnType ?? null
         },
         input.cycleState.context
       );
       cycleFields.txnType = classified.txnType;
-      cycleFields.categoryId = classified.categoryId;
     } catch (error) {
       input.cycleState.errors.push(
         `classify ${normalized.plaidTransactionId}: ${error instanceof Error ? error.message : String(error)}`

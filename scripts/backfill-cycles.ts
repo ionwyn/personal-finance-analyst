@@ -60,9 +60,7 @@ async function backfillTenant(tenantId: string, cliAnchor: Date | null) {
       name: true,
       date: true,
       cycleId: true,
-      txnType: true,
-      categoryId: true,
-      isManuallyCategorized: true
+      txnType: true
     }
   });
 
@@ -79,9 +77,7 @@ async function backfillTenant(tenantId: string, cliAnchor: Date | null) {
         merchantName: tx.merchantName,
         name: tx.name,
         date: tx.date,
-        isManuallyCategorized: tx.isManuallyCategorized,
-        existingTxnType: tx.txnType,
-        existingCategoryId: tx.categoryId
+        existingTxnType: tx.txnType
       },
       context
     );
@@ -90,8 +86,7 @@ async function backfillTenant(tenantId: string, cliAnchor: Date | null) {
       where: { id: tx.id },
       data: {
         cycleId: cycle.id,
-        txnType: result.txnType,
-        categoryId: result.categoryId
+        txnType: result.txnType
       }
     });
     classified += 1;

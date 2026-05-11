@@ -67,8 +67,7 @@ export async function POST(request: Request) {
         raw: { source: "manual_sweep", note: body.note ?? null },
         cycleId: cycle.id,
         txnType: "savings",
-        source: TX_SOURCE_MANUAL_SWEEP,
-        isManuallyCategorized: true
+        source: TX_SOURCE_MANUAL_SWEEP
       }
     });
 

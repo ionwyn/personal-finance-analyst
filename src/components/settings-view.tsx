@@ -74,9 +74,7 @@ export function SettingsView({ data }: { data: SettingsData }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       <PayCycleSection settings={data.settings} />
-      <CategoriesSection categories={data.categories} />
-      <CategoryRulesSection rules={data.categoryRules} categories={data.categories} />
-      <RecurringExpensesSection expenses={data.recurringExpenses} categories={data.categories} />
+      <RecurringExpensesSection expenses={data.recurringExpenses} />
       <SavingsDestinationsSection destinations={data.savingsDestinations} />
       <SettlementPatternsSection patterns={data.settlementPatterns} />
     </div>
@@ -220,312 +218,12 @@ function PayCycleSection({ settings }: { settings: SettingsData["settings"] }) {
   );
 }
 
-/* ---------- Categories ---------- */
-
-function CategoriesSection({ categories }: { categories: SettingsData["categories"] }) {
-  const router = useRouter();
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [draft, setDraft] = useState({ name: "", color: "var(--cat-1)", parentId: "" });
-
-  async function create() {
-    if (!draft.name.trim()) {
-      setError("Name is required.");
-      return;
-    }
-    setBusy(true);
-    setError(null);
-    try {
-      await postJSON("/api/settings/categories", "POST", {
-        name: draft.name.trim(),
-        color: draft.color,
-        parentId: draft.parentId || null
-      });
-      setDraft({ name: "", color: "var(--cat-1)", parentId: "" });
-      router.refresh();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to create category.");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function remove(id: string) {
-    if (!confirm("Delete this category? Transactions and rules will lose their reference.")) return;
-    setBusy(true);
-    try {
-      await postJSON(`/api/settings/categories/${id}`, "DELETE", null);
-      router.refresh();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to delete category.");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  return (
-    <Panel title="Categories" meta={`${categories.length} TOTAL`}>
-      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-        {categories.length === 0 ? (
-          <div style={{ fontSize: 12, color: "var(--text-3)" }}>
-            No categories yet — create one below.
-          </div>
-        ) : (
-          categories.map((c) => (
-            <div
-              key={c.id}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 10,
-                padding: "6px 8px",
-                borderRadius: 4,
-                background: "var(--surface-2)"
-              }}
-            >
-              <i
-                className="sw"
-                style={{ width: 10, height: 10, borderRadius: 2, background: c.color ?? "var(--cat-1)" }}
-              />
-              <span style={{ fontSize: 13, fontWeight: 500 }}>{c.name}</span>
-              {c.parentId ? (
-                <span style={{ fontSize: 11, color: "var(--text-3)" }}>
-                  ↳ {categories.find((x) => x.id === c.parentId)?.name ?? "?"}
-                </span>
-              ) : null}
-              <span style={{ flex: 1 }} />
-              <button
-                className="btn btn-ghost btn-sm"
-                type="button"
-                onClick={() => remove(c.id)}
-                aria-label="Delete category"
-              >
-                <Trash2 size={11} />
-              </button>
-            </div>
-          ))
-        )}
-      </div>
-
-      <div
-        style={{
-          marginTop: 12,
-          paddingTop: 12,
-          borderTop: "1px dashed var(--border-strong)",
-          display: "grid",
-          gridTemplateColumns: "2fr 1fr 1fr auto",
-          gap: 8,
-          alignItems: "end"
-        }}
-      >
-        <label style={LABEL_STYLE}>
-          New category
-          <input
-            type="text"
-            value={draft.name}
-            onChange={(e) => setDraft({ ...draft, name: e.target.value })}
-            placeholder="e.g. Groceries"
-            style={INPUT_STYLE}
-          />
-        </label>
-        <label style={LABEL_STYLE}>
-          Color
-          <select
-            value={draft.color}
-            onChange={(e) => setDraft({ ...draft, color: e.target.value })}
-            style={INPUT_STYLE}
-          >
-            {Array.from({ length: 8 }).map((_, i) => (
-              <option key={i} value={`var(--cat-${i + 1})`}>{`cat-${i + 1}`}</option>
-            ))}
-          </select>
-        </label>
-        <label style={LABEL_STYLE}>
-          Parent (optional)
-          <select
-            value={draft.parentId}
-            onChange={(e) => setDraft({ ...draft, parentId: e.target.value })}
-            style={INPUT_STYLE}
-          >
-            <option value="">(none)</option>
-            {categories
-              .filter((c) => !c.parentId)
-              .map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-          </select>
-        </label>
-        <button className="btn btn-primary btn-sm" type="button" onClick={create} disabled={busy}>
-          Add
-        </button>
-      </div>
-      <div style={{ marginTop: 8 }}>
-        <ErrorLine error={error} />
-      </div>
-    </Panel>
-  );
-}
-
-/* ---------- Category rules ---------- */
-
-function CategoryRulesSection({
-  rules,
-  categories
-}: {
-  rules: SettingsData["categoryRules"];
-  categories: SettingsData["categories"];
-}) {
-  const router = useRouter();
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [draft, setDraft] = useState({ merchantPattern: "", categoryId: "", priority: "0" });
-
-  async function create() {
-    if (!draft.merchantPattern.trim() || !draft.categoryId) {
-      setError("Pattern and category are required.");
-      return;
-    }
-    setBusy(true);
-    setError(null);
-    try {
-      await postJSON("/api/settings/category-rules", "POST", {
-        merchantPattern: draft.merchantPattern.trim(),
-        categoryId: draft.categoryId,
-        priority: Number(draft.priority) || 0
-      });
-      setDraft({ merchantPattern: "", categoryId: "", priority: "0" });
-      router.refresh();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to create rule.");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function remove(id: string) {
-    setBusy(true);
-    try {
-      await postJSON(`/api/settings/category-rules/${id}`, "DELETE", null);
-      router.refresh();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to delete rule.");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  return (
-    <Panel title="Category rules" meta={`${rules.length} ACTIVE · SUBSTRING MATCH · UPPERCASE`}>
-      {rules.length === 0 ? (
-        <div style={{ fontSize: 12, color: "var(--text-3)" }}>
-          No rules yet. Add one below; transactions auto-classify in priority order.
-        </div>
-      ) : (
-        <table className="table" style={{ width: "100%" }}>
-          <thead>
-            <tr>
-              <th style={{ width: 70 }}>Priority</th>
-              <th>Pattern</th>
-              <th>Category</th>
-              <th style={{ width: 40 }}></th>
-            </tr>
-          </thead>
-          <tbody>
-            {rules.map((r) => (
-              <tr key={r.id}>
-                <td className="mono">{r.priority}</td>
-                <td className="mono">{r.merchantPattern}</td>
-                <td>
-                  <span className="chip">
-                    <i
-                      className="sw"
-                      style={{ background: r.category.color ?? "var(--cat-1)" }}
-                    />
-                    {r.category.name}
-                  </span>
-                </td>
-                <td>
-                  <button
-                    className="btn btn-ghost btn-sm"
-                    type="button"
-                    onClick={() => remove(r.id)}
-                    aria-label="Delete rule"
-                  >
-                    <Trash2 size={11} />
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
-
-      <div
-        style={{
-          marginTop: 12,
-          paddingTop: 12,
-          borderTop: "1px dashed var(--border-strong)",
-          display: "grid",
-          gridTemplateColumns: "70px 2fr 2fr auto",
-          gap: 8,
-          alignItems: "end"
-        }}
-      >
-        <label style={LABEL_STYLE}>
-          Priority
-          <input
-            type="number"
-            value={draft.priority}
-            onChange={(e) => setDraft({ ...draft, priority: e.target.value })}
-            style={NUMBER_INPUT_STYLE}
-          />
-        </label>
-        <label style={LABEL_STYLE}>
-          Merchant pattern
-          <input
-            type="text"
-            value={draft.merchantPattern}
-            onChange={(e) => setDraft({ ...draft, merchantPattern: e.target.value })}
-            placeholder="e.g. LOBLAW"
-            style={INPUT_STYLE}
-          />
-        </label>
-        <label style={LABEL_STYLE}>
-          Category
-          <select
-            value={draft.categoryId}
-            onChange={(e) => setDraft({ ...draft, categoryId: e.target.value })}
-            style={INPUT_STYLE}
-          >
-            <option value="">— pick a category —</option>
-            {categories.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </select>
-        </label>
-        <button className="btn btn-primary btn-sm" type="button" onClick={create} disabled={busy}>
-          Add
-        </button>
-      </div>
-      <div style={{ marginTop: 8 }}>
-        <ErrorLine error={error} />
-      </div>
-    </Panel>
-  );
-}
-
 /* ---------- Recurring expenses ---------- */
 
 function RecurringExpensesSection({
-  expenses,
-  categories
+  expenses
 }: {
   expenses: SettingsData["recurringExpenses"];
-  categories: SettingsData["categories"];
 }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
@@ -535,8 +233,7 @@ function RecurringExpensesSection({
     merchantPattern: "",
     amount: "",
     frequency: "monthly" as (typeof FREQUENCIES)[number],
-    anchorDate: "",
-    categoryId: ""
+    anchorDate: ""
   });
 
   async function create() {
@@ -553,10 +250,9 @@ function RecurringExpensesSection({
         amount: Number(draft.amount),
         frequency: draft.frequency,
         anchorDate: draft.anchorDate ? Number(draft.anchorDate) : null,
-        categoryId: draft.categoryId || null,
         confirmed: true
       });
-      setDraft({ name: "", merchantPattern: "", amount: "", frequency: "monthly", anchorDate: "", categoryId: "" });
+      setDraft({ name: "", merchantPattern: "", amount: "", frequency: "monthly", anchorDate: "" });
       router.refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to create recurring expense.");
@@ -605,7 +301,6 @@ function RecurringExpensesSection({
               <th>Frequency</th>
               <th className="num">Amount</th>
               <th className="num">Accrual / cycle</th>
-              <th>Category</th>
               <th style={{ width: 100 }}>Status</th>
               <th style={{ width: 40 }}></th>
             </tr>
@@ -618,16 +313,6 @@ function RecurringExpensesSection({
                 <td>{e.frequency}</td>
                 <td className="num mono">${e.amount.toFixed(2)}</td>
                 <td className="num mono">${e.accrualPerCycle.toFixed(2)}</td>
-                <td>
-                  {e.category ? (
-                    <span className="chip">
-                      <i className="sw" style={{ background: e.category.color ?? "var(--cat-1)" }} />
-                      {e.category.name}
-                    </span>
-                  ) : (
-                    <span style={{ color: "var(--text-3)", fontSize: 11 }}>—</span>
-                  )}
-                </td>
                 <td>
                   <button
                     className="btn btn-ghost btn-sm"
@@ -659,7 +344,7 @@ function RecurringExpensesSection({
           paddingTop: 12,
           borderTop: "1px dashed var(--border-strong)",
           display: "grid",
-          gridTemplateColumns: "1.5fr 1.5fr 1fr 1fr 60px 1.5fr auto",
+          gridTemplateColumns: "1.5fr 1.5fr 1fr 1fr 60px auto",
           gap: 8,
           alignItems: "end"
         }}
@@ -719,21 +404,6 @@ function RecurringExpensesSection({
             placeholder="—"
             style={NUMBER_INPUT_STYLE}
           />
-        </label>
-        <label style={LABEL_STYLE}>
-          Category
-          <select
-            value={draft.categoryId}
-            onChange={(e) => setDraft({ ...draft, categoryId: e.target.value })}
-            style={INPUT_STYLE}
-          >
-            <option value="">— optional —</option>
-            {categories.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </select>
         </label>
         <button className="btn btn-primary btn-sm" type="button" onClick={create} disabled={busy}>
           Add

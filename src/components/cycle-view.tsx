@@ -337,7 +337,7 @@ export function CycleView({
         <div className="panel-body">
           {breakdown.rows.length === 0 ? (
             <div style={{ color: "var(--text-3)", fontSize: 12 }}>
-              No categorized expenses this cycle yet.
+              No expenses this cycle yet.
             </div>
           ) : (
             <>
@@ -369,7 +369,7 @@ export function CycleView({
               <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                 {breakdown.rows.map((r) => (
                   <CategoryBar
-                    key={r.categoryId ?? r.category}
+                    key={r.category}
                     label={r.category}
                     color={r.color}
                     amount={r.amount}
