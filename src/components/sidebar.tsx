@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { signOut } from "next-auth/react";
 import {
   ArrowLeftRight,
+  CalendarClock,
   LayoutGrid,
   LogOut,
   PlayCircle,
@@ -47,7 +48,8 @@ export function Sidebar({
           { key: "dashboard", label: "Dashboard", href: "/app", icon: <LayoutGrid size={ICON_SIZE} />, kbd: "⌘1" },
           { key: "accounts", label: "Accounts", href: "/app/accounts", icon: <Wallet size={ICON_SIZE} />, kbd: "⌘2" },
           { key: "transactions", label: "Transactions", href: "/app/transactions", icon: <ArrowLeftRight size={ICON_SIZE} />, kbd: "⌘3" },
-          { key: "investments", label: "Investments", href: "/app/investments", icon: <TrendingUp size={ICON_SIZE} />, kbd: "⌘4" }
+          { key: "investments", label: "Investments", href: "/app/investments", icon: <TrendingUp size={ICON_SIZE} />, kbd: "⌘4" },
+          { key: "cycles", label: "Pay cycles", href: "/app/cycles", icon: <CalendarClock size={ICON_SIZE} />, kbd: "⌘5" }
         ]
       : [
           { key: "demo", label: "Dashboard", href: "/demo", icon: <LayoutGrid size={ICON_SIZE} />, kbd: "⌘1" }
@@ -56,7 +58,7 @@ export function Sidebar({
   const secondary: NavItem[] =
     mode === "private"
       ? [
-          { key: "demo", label: "Public demo", href: "/demo", icon: <PlayCircle size={ICON_SIZE} />, kbd: "⌘5" },
+          { key: "demo", label: "Public demo", href: "/demo", icon: <PlayCircle size={ICON_SIZE} /> },
           { key: "settings", label: "Settings", href: "/app/settings", icon: <Settings size={ICON_SIZE} /> }
         ]
       : [
@@ -69,7 +71,7 @@ export function Sidebar({
       "2": mode === "private" ? "/app/accounts" : "/demo",
       "3": mode === "private" ? "/app/transactions" : "/demo",
       "4": mode === "private" ? "/app/investments" : "/demo",
-      "5": mode === "private" ? "/demo" : "/demo"
+      "5": mode === "private" ? "/app/cycles" : "/demo"
     };
     const onKey = (e: KeyboardEvent) => {
       if (!(e.metaKey || e.ctrlKey)) return;
