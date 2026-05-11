@@ -160,7 +160,7 @@ export async function getCurrentCycleData(tenantId: string, now: Date = new Date
     let matched: { id: string } | null = null;
     if (pattern) {
       matched = cycleMatches.find((tx) => {
-        const merchant = `${tx.merchantName ?? ""} ${tx.name ?? ""}`.toUpperCase();
+        const merchant = `${tx.name ?? ""} ${tx.merchantName ?? ""}`.toUpperCase();
         return merchant.includes(pattern);
       }) ?? null;
     }
@@ -201,7 +201,10 @@ export async function getCurrentCycleData(tenantId: string, now: Date = new Date
     carryover
   });
 
-  const daysRemaining = Math.max(0, Math.ceil((cycleEnd.getTime() - today.getTime()) / DAY_MS));
+  const daysRemaining = Math.max(
+    0,
+    Math.ceil((cycleEnd.getTime() - today.getTime()) / DAY_MS) + 1
+  );
 
   const incomeReceivedNum = cycle.incomeReceived
     ? Number(cycle.incomeReceived.toString())
