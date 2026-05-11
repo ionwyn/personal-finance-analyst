@@ -11,6 +11,7 @@ import { getPlaidEnv } from "@/lib/env";
 import { classifyTransaction, type ClassifyContext } from "@/lib/cycles/classify";
 import { loadClassifyContext } from "@/lib/cycles/context";
 import { ensureCycleForDate } from "@/lib/cycles/generate";
+import { recomputeCycleTotals } from "@/lib/cycles/recomputeTotals";
 import { reconcileSweeps } from "@/lib/cycles/sweepReconcile";
 
 const PAGE_SIZE = 500;
@@ -21,14 +22,6 @@ type CycleSyncState = {
   affectedCycleIds: Set<string>;
   errors: string[];
 };
-
-function isCycleStartDay(txDate: Date, cycleStart: Date) {
-  return (
-    txDate.getUTCFullYear() === cycleStart.getUTCFullYear() &&
-    txDate.getUTCMonth() === cycleStart.getUTCMonth() &&
-    txDate.getUTCDate() === cycleStart.getUTCDate()
-  );
-}
 
 async function applyAddedOrModified(input: {
   tenantId: string;
@@ -52,8 +45,6 @@ async function applyAddedOrModified(input: {
   });
 
   const cycleFields: { cycleId?: string; txnType?: string; categoryId?: string | null } = {};
-  let cycleStartHit: { cycleId: string; startDate: Date } | null = null;
-  let classified: ReturnType<typeof classifyTransaction> | null = null;
 
   if (input.cycleState) {
     try {
@@ -61,7 +52,7 @@ async function applyAddedOrModified(input: {
       cycleFields.cycleId = cycle.id;
       input.cycleState.affectedCycleIds.add(cycle.id);
 
-      classified = classifyTransaction(
+      const classified = classifyTransaction(
         {
           amount: normalized.amount,
           merchantName: normalized.merchantName,
@@ -75,10 +66,6 @@ async function applyAddedOrModified(input: {
       );
       cycleFields.txnType = classified.txnType;
       cycleFields.categoryId = classified.categoryId;
-
-      if (isCycleStartDay(normalized.date, cycle.startDate)) {
-        cycleStartHit = { cycleId: cycle.id, startDate: cycle.startDate };
-      }
     } catch (error) {
       input.cycleState.errors.push(
         `classify ${normalized.plaidTransactionId}: ${error instanceof Error ? error.message : String(error)}`
@@ -135,27 +122,6 @@ async function applyAddedOrModified(input: {
       ...cycleFields
     }
   });
-
-  if (input.cycleState && classified && cycleStartHit) {
-    try {
-      const amountAbs = normalized.amount.abs();
-      if (classified.txnType === "income") {
-        await prisma.payCycle.update({
-          where: { id: cycleStartHit.cycleId },
-          data: { incomeReceived: amountAbs }
-        });
-      } else if (classified.txnType === "savings") {
-        await prisma.payCycle.update({
-          where: { id: cycleStartHit.cycleId },
-          data: { fixedSavingsPull: amountAbs }
-        });
-      }
-    } catch (error) {
-      input.cycleState.errors.push(
-        `cycle update ${cycleStartHit.cycleId}: ${error instanceof Error ? error.message : String(error)}`
-      );
-    }
-  }
 }
 
 async function applyRemoved(transaction: RemovedTransaction) {
@@ -312,6 +278,16 @@ export async function syncPlaidItem(itemId: string, source: SyncSource) {
     }
 
     if (cycleState && cycleState.affectedCycleIds.size > 0) {
+      for (const cycleId of cycleState.affectedCycleIds) {
+        try {
+          await recomputeCycleTotals(item.tenantId, cycleId);
+        } catch (error) {
+          cycleState.errors.push(
+            `recomputeCycleTotals ${cycleId}: ${error instanceof Error ? error.message : String(error)}`
+          );
+        }
+      }
+
       try {
         await reconcileSweeps(item.tenantId, Array.from(cycleState.affectedCycleIds));
       } catch (error) {
