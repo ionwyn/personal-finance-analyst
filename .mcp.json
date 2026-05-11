@@ -5,8 +5,16 @@
       "args": ["mcp"]
     },
     "postgres": {
-      "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-postgres"],
+      "command": "docker",
+      "args": [
+        "run",
+        "-i",
+        "--rm",
+        "-e",
+        "DATABASE_URI",
+        "crystaldba/postgres-mcp",
+        "--access-mode=unrestricted"
+      ],
       "env": {
         "PG_CONNECTION_STRING": "${DATABASE_URL}"
       }
@@ -14,6 +22,13 @@
     "next-devtools": {
       "command": "npx",
       "args": ["-y", "next-devtools-mcp@latest"]
-    }
+    },
+    "snaptrade-mcp": {
+			"type": "stdio",
+			"command": "snaptrade",
+			"args": [
+				"mcp"
+			]
+		}
   }
 }

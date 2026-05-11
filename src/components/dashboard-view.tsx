@@ -2,7 +2,8 @@ import Link from "next/link";
 import { ArrowDown, ArrowUp, ChevronRight, Download } from "lucide-react";
 
 import { BigNumber, formatMoney } from "@/components/big-number";
-import { BalanceChart, CashflowChart, CategoryDonut } from "@/components/charts";
+import { BalanceChart, CashflowChart } from "@/components/charts";
+import { CategorySpendPanel } from "@/components/category-spend-panel";
 import { InvestmentsCard } from "@/components/investments-card";
 import { PlaidLinkButton } from "@/components/plaid-link-button";
 import { Sparkline } from "@/components/sparkline";
@@ -22,7 +23,6 @@ export function DashboardView({
   const isDemo = mode === "demo";
   const totals = data.totals;
   const insights = data.insights;
-  const totalSpend90 = data.categorySpend.reduce((s, c) => s + c.amount, 0);
   const lastSyncAt = data.plaidItems
     .map((p) => p.lastSyncAt)
     .filter((s): s is string => Boolean(s))
@@ -221,51 +221,11 @@ export function DashboardView({
           ) : null}
 
           {/* Pie + categories */}
-          <div className="panel">
-            <div className="panel-head">
-              <div className="panel-title">Spend by category</div>
-              <div className="panel-meta">90D · {formatMoney(totalSpend90)}</div>
-            </div>
-            {data.categorySpend.length ? (
-              <>
-                <div className="pie-row">
-                  <CategoryDonut data={data.categorySpend} total={totalSpend90} />
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 11, color: "var(--text-3)", marginBottom: 6 }}>
-                      Top category
-                    </div>
-                    <div style={{ fontSize: 15, fontWeight: 600, letterSpacing: "-0.01em" }}>
-                      {data.categorySpend[0].category}
-                    </div>
-                    <div
-                      style={{
-                        fontFamily: "var(--font-mono)",
-                        fontSize: 12,
-                        color: "var(--text-2)",
-                        marginTop: 2
-                      }}
-                    >
-                      {formatMoney(data.categorySpend[0].amount)} · {data.categorySpend[0].pct.toFixed(1)}%
-                    </div>
-                  </div>
-                </div>
-                <div className="cat-list">
-                  {data.categorySpend.map((c) => (
-                    <div className="cat-item" key={c.category}>
-                      <i className="cat-sw" style={{ background: c.color }} />
-                      <span className="cat-name">{c.category}</span>
-                      <span className="cat-pct">{c.pct.toFixed(1)}%</span>
-                      <span className="cat-amt">{formatMoney(c.amount)}</span>
-                    </div>
-                  ))}
-                </div>
-              </>
-            ) : (
-              <div className="panel-body">
-                <p style={{ color: "var(--text-3)", fontSize: 12 }}>No expense transactions yet.</p>
-              </div>
-            )}
-          </div>
+          <CategorySpendPanel
+            spend7d={data.categorySpend7d}
+            spend30d={data.categorySpend30d}
+            spendMTD={data.categorySpendMTD}
+          />
 
           {/* Insights */}
           <div className="panel">

@@ -119,6 +119,9 @@ function emptyDashboardData(slug: string, investments: InvestmentDashboardData) 
     recentTransactions: [] as TransactionSummary[],
     monthlyCashflow: [] as MonthlyCashflow[],
     categorySpend: [] as CategorySpend[],
+    categorySpend30d: [] as CategorySpend[],
+    categorySpendMTD: [] as CategorySpend[],
+    categorySpend7d: [] as CategorySpend[],
     merchantSpend: [] as MerchantSpend[],
     balanceHistory: [] as BalancePoint[],
     investments,
@@ -202,7 +205,9 @@ export async function getDashboardData(tenantSlug: string) {
 
   const now = new Date();
   const sixMonthsAgo = startOfMonth(subMonths(now, 5));
-  const ninetyDaysAgo = subMonths(now, 3);
+  const ninetyDaysAgo = subDays(now, 90);
+  const thirtyDaysAgo = subDays(now, 30);
+  const sevenDaysAgo = subDays(now, 7);
   const currentMonthStart = startOfMonth(now);
   const currentMonthEnd = endOfMonth(now);
   const prevMonthStart = startOfMonth(subMonths(now, 1));
@@ -244,6 +249,9 @@ export async function getDashboardData(tenantSlug: string) {
   }
 
   const categoryMap = new Map<string, number>();
+  const categoryMap30 = new Map<string, number>();
+  const categoryMapMTD = new Map<string, number>();
+  const categoryMap7 = new Map<string, number>();
   const merchantMap = new Map<string, number>();
   let monthlySpend = 0;
   let monthlyIncome = 0;
@@ -293,11 +301,22 @@ export async function getDashboardData(tenantSlug: string) {
       if (amount < 0) prevMonthIncome += Math.abs(amount);
     }
 
-    if (t.date >= ninetyDaysAgo && amount > 0) {
+    if (amount > 0) {
       const category = t.categoryPrimary ?? "Uncategorized";
-      categoryMap.set(category, (categoryMap.get(category) ?? 0) + amount);
       const merchant = t.merchantName ?? t.name;
-      merchantMap.set(merchant, (merchantMap.get(merchant) ?? 0) + amount);
+      if (t.date >= ninetyDaysAgo) {
+        categoryMap.set(category, (categoryMap.get(category) ?? 0) + amount);
+        merchantMap.set(merchant, (merchantMap.get(merchant) ?? 0) + amount);
+      }
+      if (t.date >= thirtyDaysAgo) {
+        categoryMap30.set(category, (categoryMap30.get(category) ?? 0) + amount);
+      }
+      if (t.date >= currentMonthStart) {
+        categoryMapMTD.set(category, (categoryMapMTD.get(category) ?? 0) + amount);
+      }
+      if (t.date >= sevenDaysAgo) {
+        categoryMap7.set(category, (categoryMap7.get(category) ?? 0) + amount);
+      }
     }
   }
 
@@ -354,16 +373,23 @@ export async function getDashboardData(tenantSlug: string) {
     return delta(last, prior.balance);
   })();
 
-  const totalSpend90 = [...categoryMap.values()].reduce((s, v) => s + v, 0);
-  const categorySpend: CategorySpend[] = [...categoryMap.entries()]
-    .map(([category, amount]) => ({ category, amount }))
-    .sort((a, b) => b.amount - a.amount)
-    .slice(0, 8)
-    .map((c, i) => ({
-      ...c,
-      pct: totalSpend90 ? (c.amount / totalSpend90) * 100 : 0,
-      color: colorForCategory(c.category, i)
-    }));
+  function buildCategorySpend(map: Map<string, number>): CategorySpend[] {
+    const total = [...map.values()].reduce((s, v) => s + v, 0);
+    return [...map.entries()]
+      .map(([category, amount]) => ({ category, amount }))
+      .sort((a, b) => b.amount - a.amount)
+      .slice(0, 8)
+      .map((c, i) => ({
+        ...c,
+        pct: total ? (c.amount / total) * 100 : 0,
+        color: colorForCategory(c.category, i)
+      }));
+  }
+
+  const categorySpend = buildCategorySpend(categoryMap);
+  const categorySpend30d = buildCategorySpend(categoryMap30);
+  const categorySpendMTD = buildCategorySpend(categoryMapMTD);
+  const categorySpend7d = buildCategorySpend(categoryMap7);
 
   const merchantSpend: MerchantSpend[] = [...merchantMap.entries()]
     .map(([merchant, amount]) => ({ merchant, amount }))
@@ -486,6 +512,9 @@ export async function getDashboardData(tenantSlug: string) {
     recentTransactions,
     monthlyCashflow: [...monthlyMap.values()],
     categorySpend,
+    categorySpend30d,
+    categorySpendMTD,
+    categorySpend7d,
     merchantSpend,
     balanceHistory,
     investments,
