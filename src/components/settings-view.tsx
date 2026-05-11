@@ -34,6 +34,15 @@ const LABEL_STYLE: React.CSSProperties = {
   color: "var(--text-3)"
 };
 
+const HINT_STYLE: React.CSSProperties = {
+  fontSize: 10,
+  letterSpacing: 0,
+  textTransform: "none",
+  color: "var(--text-4)",
+  lineHeight: 1.4,
+  fontWeight: 400
+};
+
 type ApiResponse = { error?: string } & Record<string, unknown>;
 
 async function postJSON(url: string, method: string, body: unknown): Promise<ApiResponse> {
@@ -160,6 +169,11 @@ function PayCycleSection({ settings }: { settings: SettingsData["settings"] }) {
             placeholder="e.g. ACME PAYROLL"
             style={INPUT_STYLE}
           />
+          <span style={HINT_STYLE}>
+            Case-insensitive substring match against the transaction description (Plaid
+            &quot;name&quot;, always present) plus the merchant name (if Plaid set one). e.g.
+            ACME PAYROLL matches &quot;ACME PAYROLL DIRECT DEP&quot;.
+          </span>
         </label>
         <label style={LABEL_STYLE}>
           Default fixed savings (Stage 1)
@@ -776,6 +790,12 @@ function SavingsDestinationsSection({ destinations }: { destinations: SettingsDa
 
   return (
     <Panel title="Savings destinations" meta={`${destinations.length} TOTAL · DEBITS TO THESE = SAVINGS`}>
+      <div style={{ fontSize: 11, color: "var(--text-3)", marginBottom: 10, lineHeight: 1.5 }}>
+        Patterns are case-insensitive substring matches against the transaction description
+        (Plaid &quot;name&quot;, always present) plus the merchant name (if Plaid set one). e.g.{" "}
+        <span className="mono">WEALTHSIMPLE</span> matches &quot;Wealthsimple Transfer 1234&quot;
+        and &quot;EFT TO WEALTHSIMPLE&quot;.
+      </div>
       {destinations.length === 0 ? (
         <div style={{ fontSize: 12, color: "var(--text-3)" }}>None configured.</div>
       ) : (
@@ -905,6 +925,11 @@ function SettlementPatternsSection({ patterns }: { patterns: SettingsData["settl
 
   return (
     <Panel title="Settlement patterns" meta={`${patterns.length} TOTAL · EXCLUDED FROM BUDGET`}>
+      <div style={{ fontSize: 11, color: "var(--text-3)", marginBottom: 10, lineHeight: 1.5 }}>
+        Patterns are case-insensitive substring matches against the transaction description
+        (Plaid &quot;name&quot;, always present) plus the merchant name (if Plaid set one). e.g.{" "}
+        <span className="mono">AMEX PAYMENT</span> matches &quot;AMEX EPAYMENT THANK YOU&quot;.
+      </div>
       {patterns.length === 0 ? (
         <div style={{ fontSize: 12, color: "var(--text-3)" }}>None configured.</div>
       ) : (
