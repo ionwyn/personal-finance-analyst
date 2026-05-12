@@ -331,8 +331,6 @@ export function DashboardView({
       <div className="foot-note">
         <span>
           {isDemo ? "Demo viewer · Plaid sandbox" : `${totals.transactionCount} transactions in last 6 months`}
-          {" · "}
-          localhost:3000
         </span>
         <span>↑↓ navigate · ⏎ open · ⌘K command</span>
       </div>
