@@ -55,19 +55,19 @@ function startOfUtcDay(date: Date) {
   return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
 }
 
-function ccPaymentDateInCycle(
+function dayOfMonthInCycle(
   start: Date,
   end: Date,
-  ccPaymentDayOfMonth: number | null | undefined
+  dayOfMonth: number | null | undefined
 ): Date | null {
-  if (!ccPaymentDayOfMonth) return null;
+  if (!dayOfMonth) return null;
   const startYM = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), 1));
   const endYM = new Date(Date.UTC(end.getUTCFullYear(), end.getUTCMonth(), 1));
   for (let cursor = startYM; cursor <= endYM; cursor = new Date(Date.UTC(cursor.getUTCFullYear(), cursor.getUTCMonth() + 1, 1))) {
     const year = cursor.getUTCFullYear();
     const month = cursor.getUTCMonth();
     const lastOfMonth = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
-    const day = Math.min(ccPaymentDayOfMonth, lastOfMonth);
+    const day = Math.min(dayOfMonth, lastOfMonth);
     const candidate = new Date(Date.UTC(year, month, day));
     if (candidate >= startOfUtcDay(start) && candidate <= startOfUtcDay(end)) {
       return candidate;
@@ -100,7 +100,7 @@ export async function getCurrentCycleData(tenantId: string, now: Date = new Date
     }
   }
 
-  const ccDate = ccPaymentDateInCycle(cycle.startDate, cycle.endDate, settings?.ccPaymentDayOfMonth ?? null);
+  const ccDate = dayOfMonthInCycle(cycle.startDate, cycle.endDate, settings?.ccPaymentDayOfMonth ?? null);
 
   const expenseAgg = await prisma.plaidTransaction.aggregate({
     where: { ...SPENDING_FILTER, tenantId, cycleId: cycle.id },
@@ -147,9 +147,15 @@ export async function getCurrentCycleData(tenantId: string, now: Date = new Date
       }) ?? null;
     }
 
+    const anchorOccurrence = dayOfMonthInCycle(
+      cycle.startDate,
+      cycle.endDate,
+      rec.anchorDate
+    );
+
     let status: CommittedStatus;
     if (matched) status = "debited";
-    else if (rec.anchorDate && rec.anchorDate > today.getUTCDate() && today <= cycleEnd) status = "upcoming";
+    else if (anchorOccurrence && anchorOccurrence > today) status = "upcoming";
     else status = "accrued";
 
     return {
