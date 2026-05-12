@@ -6,7 +6,7 @@ import { formatMoney } from "@/components/big-number";
 import { ExportCsvButton, TransactionsToolbar } from "@/components/transactions-toolbar";
 import { getDashboardData, getTransactionsForTenant } from "@/lib/analytics";
 import { authOptions } from "@/lib/auth";
-import { formatDate } from "@/lib/format";
+import { formatPlaidDate } from "@/lib/format";
 import { getUserTenant } from "@/lib/tenant";
 
 export const dynamic = "force-dynamic";
@@ -146,7 +146,7 @@ export default async function TransactionsPage({ searchParams }: Props) {
                   t.bucket === "savings";
                 return (
                   <tr key={t.id} style={excluded ? { opacity: 0.6 } : undefined}>
-                    <td className="t-date">{formatDate(t.date)}</td>
+                    <td className="t-date">{formatPlaidDate(t.date)}</td>
                     <td className="t-merchant">
                       {t.name}
                       {t.pending ? (

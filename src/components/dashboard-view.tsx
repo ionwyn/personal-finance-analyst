@@ -8,7 +8,7 @@ import { InvestmentsCard } from "@/components/investments-card";
 import { PlaidLinkButton } from "@/components/plaid-link-button";
 import { Sparkline } from "@/components/sparkline";
 import { SyncAllButton } from "@/components/sync-all-button";
-import { formatDate } from "@/lib/format";
+import { formatPlaidDate } from "@/lib/format";
 import type { getDashboardData } from "@/lib/analytics";
 
 type DashboardData = Awaited<ReturnType<typeof getDashboardData>>;
@@ -191,7 +191,7 @@ export function DashboardView({
                 <tbody>
                   {data.recentTransactions.map((t) => (
                     <tr key={t.id}>
-                      <td className="t-date">{formatDate(t.date)}</td>
+                      <td className="t-date">{formatPlaidDate(t.date)}</td>
                       <td className="t-merchant">{t.name}</td>
                       <td className="t-acct">{t.account}</td>
                       <td>
