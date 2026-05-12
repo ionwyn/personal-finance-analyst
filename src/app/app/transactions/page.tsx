@@ -42,8 +42,15 @@ export default async function TransactionsPage({ searchParams }: Props) {
   ]);
 
   const totalCount = dashboard.totals.transactionCount;
-  const income = transactions.filter((t) => t.amount < 0).reduce((s, t) => s + Math.abs(t.amount), 0);
-  const spend = transactions.filter((t) => t.amount > 0).reduce((s, t) => s + t.amount, 0);
+  const income = transactions
+    .filter((t) => t.bucket === "income")
+    .reduce((s, t) => s + Math.abs(t.amount), 0);
+  const spend = transactions
+    .filter((t) => t.bucket === "spending")
+    .reduce((s, t) => s + t.amount, 0);
+  const transfersCount = transactions.filter(
+    (t) => t.bucket === "transfer" || t.bucket === "settlement" || t.bucket === "savings"
+  ).length;
   const net = income - spend;
 
   const categoryOptions = uniqueSorted(transactions.map((t) => t.category));
@@ -55,6 +62,7 @@ export default async function TransactionsPage({ searchParams }: Props) {
 
   const subLine = [
     `${transactions.length} OF ${totalCount} ROWS`,
+    transfersCount > 0 ? `${transfersCount} EXCLUDED` : null,
     rangeLabel(params.from, params.to)
   ]
     .filter(Boolean)
@@ -131,41 +139,62 @@ export default async function TransactionsPage({ searchParams }: Props) {
               </tr>
             </thead>
             <tbody>
-              {transactions.map((t) => (
-                <tr key={t.id}>
-                  <td className="t-date">{formatDate(t.date)}</td>
-                  <td className="t-merchant">
-                    {t.name}
-                    {t.pending ? (
-                      <span
-                        style={{
-                          marginLeft: 8,
-                          fontSize: 10,
-                          fontFamily: "var(--font-mono)",
-                          color: "var(--text-4)",
-                          textTransform: "uppercase",
-                          letterSpacing: "0.06em"
-                        }}
-                      >
-                        Pending
+              {transactions.map((t) => {
+                const excluded =
+                  t.bucket === "transfer" ||
+                  t.bucket === "settlement" ||
+                  t.bucket === "savings";
+                return (
+                  <tr key={t.id} style={excluded ? { opacity: 0.6 } : undefined}>
+                    <td className="t-date">{formatDate(t.date)}</td>
+                    <td className="t-merchant">
+                      {t.name}
+                      {t.pending ? (
+                        <span
+                          style={{
+                            marginLeft: 8,
+                            fontSize: 10,
+                            fontFamily: "var(--font-mono)",
+                            color: "var(--text-4)",
+                            textTransform: "uppercase",
+                            letterSpacing: "0.06em"
+                          }}
+                        >
+                          Pending
+                        </span>
+                      ) : null}
+                      {excluded ? (
+                        <span
+                          style={{
+                            marginLeft: 8,
+                            fontSize: 10,
+                            fontFamily: "var(--font-mono)",
+                            color: "var(--text-4)",
+                            textTransform: "uppercase",
+                            letterSpacing: "0.06em"
+                          }}
+                          title="Excluded from spending/income totals"
+                        >
+                          {t.bucket}
+                        </span>
+                      ) : null}
+                    </td>
+                    <td className="t-acct">{t.account}</td>
+                    <td>
+                      <span className="chip">
+                        <i className="sw" style={{ background: t.categoryColor }} />
+                        {t.category}
                       </span>
-                    ) : null}
-                  </td>
-                  <td className="t-acct">{t.account}</td>
-                  <td>
-                    <span className="chip">
-                      <i className="sw" style={{ background: t.categoryColor }} />
-                      {t.category}
-                    </span>
-                  </td>
-                  <td
-                    className="num"
-                    style={{ color: t.amount < 0 ? "var(--pos)" : "var(--neg)" }}
-                  >
-                    {formatMoney(-t.amount, { sign: true })}
-                  </td>
-                </tr>
-              ))}
+                    </td>
+                    <td
+                      className="num"
+                      style={{ color: t.amount < 0 ? "var(--pos)" : "var(--neg)" }}
+                    >
+                      {formatMoney(-t.amount, { sign: true })}
+                    </td>
+                  </tr>
+                );
+              })}
               {transactions.length === 0 ? (
                 <tr>
                   <td

@@ -1,6 +1,7 @@
 import { Prisma } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
+import { SPENDING_FILTER } from "@/lib/spending/classify";
 
 /**
  * Compute and persist carryover for any cycles that ended before `now` and have
@@ -46,13 +47,7 @@ export async function closeOverdueCycles(tenantId: string, now: Date = new Date(
     const prevCarryover = prev?.carryover ?? new Prisma.Decimal(0);
 
     const expenseAgg = await prisma.plaidTransaction.aggregate({
-      where: {
-        tenantId,
-        cycleId: cycle.id,
-        removed: false,
-        supersededById: null,
-        txnType: "expense"
-      },
+      where: { ...SPENDING_FILTER, tenantId, cycleId: cycle.id },
       _sum: { amount: true }
     });
 

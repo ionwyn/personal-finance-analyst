@@ -2,6 +2,7 @@ import { Prisma } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
 import { hashColor } from "@/lib/spending/color";
+import { SPENDING_FILTER } from "@/lib/spending/classify";
 
 export type SpendingBreakdownRow = {
   category: string;
@@ -38,13 +39,7 @@ function formatCategoryName(raw: string | null): string {
 async function spendByCategory(tenantId: string, cycleId: string) {
   const rows = await prisma.plaidTransaction.groupBy({
     by: ["categoryPrimary"],
-    where: {
-      tenantId,
-      cycleId,
-      removed: false,
-      supersededById: null,
-      txnType: "expense"
-    },
+    where: { ...SPENDING_FILTER, tenantId, cycleId },
     _sum: { amount: true }
   });
   const map = new Map<string | null, number>();

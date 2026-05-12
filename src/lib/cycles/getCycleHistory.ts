@@ -1,6 +1,7 @@
 import { Prisma } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
+import { SPENDING_FILTER } from "@/lib/spending/classify";
 
 export type CycleHistoryRow = {
   id: string;
@@ -37,13 +38,7 @@ export async function getCycleHistory(tenantId: string, limit = 24): Promise<Cyc
   const cycleIds = cycles.map((c) => c.id);
   const spentRows = await prisma.plaidTransaction.groupBy({
     by: ["cycleId"],
-    where: {
-      tenantId,
-      cycleId: { in: cycleIds },
-      removed: false,
-      supersededById: null,
-      txnType: "expense"
-    },
+    where: { ...SPENDING_FILTER, tenantId, cycleId: { in: cycleIds } },
     _sum: { amount: true }
   });
 

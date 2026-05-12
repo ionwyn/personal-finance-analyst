@@ -9,6 +9,7 @@ import {
   getSpendingBreakdown,
   type SpendingBreakdownData
 } from "@/lib/cycles/getSpendingBreakdown";
+import { SPENDING_FILTER } from "@/lib/spending/classify";
 
 export type CommittedStatus = "debited" | "accrued" | "upcoming";
 
@@ -101,27 +102,14 @@ export async function getCurrentCycleData(tenantId: string, now: Date = new Date
 
   const ccDate = ccPaymentDateInCycle(cycle.startDate, cycle.endDate, settings?.ccPaymentDayOfMonth ?? null);
 
-  const cycleTxAgg = await prisma.plaidTransaction.groupBy({
-    by: ["txnType"],
-    where: {
-      tenantId,
-      cycleId: cycle.id,
-      removed: false,
-      supersededById: null
-    },
+  const expenseAgg = await prisma.plaidTransaction.aggregate({
+    where: { ...SPENDING_FILTER, tenantId, cycleId: cycle.id },
     _sum: { amount: true }
   });
+  const expenseAll = expenseAgg._sum.amount ?? new Prisma.Decimal(0);
 
-  const expenseAll = cycleTxAgg.find((row) => row.txnType === "expense")?._sum.amount ?? new Prisma.Decimal(0);
   const pendingAgg = await prisma.plaidTransaction.aggregate({
-    where: {
-      tenantId,
-      cycleId: cycle.id,
-      removed: false,
-      supersededById: null,
-      txnType: "expense",
-      pending: true
-    },
+    where: { ...SPENDING_FILTER, tenantId, cycleId: cycle.id, pending: true },
     _sum: { amount: true },
     _count: { _all: true }
   });
@@ -142,13 +130,7 @@ export async function getCurrentCycleData(tenantId: string, now: Date = new Date
   });
 
   const cycleMatches = await prisma.plaidTransaction.findMany({
-    where: {
-      tenantId,
-      cycleId: cycle.id,
-      removed: false,
-      supersededById: null,
-      txnType: "expense"
-    },
+    where: { ...SPENDING_FILTER, tenantId, cycleId: cycle.id },
     select: { id: true, merchantName: true, name: true }
   });
 

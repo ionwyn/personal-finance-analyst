@@ -55,29 +55,50 @@ export const isRealSpending = (t: ClassifiableTxn) =>
 export const isRealIncome = (t: ClassifiableTxn) =>
   categorizeForSpending(t) === "income";
 
+/**
+ * Composable Prisma where-partial that narrows to "real spending" — txnType
+ * `expense` excluding internal transfers, CC/loan payments, and savings moves.
+ * Spread into any query: `{ ...SPENDING_FILTER, tenantId, cycleId }`.
+ */
+export const SPENDING_FILTER: Prisma.PlaidTransactionWhereInput = {
+  removed: false,
+  supersededById: null,
+  txnType: "expense",
+  NOT: {
+    OR: [
+      { categoryPrimary: { in: [...TRANSFER_PRIMARIES] } },
+      { categoryPrimary: "LOAN_PAYMENTS" },
+      {
+        categoryDetailed: {
+          in: [...SETTLEMENT_DETAILED, ...SAVINGS_DETAILED]
+        }
+      }
+    ]
+  }
+};
+
+/**
+ * Composable Prisma where-partial that narrows to "real income" — credits
+ * (negative amounts) excluding internal account transfers in.
+ */
+export const INCOME_FILTER: Prisma.PlaidTransactionWhereInput = {
+  removed: false,
+  supersededById: null,
+  amount: { lt: 0 },
+  NOT: {
+    OR: [
+      { categoryPrimary: "TRANSFER_IN" },
+      { categoryDetailed: "TRANSFER_IN_ACCOUNT_TRANSFER" }
+    ]
+  }
+};
+
 export function spendingWhere(
   tenantId: string,
   gte: Date,
   lt: Date
 ): Prisma.PlaidTransactionWhereInput {
-  return {
-    tenantId,
-    removed: false,
-    supersededById: null,
-    date: { gte, lt },
-    txnType: "expense",
-    NOT: {
-      OR: [
-        { categoryPrimary: { in: [...TRANSFER_PRIMARIES] } },
-        { categoryPrimary: "LOAN_PAYMENTS" },
-        {
-          categoryDetailed: {
-            in: [...SETTLEMENT_DETAILED, ...SAVINGS_DETAILED]
-          }
-        }
-      ]
-    }
-  };
+  return { ...SPENDING_FILTER, tenantId, date: { gte, lt } };
 }
 
 export function incomeWhere(
@@ -85,17 +106,5 @@ export function incomeWhere(
   gte: Date,
   lt: Date
 ): Prisma.PlaidTransactionWhereInput {
-  return {
-    tenantId,
-    removed: false,
-    supersededById: null,
-    date: { gte, lt },
-    amount: { lt: 0 },
-    NOT: {
-      OR: [
-        { categoryPrimary: "TRANSFER_IN" },
-        { categoryDetailed: "TRANSFER_IN_ACCOUNT_TRANSFER" }
-      ]
-    }
-  };
+  return { ...INCOME_FILTER, tenantId, date: { gte, lt } };
 }

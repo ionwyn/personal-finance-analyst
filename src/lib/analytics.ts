@@ -4,6 +4,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getInvestmentDashboardData } from "@/lib/investments/analytics";
 import type { InvestmentDashboardData } from "@/lib/investments/types";
+import { categorizeForSpending } from "@/lib/spending/classify";
 
 const CATEGORY_COLORS = [
   "var(--cat-1)",
@@ -263,15 +264,21 @@ export async function getDashboardData(tenantSlug: string) {
 
   for (const t of transactions) {
     const amount = numberValue(t.amount);
+    const bucket = categorizeForSpending(t);
+    const isSpending = bucket === "spending";
+    const isIncome = bucket === "income";
+    const spendValue = isSpending ? amount : 0;
+    const incomeValue = isIncome ? Math.abs(amount) : 0;
+
     const cashflow = monthlyMap.get(monthKey(t.date));
     if (cashflow) {
-      if (amount < 0) cashflow.income += Math.abs(amount);
-      if (amount > 0) cashflow.spending += amount;
+      cashflow.income += incomeValue;
+      cashflow.spending += spendValue;
       cashflow.net = cashflow.income - cashflow.spending;
     }
 
     if (t.date >= currentMonthStart && t.date <= currentMonthEnd) {
-      if (amount > 0) {
+      if (isSpending) {
         monthlySpend += amount;
         monthExpenseCount += 1;
         if (!largestExpense || amount > largestExpense.amount) {
@@ -287,21 +294,21 @@ export async function getDashboardData(tenantSlug: string) {
             pending: t.pending
           };
         }
-      }
-      if (amount < 0) monthlyIncome += Math.abs(amount);
 
-      if (amount > 0 && isLikelySubscription(t.merchantName ?? t.name, t.categoryPrimary)) {
-        const key = (t.merchantName ?? t.name).toLowerCase();
-        subscriptionMerchants.set(key, (subscriptionMerchants.get(key) ?? 0) + amount);
+        if (isLikelySubscription(t.merchantName ?? t.name, t.categoryPrimary)) {
+          const key = (t.merchantName ?? t.name).toLowerCase();
+          subscriptionMerchants.set(key, (subscriptionMerchants.get(key) ?? 0) + amount);
+        }
       }
+      if (isIncome) monthlyIncome += incomeValue;
     }
 
     if (t.date >= prevMonthStart && t.date <= prevMonthEnd) {
-      if (amount > 0) prevMonthSpend += amount;
-      if (amount < 0) prevMonthIncome += Math.abs(amount);
+      if (isSpending) prevMonthSpend += amount;
+      if (isIncome) prevMonthIncome += incomeValue;
     }
 
-    if (amount > 0) {
+    if (isSpending) {
       const category = t.categoryPrimary ?? "Uncategorized";
       const merchant = t.merchantName ?? t.name;
       if (t.date >= ninetyDaysAgo) {
@@ -587,7 +594,8 @@ export async function getTransactionsForTenant(input: {
       category: cat,
       categoryColor: colorForCategory(cat, Math.abs(hash(cat)) % CATEGORY_COLORS.length),
       detailedCategory: t.categoryDetailed,
-      pending: t.pending
+      pending: t.pending,
+      bucket: categorizeForSpending(t)
     };
   });
 

@@ -324,6 +324,19 @@ export function CycleView({
               <Row label="Sweep buffer setting" value={formatMoney(buffer)} />
             </div>
           </div>
+
+          <div className="panel">
+            <div className="panel-head">
+              <div className="panel-title">Avg daily spend budget</div>
+              <div className="panel-meta">SWEEP SPACE ÷ DAYS LEFT</div>
+            </div>
+            <div className="panel-body" style={{ textAlign: "center" }}>
+              <BigNumber value={daysRemaining > 0 ? safe / daysRemaining : 0} />
+              <div style={{ fontSize: 12, color: "var(--text-3)", marginTop: 6 }}>
+                {formatMoney(safe)} ÷ {daysRemaining} {daysRemaining === 1 ? "day" : "days"} remaining
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
