@@ -333,18 +333,22 @@ export async function getDashboardData(tenantSlug: string) {
     orderBy: { capturedAt: "asc" }
   });
 
-  const balanceByDay = new Map<string, number>();
+  const balanceByDay = new Map<string, { date: Date; balance: number }>();
   for (const snapshot of balanceSnapshots) {
     const key = format(snapshot.capturedAt, "MMM d");
     const acctType = snapshot.account.type.toLowerCase();
     const isLiability = acctType.includes("credit") || acctType.includes("loan");
     const value = numberValue(snapshot.currentBalance);
     const signed = isLiability ? -Math.abs(value) : value;
-    balanceByDay.set(key, (balanceByDay.get(key) ?? 0) + signed);
+    const existing = balanceByDay.get(key);
+    balanceByDay.set(key, {
+      date: existing?.date ?? snapshot.capturedAt,
+      balance: (existing?.balance ?? 0) + signed
+    });
   }
-  const balanceHistory: BalancePoint[] = [...balanceByDay.entries()].map(([date, balance]) => ({
+  const balanceHistory: BalancePoint[] = [...balanceByDay.entries()].map(([date, info]) => ({
     date,
-    balance
+    balance: info.balance
   }));
 
   const totalAssets = tenant.plaidAccounts
@@ -370,12 +374,10 @@ export async function getDashboardData(tenantSlug: string) {
   // Deltas (vs last month)
   const balanceDelta = (() => {
     if (balanceHistory.length < 2) return null;
-    const last = balanceHistory[balanceHistory.length - 1].balance;
+    const entries = [...balanceByDay.values()];
+    const last = entries[entries.length - 1].balance;
     const cutoff = subDays(now, 30);
-    const prior = balanceHistory.find((p) => {
-      const dt = new Date(`${p.date}, ${now.getFullYear()}`);
-      return dt <= cutoff;
-    });
+    const prior = entries.find((e) => e.date <= cutoff);
     if (!prior) return null;
     return delta(last, prior.balance);
   })();
