@@ -576,6 +576,8 @@ export async function getTransactionsForTenant(input: {
 
   if (input.category) where.categoryPrimary = input.category;
 
+  if (input.account) where.account = { is: { name: input.account } };
+
   const transactions = await prisma.plaidTransaction.findMany({
     where,
     orderBy: { date: "desc" },
@@ -583,7 +585,7 @@ export async function getTransactionsForTenant(input: {
     take: 500
   });
 
-  let rows = transactions.map((t) => {
+  return transactions.map((t) => {
     const cat = t.categoryPrimary ?? "Uncategorized";
     return {
       id: t.id,
@@ -600,8 +602,4 @@ export async function getTransactionsForTenant(input: {
       bucket: categorizeForSpending(t)
     };
   });
-
-  if (input.account) rows = rows.filter((r) => r.account === input.account);
-
-  return rows;
 }
