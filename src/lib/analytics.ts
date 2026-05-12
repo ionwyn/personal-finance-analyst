@@ -552,7 +552,7 @@ export async function getTransactionsForTenant(input: {
   account?: string;
 }) {
   const tenant = await prisma.tenant.findUnique({ where: { slug: input.tenantSlug } });
-  if (!tenant) return [];
+  if (!tenant) return { rows: [], total: 0 };
 
   const where: Prisma.PlaidTransactionWhereInput = {
     tenantId: tenant.id,
@@ -578,14 +578,17 @@ export async function getTransactionsForTenant(input: {
 
   if (input.account) where.account = { is: { name: input.account } };
 
-  const transactions = await prisma.plaidTransaction.findMany({
-    where,
-    orderBy: { date: "desc" },
-    include: { account: true },
-    take: 500
-  });
+  const [transactions, total] = await Promise.all([
+    prisma.plaidTransaction.findMany({
+      where,
+      orderBy: { date: "desc" },
+      include: { account: true },
+      take: 500
+    }),
+    prisma.plaidTransaction.count({ where })
+  ]);
 
-  return transactions.map((t) => {
+  const rows = transactions.map((t) => {
     const cat = t.categoryPrimary ?? "Uncategorized";
     return {
       id: t.id,
@@ -602,4 +605,6 @@ export async function getTransactionsForTenant(input: {
       bucket: categorizeForSpending(t)
     };
   });
+
+  return { rows, total };
 }

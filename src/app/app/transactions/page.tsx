@@ -4,7 +4,7 @@ import { getServerSession } from "next-auth";
 import { AppShell } from "@/components/app-shell";
 import { formatMoney } from "@/components/big-number";
 import { ExportCsvButton, TransactionsToolbar } from "@/components/transactions-toolbar";
-import { getDashboardData, getTransactionsForTenant } from "@/lib/analytics";
+import { getTransactionsForTenant } from "@/lib/analytics";
 import { authOptions } from "@/lib/auth";
 import { formatPlaidDate } from "@/lib/format";
 import { getUserTenant } from "@/lib/tenant";
@@ -29,19 +29,15 @@ export default async function TransactionsPage({ searchParams }: Props) {
   const tenant = await getUserTenant(session.user.id);
   const slug = tenant?.slug ?? "personal";
 
-  const [transactions, dashboard] = await Promise.all([
-    getTransactionsForTenant({
-      tenantSlug: slug,
-      q: params.q,
-      from: params.from,
-      to: params.to,
-      category: params.category,
-      account: params.account
-    }),
-    getDashboardData(slug)
-  ]);
+  const { rows: transactions, total: totalCount } = await getTransactionsForTenant({
+    tenantSlug: slug,
+    q: params.q,
+    from: params.from,
+    to: params.to,
+    category: params.category,
+    account: params.account
+  });
 
-  const totalCount = dashboard.totals.transactionCount;
   const income = transactions
     .filter((t) => t.bucket === "income")
     .reduce((s, t) => s + Math.abs(t.amount), 0);
