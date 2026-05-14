@@ -1,6 +1,16 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode
+} from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, Plus } from "lucide-react";
 import { usePlaidLink } from "react-plaid-link";
@@ -12,11 +22,21 @@ type PlaidMetadata = {
   } | null;
 };
 
-export function PlaidLinkButton({ compact = false }: { compact?: boolean }) {
+type PlaidLinkContextValue = {
+  activeButtonId: string | null;
+  error: string | null;
+  loading: boolean;
+  startLink: (buttonId: string) => Promise<void>;
+};
+
+const PlaidLinkContext = createContext<PlaidLinkContextValue | null>(null);
+
+export function PlaidLinkProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
   const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [activeButtonId, setActiveButtonId] = useState<string | null>(null);
   const pendingOpenRef = useRef(false);
 
   const { open, ready } = usePlaidLink({
@@ -51,33 +71,57 @@ export function PlaidLinkButton({ compact = false }: { compact?: boolean }) {
     }
   }, [open, ready]);
 
-  async function startLink() {
-    setLoading(true);
-    setError(null);
-    try {
-      if (!token) {
+  const startLink = useCallback(
+    async (buttonId: string) => {
+      setLoading(true);
+      setError(null);
+      setActiveButtonId(buttonId);
+      try {
         const response = await fetch("/api/plaid/link-token", { method: "POST" });
         if (!response.ok) throw new Error("Could not create a Plaid Link token.");
         const body = (await response.json()) as { link_token: string };
         pendingOpenRef.current = true;
         setToken(body.link_token);
-      } else {
-        open();
+      } catch (linkError) {
+        pendingOpenRef.current = false;
+        setError(linkError instanceof Error ? linkError.message : "Plaid Link failed.");
+      } finally {
+        setLoading(false);
       }
-    } catch (linkError) {
-      setError(linkError instanceof Error ? linkError.message : "Plaid Link failed.");
-    } finally {
-      setLoading(false);
-    }
+    },
+    []
+  );
+
+  const value = useMemo(
+    () => ({ activeButtonId, error, loading, startLink }),
+    [activeButtonId, error, loading, startLink]
+  );
+
+  return <PlaidLinkContext.Provider value={value}>{children}</PlaidLinkContext.Provider>;
+}
+
+export function PlaidLinkButton({ compact = false }: { compact?: boolean }) {
+  const buttonId = useId();
+  const link = useContext(PlaidLinkContext);
+
+  if (!link) {
+    throw new Error("PlaidLinkButton must be rendered inside PlaidLinkProvider.");
   }
+
+  const showError = link.activeButtonId === buttonId ? link.error : null;
 
   return (
     <>
-      <button className="btn btn-primary" onClick={startLink} type="button" disabled={loading}>
-        {loading ? <Loader2 size={12} className="spin" /> : <Plus size={12} />}
+      <button
+        className="btn btn-primary"
+        onClick={() => void link.startLink(buttonId)}
+        type="button"
+        disabled={link.loading}
+      >
+        {link.loading ? <Loader2 size={12} className="spin" /> : <Plus size={12} />}
         {compact ? "Link account" : "Link account"}
       </button>
-      {error ? <span className="inline-error">{error}</span> : null}
+      {showError ? <span className="inline-error">{showError}</span> : null}
     </>
   );
 }
