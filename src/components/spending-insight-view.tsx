@@ -3,22 +3,74 @@
 import { useMemo, useState } from "react";
 
 import { BigNumber, formatMoney } from "@/components/big-number";
-import { CategoryBar } from "@/components/category-bar";
 import type {
   CategoryRow,
+  DetailedRow,
   Period,
   SpendingInsightData
 } from "@/lib/spending/getSpendingInsight";
 
-function pctOf(amount: number, denom: number): number {
-  if (denom <= 0) return 0;
-  return Math.max(0, Math.min(100, (amount / denom) * 100));
+type SortKey = "amount" | "pct" | "delta";
+
+type DeltaCell = { cls: "pos" | "neg" | "flat"; text: string };
+
+function deltaCell(cur: number, prev: number): DeltaCell {
+  if (prev === 0 && cur === 0) return { cls: "flat", text: "—" };
+  const diff = cur - prev;
+  if (Math.abs(diff) < 0.01) return { cls: "flat", text: "—" };
+  if (diff > 0) return { cls: "neg", text: `+$${diff.toFixed(2)}` };
+  return { cls: "pos", text: `−$${Math.abs(diff).toFixed(2)}` };
 }
 
-function deltaText(current: number, prev: number): string {
-  const diff = current - prev;
-  if (prev === 0) return current > 0 ? "+new" : "—";
-  return formatMoney(diff, { sign: true });
+function cleanSubName(parent: string, sub: string): string {
+  const ps = parent.replace(/[&,]/g, "").trim();
+  if (sub.toLowerCase().startsWith(ps.toLowerCase())) {
+    return sub.slice(ps.length).trim() || sub;
+  }
+  return sub;
+}
+
+function ChevR() {
+  return (
+    <svg width={11} height={11} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+      <path d="m9 18 6-6-6-6" />
+    </svg>
+  );
+}
+
+function BarStack({
+  cur,
+  prev,
+  scale,
+  color,
+  showShadow,
+  small
+}: {
+  cur: number;
+  prev: number;
+  scale: number;
+  color: string;
+  showShadow: boolean;
+  small?: boolean;
+}) {
+  const wrapClass = small ? "sub-bar-wrap" : "bar-wrap";
+  const trackClass = small ? "sub-bar-track" : "bar-track";
+  const curPct = scale > 0 ? Math.min(100, (cur / scale) * 100) : 0;
+  const prevPct = scale > 0 ? Math.min(100, (prev / scale) * 100) : 0;
+  const hasShadow = showShadow && prev > 0;
+
+  return (
+    <div className={wrapClass}>
+      <div className={trackClass}>
+        <div className="fill" style={{ width: `${curPct}%`, background: color }} />
+      </div>
+      {hasShadow ? (
+        <div className={`${trackClass} shadow`}>
+          <div className="fill" style={{ width: `${prevPct}%`, background: color }} />
+        </div>
+      ) : null}
+    </div>
+  );
 }
 
 export function SpendingInsightView({
@@ -29,21 +81,43 @@ export function SpendingInsightView({
   ytd: SpendingInsightData;
 }) {
   const [period, setPeriod] = useState<Period>("MTD");
+  const [showShadow, setShowShadow] = useState(true);
+  const [sortKey, setSortKey] = useState<SortKey>("amount");
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
 
   const data = period === "MTD" ? mtd : ytd;
 
-  const topAmount = useMemo(() => {
+  const sortedCategories = useMemo(() => {
+    const arr = [...data.categories];
+    if (sortKey === "amount") arr.sort((a, b) => b.amount - a.amount);
+    else if (sortKey === "pct") arr.sort((a, b) => b.pctOfIncome - a.pctOfIncome);
+    else arr.sort((a, b) => Math.abs(b.amount - b.prevAmount) - Math.abs(a.amount - a.prevAmount));
+    return arr;
+  }, [data.categories, sortKey]);
+
+  const barScale = useMemo(() => {
     let max = 0;
-    for (const c of data.categories) {
+    for (const c of sortedCategories) {
       if (c.amount > max) max = c.amount;
       if (c.prevAmount > max) max = c.prevAmount;
     }
     return max;
-  }, [data]);
+  }, [sortedCategories]);
+
+  const visibleSegs = useMemo(
+    () => sortedCategories.filter((c) => c.amount > 0),
+    [sortedCategories]
+  );
+  const topThree = useMemo(
+    () => [...visibleSegs].sort((a, b) => b.amount - a.amount).slice(0, 3),
+    [visibleSegs]
+  );
+  const largest = topThree[0];
 
   const totalDelta = data.totalSpending - data.prevTotalSpending;
-  const totalPctOfIncome = data.totalIncome > 0 ? (data.totalSpending / data.totalIncome) * 100 : 0;
+  const pctOfIncome = data.totalIncome > 0 ? (data.totalSpending / data.totalIncome) * 100 : 0;
+
+  const subtitle = period === "MTD" ? buildMtdSubtitle(data) : buildYtdSubtitle(data);
 
   const toggle = (key: string) => {
     setExpanded((prev) => {
@@ -59,8 +133,9 @@ export function SpendingInsightView({
       <div className="page-header">
         <div>
           <div className="page-title">Spending Insight</div>
-          <div className="page-sub">
-            {data.periodLabel.toUpperCase()} · VS {data.prevPeriodLabel.toUpperCase()}
+          <div className="si-sub">
+            {subtitle.main}
+            <span className="vs">VS {data.prevPeriodLabel.toUpperCase()}</span>
           </div>
         </div>
         <div className="page-actions">
@@ -88,10 +163,13 @@ export function SpendingInsightView({
             />
             vs {period === "MTD" ? "last month" : "last year"}
           </div>
-          <BigNumber value={totalDelta} signed />
+          <BigNumber value={Math.abs(totalDelta)} />
           <div className="kpi-meta">
-            <span>
-              prev {formatMoney(data.prevTotalSpending)} · {deltaText(data.totalSpending, data.prevTotalSpending)}
+            <span>prev {formatMoney(data.prevTotalSpending)}</span>
+            <span style={{ color: "var(--text-4)" }}>·</span>
+            <span style={{ color: totalDelta > 0 ? "var(--neg)" : "var(--pos)" }}>
+              {totalDelta > 0 ? "+" : totalDelta < 0 ? "−" : ""}
+              {formatMoney(Math.abs(totalDelta))}
             </span>
           </div>
         </div>
@@ -102,7 +180,7 @@ export function SpendingInsightView({
             % of income
           </div>
           <span className="kpi-value">
-            {totalPctOfIncome.toFixed(1)}
+            {pctOfIncome.toFixed(1)}
             <span className="frac">%</span>
           </span>
           <div className="kpi-meta">
@@ -122,109 +200,272 @@ export function SpendingInsightView({
         </div>
       </div>
 
-      <div className="panel" style={{ marginTop: 16 }}>
-        <div className="panel-head">
-          <div className="panel-title">Categories</div>
-          <div className="panel-meta">
-            {data.categories.length} {data.categories.length === 1 ? "CATEGORY" : "CATEGORIES"}
-            {" · "}
-            SHADOW = {data.prevPeriodLabel.toUpperCase()}
+      <div className="spend-summary-strip">
+        <div className="spend-summary-head">
+          <div>
+            <div className="spend-summary-eyebrow">Spent this period</div>
+            <div className="spend-summary-total">{formatMoney(data.totalSpending)}</div>
+            <div className="spend-summary-sub">
+              Across <span className="v">{visibleSegs.length}</span>{" "}
+              {visibleSegs.length === 1 ? "category" : "categories"}
+              {largest ? (
+                <>
+                  {" · "}
+                  Largest <span className="v">{largest.primary}</span> at{" "}
+                  <span className="v">
+                    {data.totalSpending > 0
+                      ? ((largest.amount / data.totalSpending) * 100).toFixed(0)
+                      : "0"}
+                    %
+                  </span>
+                </>
+              ) : null}
+            </div>
           </div>
-        </div>
-        <div className="panel-body">
-          {data.categories.length === 0 ? (
-            <div style={{ color: "var(--text-3)", fontSize: 12 }}>
-              No spending recorded yet for this period.
+          {topThree.length > 0 ? (
+            <div className="spend-summary-stat-row">
+              {topThree.map((c) => {
+                const pct =
+                  data.totalSpending > 0 ? (c.amount / data.totalSpending) * 100 : 0;
+                return (
+                  <div className="spend-summary-stat" key={c.primaryRaw || c.primary}>
+                    <div className="spend-summary-stat-pct">
+                      <span className="dot" style={{ background: c.color }} />
+                      {pct.toFixed(0)}
+                      <span className="unit">%</span>
+                    </div>
+                    <div className="spend-summary-stat-lbl">{c.primary}</div>
+                  </div>
+                );
+              })}
             </div>
-          ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              {data.categories.map((c) => (
-                <CategoryRowItem
+          ) : null}
+        </div>
+
+        {data.totalSpending > 0 ? (
+          <div className="spend-summary-bar">
+            {visibleSegs.map((c) => {
+              const pct = (c.amount / data.totalSpending) * 100;
+              return (
+                <div
                   key={c.primaryRaw || c.primary}
-                  row={c}
-                  topAmount={topAmount}
-                  expanded={expanded.has(c.primaryRaw || c.primary)}
-                  onToggle={() => toggle(c.primaryRaw || c.primary)}
+                  className="spend-summary-seg"
+                  style={{ width: `${pct}%`, background: c.color }}
+                  title={`${c.primary} · ${pct.toFixed(1)}% · ${formatMoney(c.amount)}`}
                 />
-              ))}
-            </div>
-          )}
-        </div>
+              );
+            })}
+          </div>
+        ) : null}
+
+        {visibleSegs.length > 0 ? (
+          <div className="spend-summary-legend">
+            {visibleSegs.map((c) => {
+              const pct =
+                data.totalSpending > 0 ? (c.amount / data.totalSpending) * 100 : 0;
+              return (
+                <div className="spend-summary-leg" key={c.primaryRaw || c.primary}>
+                  <span className="dot" style={{ background: c.color }} />
+                  <span className="nm">{c.primary}</span>
+                  <span className="amt">{formatMoney(c.amount)}</span>
+                  <span className="pct">{pct.toFixed(1)}%</span>
+                </div>
+              );
+            })}
+          </div>
+        ) : null}
       </div>
 
-      <div className="foot-note">
-        <span>
-          Internal transfers (TRANSFER_OUT, credit card payments, savings/investment moves) are excluded
-          from spending totals.
-        </span>
-        <span>⌘1 dashboard</span>
+      <div className="panel" style={{ marginTop: 16 }}>
+        <div className="cat-toolbar">
+          <span className="meta">Categories · {data.categories.length}</span>
+          <span className="spacer" />
+          <div
+            role="switch"
+            aria-checked={showShadow}
+            tabIndex={0}
+            className={`shadow-toggle ${showShadow ? "on" : ""}`}
+            onClick={() => setShowShadow((s) => !s)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                setShowShadow((s) => !s);
+              }
+            }}
+          >
+            <span className="sw" />
+            <span>Shadow bar</span>
+          </div>
+          <div className="cat-sort">
+            <button
+              type="button"
+              className={sortKey === "amount" ? "on" : ""}
+              onClick={() => setSortKey("amount")}
+              aria-label="Sort by amount"
+            >
+              $
+            </button>
+            <button
+              type="button"
+              className={sortKey === "pct" ? "on" : ""}
+              onClick={() => setSortKey("pct")}
+              aria-label="Sort by percent of income"
+            >
+              %
+            </button>
+            <button
+              type="button"
+              className={sortKey === "delta" ? "on" : ""}
+              onClick={() => setSortKey("delta")}
+              aria-label="Sort by delta"
+            >
+              Δ
+            </button>
+          </div>
+        </div>
+
+        {sortedCategories.length === 0 ? (
+          <div style={{ padding: 18, color: "var(--text-3)", fontSize: 12 }}>
+            No spending recorded yet for this period.
+          </div>
+        ) : (
+          sortedCategories.map((cat) => {
+            const key = cat.primaryRaw || cat.primary;
+            return (
+              <CategoryRowItem
+                key={key}
+                cat={cat}
+                income={data.totalIncome}
+                scale={barScale}
+                showShadow={showShadow}
+                expanded={expanded.has(key)}
+                onToggle={() => toggle(key)}
+              />
+            );
+          })
+        )}
+      </div>
+
+      <div className="si-caveat">
+        Internal transfers, credit-card payments, and savings/investment moves are excluded
+        from spending totals.
       </div>
     </>
   );
 }
 
 function CategoryRowItem({
-  row,
-  topAmount,
+  cat,
+  income,
+  scale,
+  showShadow,
   expanded,
   onToggle
 }: {
-  row: CategoryRow;
-  topAmount: number;
+  cat: CategoryRow;
+  income: number;
+  scale: number;
+  showShadow: boolean;
   expanded: boolean;
   onToggle: () => void;
 }) {
-  const delta = row.prevAmount > 0 ? row.amount - row.prevAmount : null;
-  const detailedTop = useMemo(() => {
+  const pctIncome = income > 0 ? (cat.amount / income) * 100 : 0;
+  const delta = deltaCell(cat.amount, cat.prevAmount);
+  const hasSubs = cat.detailed.length > 0;
+
+  const subScale = useMemo(() => {
     let max = 0;
-    for (const d of row.detailed) {
+    for (const d of cat.detailed) {
       if (d.amount > max) max = d.amount;
       if (d.prevAmount > max) max = d.prevAmount;
     }
     return max;
-  }, [row.detailed]);
+  }, [cat.detailed]);
 
   return (
-    <div>
-      <CategoryBar
-        label={`${row.primary} · ${row.pctOfIncome.toFixed(1)}% of income`}
-        color={row.color}
-        amount={row.amount}
-        pct={pctOf(row.amount, topAmount)}
-        delta={delta}
-        prevAmount={row.prevAmount}
-        prevPct={pctOf(row.prevAmount, topAmount)}
-        expandable={row.detailed.length > 0}
-        expanded={expanded}
-        onToggle={row.detailed.length > 0 ? onToggle : undefined}
-      />
-      {expanded && row.detailed.length > 0 ? (
-        <div
-          style={{
-            marginTop: 8,
-            marginLeft: 18,
-            paddingLeft: 10,
-            borderLeft: "1px dashed var(--border)",
-            display: "flex",
-            flexDirection: "column",
-            gap: 6
-          }}
-        >
-          {row.detailed.map((d) => (
-            <CategoryBar
+    <>
+      <div
+        className={`cat-row ${expanded ? "expanded " : ""}${hasSubs ? "" : "no-sub"}`}
+        onClick={() => {
+          if (hasSubs) onToggle();
+        }}
+        role={hasSubs ? "button" : undefined}
+        tabIndex={hasSubs ? 0 : undefined}
+        onKeyDown={(e) => {
+          if (hasSubs && (e.key === "Enter" || e.key === " ")) {
+            e.preventDefault();
+            onToggle();
+          }
+        }}
+      >
+        <span className="chev">
+          <ChevR />
+        </span>
+        <i className="dot" style={{ background: cat.color }} />
+        <span className="nm">{cat.primary}</span>
+        <span className="pct">{pctIncome.toFixed(1)}% of income</span>
+        <span className="amt">{formatMoney(cat.amount)}</span>
+        <span className={`delta ${delta.cls}`}>{delta.text}</span>
+        <BarStack
+          cur={cat.amount}
+          prev={cat.prevAmount}
+          scale={scale}
+          color={cat.color}
+          showShadow={showShadow}
+        />
+      </div>
+      {expanded && hasSubs ? (
+        <div className="subcat-list">
+          {cat.detailed.map((d) => (
+            <SubcatRow
               key={d.detailedRaw || d.name}
-              label={d.name}
-              color={row.color}
-              amount={d.amount}
-              pct={pctOf(d.amount, detailedTop)}
-              delta={d.prevAmount > 0 ? d.amount - d.prevAmount : null}
-              prevAmount={d.prevAmount}
-              prevPct={pctOf(d.prevAmount, detailedTop)}
-              size="sm"
+              parent={cat.primary}
+              color={cat.color}
+              detail={d}
+              income={income}
+              scale={subScale}
+              showShadow={showShadow}
             />
           ))}
         </div>
       ) : null}
+    </>
+  );
+}
+
+function SubcatRow({
+  parent,
+  color,
+  detail,
+  income,
+  scale,
+  showShadow
+}: {
+  parent: string;
+  color: string;
+  detail: DetailedRow;
+  income: number;
+  scale: number;
+  showShadow: boolean;
+}) {
+  const subDelta = deltaCell(detail.amount, detail.prevAmount);
+  const subPct = income > 0 ? (detail.amount / income) * 100 : 0;
+  return (
+    <div className="subcat-row no-txs">
+      <span className="stub-chev" />
+      <i className="dot" style={{ background: color }} />
+      <span className="nm">{cleanSubName(parent, detail.name)}</span>
+      <span className="pct">{subPct.toFixed(1)}%</span>
+      <span className="amt">{formatMoney(detail.amount)}</span>
+      <span className={`delta ${subDelta.cls}`}>{subDelta.text}</span>
+      <BarStack
+        cur={detail.amount}
+        prev={detail.prevAmount}
+        scale={scale}
+        color={color}
+        showShadow={showShadow}
+        small
+      />
     </div>
   );
 }
@@ -237,39 +478,36 @@ function PeriodToggle({
   onChange: (p: Period) => void;
 }) {
   return (
-    <div
-      role="tablist"
-      style={{
-        display: "inline-flex",
-        border: "1px solid var(--border)",
-        borderRadius: 6,
-        overflow: "hidden"
-      }}
-    >
-      {(["MTD", "YTD"] as Period[]).map((p) => {
-        const active = p === period;
-        return (
-          <button
-            key={p}
-            role="tab"
-            aria-selected={active}
-            type="button"
-            onClick={() => onChange(p)}
-            style={{
-              all: "unset",
-              padding: "4px 10px",
-              fontSize: 11,
-              cursor: "pointer",
-              fontFamily: "var(--font-mono)",
-              letterSpacing: "0.06em",
-              background: active ? "var(--accent-dim)" : "transparent",
-              color: active ? "var(--accent)" : "var(--text-3)"
-            }}
-          >
-            {p}
-          </button>
-        );
-      })}
+    <div className="period-toggle" role="tablist">
+      {(["MTD", "YTD"] as Period[]).map((p) => (
+        <button
+          key={p}
+          type="button"
+          role="tab"
+          aria-selected={p === period}
+          className={p === period ? "on" : ""}
+          onClick={() => onChange(p)}
+        >
+          {p}
+        </button>
+      ))}
     </div>
   );
+}
+
+function buildMtdSubtitle(data: SpendingInsightData): { main: string } {
+  const end = toDate(data.rangeEnd);
+  const day = end.getDate();
+  const daysInMonth = new Date(end.getFullYear(), end.getMonth() + 1, 0).getDate();
+  return {
+    main: `${data.periodLabel.toUpperCase()} · MTD · DAY ${day} OF ${daysInMonth} · `
+  };
+}
+
+function buildYtdSubtitle(data: SpendingInsightData): { main: string } {
+  return { main: `${data.periodLabel.toUpperCase()} · ` };
+}
+
+function toDate(v: Date | string): Date {
+  return v instanceof Date ? v : new Date(v);
 }
