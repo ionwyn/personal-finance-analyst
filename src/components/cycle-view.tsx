@@ -177,7 +177,7 @@ export function CycleView({
           <BigNumber value={spent} />
           <div className="kpi-meta">
             <span>
-              {pendingCount} pending · {formatMoney(pending)}
+              includes {pendingCount} pending · {formatMoney(pending)}
             </span>
           </div>
         </div>

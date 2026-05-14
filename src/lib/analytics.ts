@@ -597,6 +597,7 @@ export async function getTransactionsForTenant(input: {
       account: t.account.name,
       accountId: t.accountId,
       date: t.date.toISOString(),
+      authorizedDate: t.authorizedDate?.toISOString(),
       amount: numberValue(t.amount),
       category: cat,
       categoryColor: colorForCategory(cat, Math.abs(hash(cat)) % CATEGORY_COLORS.length),

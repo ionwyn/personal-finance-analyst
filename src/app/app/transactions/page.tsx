@@ -142,7 +142,7 @@ export default async function TransactionsPage({ searchParams }: Props) {
                   t.bucket === "savings";
                 return (
                   <tr key={t.id} style={excluded ? { opacity: 0.6 } : undefined}>
-                    <td className="t-date">{formatPlaidDate(t.date)}</td>
+                    <td className="t-date">{formatPlaidDate(t.authorizedDate)}</td>
                     <td className="t-merchant">
                       {t.name}
                       {t.pending ? (
