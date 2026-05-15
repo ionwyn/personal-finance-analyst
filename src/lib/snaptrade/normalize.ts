@@ -108,6 +108,19 @@ function normalizeAssetType(symbol: UniversalSymbol | undefined) {
   }
 }
 
+type LogoBearing = {
+  logo_url?: unknown;
+  logoUrl?: unknown;
+};
+
+function positionLogoUrl(...sources: Array<LogoBearing | null | undefined>) {
+  for (const source of sources) {
+    const normalized = normalizeSnapTradeLogoUrl(source?.logo_url ?? source?.logoUrl);
+    if (normalized) return normalized;
+  }
+  return null;
+}
+
 export function normalizeConnection(authorization: BrokerageAuthorization): NormalizedConnection | null {
   if (!authorization.id) return null;
   return {
@@ -151,8 +164,9 @@ export function normalizeBalance(balance: Balance): NormalizedBalance | null {
 }
 
 export function normalizePosition(position: Position, index = 0): NormalizedPosition | null {
-  const positionSymbol = position.symbol;
-  const symbol = positionSymbol?.symbol as (UniversalSymbol & { logo_url?: string }) | undefined;
+  const positionWithLogo = position as Position & LogoBearing;
+  const positionSymbol = position.symbol as (Position["symbol"] & LogoBearing) | undefined;
+  const symbol = positionSymbol?.symbol as (UniversalSymbol & LogoBearing) | undefined;
   const ticker = stringOrNull(symbol?.symbol ?? positionSymbol?.description);
   const units = numberOrNull(position.units);
   if (!ticker || units == null) return null;
@@ -181,6 +195,6 @@ export function normalizePosition(position: Position, index = 0): NormalizedPosi
     pnlNative,
     pnlPct,
     cashEquivalent: Boolean(position.cash_equivalent),
-    logoUrl: normalizeSnapTradeLogoUrl(symbol?.logo_url)
+    logoUrl: positionLogoUrl(symbol, positionSymbol, positionWithLogo)
   };
 }

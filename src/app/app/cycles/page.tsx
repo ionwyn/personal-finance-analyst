@@ -1,4 +1,3 @@
-import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
 
 import { AppShell } from "@/components/app-shell";
@@ -6,31 +5,42 @@ import { CycleView } from "@/components/cycle-view";
 import { authOptions } from "@/lib/auth";
 import { getCurrentCycleData } from "@/lib/cycles/getCurrentCycle";
 import { discoverRecurringCandidates } from "@/lib/cycles/discovery";
-import { getUserTenant } from "@/lib/tenant";
+import { resolveSessionTenant } from "@/lib/tenant";
 
 export const dynamic = "force-dynamic";
 
 export default async function CyclesPage() {
   const session = await getServerSession(authOptions);
-  if (!session?.user?.id) redirect("/signin");
+  const { tenantId, isDemo } = await resolveSessionTenant(session);
 
-  const tenant = await getUserTenant(session.user.id);
-  if (!tenant) redirect("/signin");
+  if (!tenantId) {
+    return (
+      <AppShell mode={isDemo ? "demo" : "private"}>
+        <section className="empty-state">
+          <h2>No tenant found</h2>
+        </section>
+      </AppShell>
+    );
+  }
 
   const [data, discoveryCandidates] = await Promise.all([
-    getCurrentCycleData(tenant.id),
-    discoverRecurringCandidates(tenant.id)
+    getCurrentCycleData(tenantId),
+    discoverRecurringCandidates(tenantId)
   ]);
 
   return (
     <AppShell
-      mode="private"
-      user={{
-        name: session.user.name,
-        email: session.user.email,
-        image: session.user.image,
-        handle: session.user.email ?? undefined
-      }}
+      mode={isDemo ? "demo" : "private"}
+      user={
+        isDemo
+          ? undefined
+          : {
+              name: session?.user?.name,
+              email: session?.user?.email,
+              image: session?.user?.image,
+              handle: session?.user?.email ?? undefined
+            }
+      }
     >
       {data ? (
         <CycleView data={data} discoveryCandidates={discoveryCandidates} />

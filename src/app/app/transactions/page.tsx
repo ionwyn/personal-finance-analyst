@@ -1,4 +1,3 @@
-import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
 
 import { AppShell } from "@/components/app-shell";
@@ -7,7 +6,7 @@ import { ExportCsvButton, TransactionsToolbar } from "@/components/transactions-
 import { getTransactionsForTenant } from "@/lib/analytics";
 import { authOptions } from "@/lib/auth";
 import { formatPlaidDate } from "@/lib/format";
-import { getUserTenant } from "@/lib/tenant";
+import { resolveSessionTenant } from "@/lib/tenant";
 
 export const dynamic = "force-dynamic";
 
@@ -23,11 +22,8 @@ type Props = {
 
 export default async function TransactionsPage({ searchParams }: Props) {
   const session = await getServerSession(authOptions);
-  if (!session?.user?.id) redirect("/signin");
-
+  const { tenantSlug: slug, isDemo } = await resolveSessionTenant(session);
   const params = await searchParams;
-  const tenant = await getUserTenant(session.user.id);
-  const slug = tenant?.slug ?? "personal";
 
   const { rows: transactions, total: totalCount } = await getTransactionsForTenant({
     tenantSlug: slug,
@@ -66,13 +62,17 @@ export default async function TransactionsPage({ searchParams }: Props) {
 
   return (
     <AppShell
-      mode="private"
-      user={{
-        name: session.user.name,
-        email: session.user.email,
-        image: session.user.image,
-        handle: session.user.email ?? undefined
-      }}
+      mode={isDemo ? "demo" : "private"}
+      user={
+        isDemo
+          ? undefined
+          : {
+              name: session?.user?.name,
+              email: session?.user?.email,
+              image: session?.user?.image,
+              handle: session?.user?.email ?? undefined
+            }
+      }
     >
       <div className="page-header">
         <div>

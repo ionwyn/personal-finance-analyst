@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
 
 import { AppShell } from "@/components/app-shell";
@@ -8,7 +7,7 @@ import { authOptions } from "@/lib/auth";
 import { closeOverdueCycles } from "@/lib/cycles/close";
 import { getCycleHistory } from "@/lib/cycles/getCycleHistory";
 import { formatUtcDate } from "@/lib/format";
-import { getUserTenant } from "@/lib/tenant";
+import { resolveSessionTenant } from "@/lib/tenant";
 
 export const dynamic = "force-dynamic";
 
@@ -19,23 +18,34 @@ function toNumber(value: { toString(): string } | null | undefined): number {
 
 export default async function CycleHistoryPage() {
   const session = await getServerSession(authOptions);
-  if (!session?.user?.id) redirect("/signin");
+  const { tenantId, isDemo } = await resolveSessionTenant(session);
 
-  const tenant = await getUserTenant(session.user.id);
-  if (!tenant) redirect("/signin");
+  if (!tenantId) {
+    return (
+      <AppShell mode={isDemo ? "demo" : "private"}>
+        <section className="empty-state">
+          <h2>No tenant found</h2>
+        </section>
+      </AppShell>
+    );
+  }
 
-  await closeOverdueCycles(tenant.id);
-  const rows = await getCycleHistory(tenant.id, 36);
+  await closeOverdueCycles(tenantId);
+  const rows = await getCycleHistory(tenantId, 36);
 
   return (
     <AppShell
-      mode="private"
-      user={{
-        name: session.user.name,
-        email: session.user.email,
-        image: session.user.image,
-        handle: session.user.email ?? undefined
-      }}
+      mode={isDemo ? "demo" : "private"}
+      user={
+        isDemo
+          ? undefined
+          : {
+              name: session?.user?.name,
+              email: session?.user?.email,
+              image: session?.user?.image,
+              handle: session?.user?.email ?? undefined
+            }
+      }
     >
       <div className="page-header">
         <div>

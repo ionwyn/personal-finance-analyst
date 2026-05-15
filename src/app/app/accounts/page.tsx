@@ -1,4 +1,3 @@
-import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
 import {
   CreditCard,
@@ -19,16 +18,14 @@ import { SyncAllButton } from "@/components/sync-all-button";
 import { formatMoney } from "@/components/big-number";
 import { getDashboardData } from "@/lib/analytics";
 import { authOptions } from "@/lib/auth";
-import { getUserTenant } from "@/lib/tenant";
+import { resolveSessionTenant } from "@/lib/tenant";
 
 export const dynamic = "force-dynamic";
 
 export default async function AccountsPage() {
   const session = await getServerSession(authOptions);
-  if (!session?.user?.id) redirect("/signin");
-
-  const tenant = await getUserTenant(session.user.id);
-  const data = await getDashboardData(tenant?.slug ?? "personal");
+  const { tenantSlug, isDemo } = await resolveSessionTenant(session);
+  const data = await getDashboardData(tenantSlug);
   const institutions = data.institutions;
   const accountCount = institutions.reduce((s, i) => s + i.accounts.length, 0);
 
@@ -48,13 +45,17 @@ export default async function AccountsPage() {
 
   return (
     <AppShell
-      mode="private"
-      user={{
-        name: session.user.name,
-        email: session.user.email,
-        image: session.user.image,
-        handle: session.user.email ?? undefined
-      }}
+      mode={isDemo ? "demo" : "private"}
+      user={
+        isDemo
+          ? undefined
+          : {
+              name: session?.user?.name,
+              email: session?.user?.email,
+              image: session?.user?.image,
+              handle: session?.user?.email ?? undefined
+            }
+      }
     >
       <div className="page-header">
         <div>
@@ -62,8 +63,8 @@ export default async function AccountsPage() {
           <div className="page-sub">{subLine}</div>
         </div>
         <div className="page-actions">
-          <SyncAllButton items={institutions.map((i) => ({ id: i.id, status: i.status }))} />
-          <PlaidLinkButton />
+          {!isDemo && <SyncAllButton items={institutions.map((i) => ({ id: i.id, status: i.status }))} />}
+          {!isDemo && <PlaidLinkButton />}
         </div>
       </div>
 
@@ -103,22 +104,24 @@ export default async function AccountsPage() {
       </div>
 
       {institutions.length === 0 ? (
-        <section className="empty-state">
-          <h2>No linked institutions</h2>
-          <p>Connect a Plaid account to start syncing accounts and transactions.</p>
-          <PlaidLinkButton />
-        </section>
+        !isDemo && (
+          <section className="empty-state">
+            <h2>No linked institutions</h2>
+            <p>Connect a Plaid account to start syncing accounts and transactions.</p>
+            <PlaidLinkButton />
+          </section>
+        )
       ) : (
         <div>
           {institutions.map((inst) => (
-            <InstitutionCard key={inst.id} institution={inst} />
+            <InstitutionCard key={inst.id} institution={inst} isDemo={isDemo} />
           ))}
 
-          <PlaidLinkButton />
+          {!isDemo && <PlaidLinkButton />}
         </div>
       )}
 
-      <InvestmentsSection data={data.investments} />
+      <InvestmentsSection data={data.investments} isDemo={isDemo} />
 
       <div className="foot-note">
         <span>Plaid items stored encrypted at rest · webhook /api/webhooks/plaid online</span>
@@ -129,9 +132,11 @@ export default async function AccountsPage() {
 }
 
 function InvestmentsSection({
-  data
+  data,
+  isDemo
 }: {
   data: Awaited<ReturnType<typeof getDashboardData>>["investments"];
+  isDemo: boolean;
 }) {
   const { summary, accounts } = data;
   const plPos = summary.plCAD >= 0;
@@ -207,13 +212,15 @@ function InvestmentsSection({
               <div className="v">{formatMoney(summary.portfolioCAD)}</div>
               <div className="l">Portfolio</div>
             </div>
-            <div className="inst-actions">
-              {singleConnectionId ? (
-                <SnapTradeConnectionActions connectionId={singleConnectionId} />
-              ) : (
-                <SnapTradeSyncButton compact />
-              )}
-            </div>
+            {!isDemo && (
+              <div className="inst-actions">
+                {singleConnectionId ? (
+                  <SnapTradeConnectionActions connectionId={singleConnectionId} />
+                ) : (
+                  <SnapTradeSyncButton compact />
+                )}
+              </div>
+            )}
           </div>
 
           <div className="acct-list">
@@ -250,24 +257,26 @@ function InvestmentsSection({
         </div>
       ) : null}
 
-      <div
-        className="inst-card"
-        style={{
-          width: "100%",
-          background: "transparent",
-          border: "1px dashed var(--border-strong)",
-          padding: 20,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          gap: 10,
-          color: "var(--text-3)",
-          fontSize: 13,
-          cursor: "default"
-        }}
-      >
-        <SnapTradeLinkButton />
-      </div>
+      {!isDemo && (
+        <div
+          className="inst-card"
+          style={{
+            width: "100%",
+            background: "transparent",
+            border: "1px dashed var(--border-strong)",
+            padding: 20,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 10,
+            color: "var(--text-3)",
+            fontSize: 13,
+            cursor: "default"
+          }}
+        >
+          <SnapTradeLinkButton />
+        </div>
+      )}
     </>
   );
 }
@@ -279,7 +288,7 @@ function formatOpenedYear(iso: string) {
 
 type Institution = Awaited<ReturnType<typeof getDashboardData>>["institutions"][number];
 
-function InstitutionCard({ institution }: { institution: Institution }) {
+function InstitutionCard({ institution, isDemo }: { institution: Institution; isDemo: boolean }) {
   const inst = institution;
   const logoBg = pickLogoBg(inst.institutionName);
   const logoText = inst.institutionName
@@ -323,9 +332,11 @@ function InstitutionCard({ institution }: { institution: Institution }) {
           </div>
           <div className="l">Net</div>
         </div>
-        <div className="inst-actions">
-          <ItemActions itemId={inst.id} status={inst.status} />
-        </div>
+        {!isDemo && (
+          <div className="inst-actions">
+            <ItemActions itemId={inst.id} status={inst.status} />
+          </div>
+        )}
       </div>
 
       <div className="acct-list">

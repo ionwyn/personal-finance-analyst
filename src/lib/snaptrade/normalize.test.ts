@@ -78,6 +78,47 @@ describe("SnapTrade normalization", () => {
     expect(normalized?.logoUrl).toBeNull();
   });
 
+  it("accepts logo URLs from alternate SnapTrade position shapes", async () => {
+    const { normalizePosition } = await import("@/lib/snaptrade/normalize");
+
+    const wrapperLogo = normalizePosition({
+      symbol: {
+        symbol: {
+          id: "sym_3",
+          symbol: "VTI",
+          raw_symbol: "VTI",
+          description: "Vanguard Total Stock Market ETF",
+          currency: { code: "USD" },
+          type: { code: "et", description: "ETF" }
+        },
+        logo_url: "https://api.twelvedata.com/logo/vanguard.com"
+      },
+      units: 1,
+      price: 250,
+      currency: { code: "USD" }
+    } as unknown as Position);
+
+    const topLevelLogo = normalizePosition({
+      symbol: {
+        symbol: {
+          id: "sym_4",
+          symbol: "GLDM",
+          raw_symbol: "GLDM",
+          description: "SPDR Gold MiniShares Trust",
+          currency: { code: "USD" },
+          type: { code: "et", description: "ETF" }
+        }
+      },
+      logo_url: "https://api.twelvedata.com/logo/spdr.com",
+      units: 1,
+      price: 50,
+      currency: { code: "USD" }
+    } as unknown as Position);
+
+    expect(wrapperLogo?.logoUrl).toBe("https://api.twelvedata.com/logo/vanguard.com");
+    expect(topLevelLogo?.logoUrl).toBe("https://api.twelvedata.com/logo/spdr.com");
+  });
+
   it("identifies closed account statuses before per-account sync", async () => {
     const { isClosedSnapTradeAccountStatus } = await import("@/lib/snaptrade/normalize");
 
