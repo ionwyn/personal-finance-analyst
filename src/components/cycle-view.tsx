@@ -341,11 +341,26 @@ export function CycleView({
       </div>
 
       <div className="panel" style={{ marginTop: 16 }}>
-        <div className="panel-head">
-          <div className="panel-title">Spending breakdown</div>
-          <div className="panel-meta">
-            {breakdown.rows.length} {breakdown.rows.length === 1 ? "CATEGORY" : "CATEGORIES"} ·{" "}
-            DISCRETIONARY {formatMoney(breakdown.discretionaryRemaining, { sign: true })} LEFT
+        <div className="panel-head" style={{ justifyContent: "space-between" }}>
+          <div className="panel-title">Discretionary spend vs. last cycle</div>
+          <div className="panel-meta" style={{ display: "flex", gap: 16, textAlign: "right" }}>
+            <span>
+              THIS{" "}
+              <span className="mono" style={{ color: "var(--text)" }}>
+                {formatMoney(breakdown.total)}
+              </span>
+            </span>
+            <span>
+              LAST{" "}
+              <span className="mono" style={{ color: "var(--text-3)" }}>
+                {formatMoney(breakdown.previousTotal)}
+              </span>
+            </span>
+            <span style={{ minWidth: 56 }}>
+              <span className="mono" style={{ color: breakdown.total > breakdown.previousTotal ? "var(--neg)" : "var(--pos)" }}>
+                {formatMoney(breakdown.total - breakdown.previousTotal, { sign: true })}
+              </span>
+            </span>
           </div>
         </div>
         <div className="panel-body">
@@ -354,45 +369,20 @@ export function CycleView({
               No expenses this cycle yet.
             </div>
           ) : (
-            <>
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  marginBottom: 8,
-                  fontSize: 11,
-                  color: "var(--text-3)",
-                  textTransform: "uppercase",
-                  letterSpacing: "0.06em"
-                }}
-              >
-                <span>
-                  This cycle{" "}
-                  <span className="mono" style={{ color: "var(--text)" }}>
-                    {formatMoney(breakdown.total)}
-                  </span>
-                </span>
-                <span>
-                  Last cycle{" "}
-                  <span className="mono" style={{ color: "var(--text-3)" }}>
-                    {formatMoney(breakdown.previousTotal)}
-                  </span>{" "}
-                  ({formatMoney(breakdown.total - breakdown.previousTotal, { sign: true })})
-                </span>
-              </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                {breakdown.rows.map((r) => (
-                  <CategoryBar
-                    key={r.category}
-                    label={r.category}
-                    color={r.color}
-                    amount={r.amount}
-                    pct={r.pct}
-                    delta={r.delta}
-                  />
-                ))}
-              </div>
-            </>
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              {breakdown.rows.map((r) => (
+                <CategoryBar
+                  key={r.category}
+                  label={r.category}
+                  color={r.color}
+                  amount={r.amount}
+                  pct={r.pct}
+                  delta={r.delta}
+                  prevAmount={r.prevAmount}
+                  prevPct={r.prevPct}
+                />
+              ))}
+            </div>
           )}
         </div>
       </div>

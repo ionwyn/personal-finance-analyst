@@ -10,6 +10,8 @@ export type SpendingBreakdownRow = {
   amount: number;
   pct: number;
   delta: number | null;
+  prevAmount: number;
+  prevPct: number;
 };
 
 export type SpendingBreakdownData = {
@@ -74,7 +76,9 @@ export async function getSpendingBreakdown(
       color: hashColor(name),
       amount,
       pct: total > 0 ? (amount / total) * 100 : 0,
-      delta: previousAmount > 0 ? amount - previousAmount : null
+      delta: previousAmount > 0 ? amount - previousAmount : null,
+      prevAmount: previousAmount,
+      prevPct: previousTotal > 0 ? (previousAmount / previousTotal) * 100 : 0
     });
   }
 
