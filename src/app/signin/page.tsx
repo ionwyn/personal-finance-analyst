@@ -17,9 +17,9 @@ export default async function SignInPage() {
     <main className="center-shell">
       <section className="signin-panel">
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <div className="brand-mark">td</div>
+          <div className="brand-mark">WYN</div>
           <div className="brand-name">
-            TD <span className="dim">/ Personal Finance</span>
+            WYN Financial Ltd.
           </div>
         </div>
         <p className="eyebrow">Private workspace</p>

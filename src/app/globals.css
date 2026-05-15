@@ -1030,7 +1030,7 @@ svg.icon { display: inline-block; vertical-align: middle; }
   font-family: var(--font-mono);
   font-weight: 700;
   font-size: 9.5px;
-  letter-spacing: -0.04em;
+  letter-spacing: 0;
   color: #0a0a0b;
   flex-shrink: 0;
 }
