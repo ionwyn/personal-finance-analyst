@@ -57,6 +57,8 @@ async function applyAddedOrModified(input: {
           amount: normalized.amount,
           merchantName: normalized.merchantName,
           name: normalized.name,
+          categoryPrimary: normalized.categoryPrimary,
+          categoryDetailed: normalized.categoryDetailed,
           date: normalized.date,
           existingTxnType: existing?.txnType ?? null
         },

@@ -68,6 +68,20 @@ describe("classifyTransaction", () => {
     expect(result.txnType).toBe("expense");
   });
 
+  it("flags Plaid salary credits as income even when the employer pattern changed", () => {
+    const result = classifyTransaction(
+      {
+        amount: new Prisma.Decimal(-2840),
+        merchantName: "Legacy Payroll",
+        categoryPrimary: "INCOME",
+        categoryDetailed: "INCOME_SALARY",
+        date: DATE
+      },
+      ctx({ employerMerchantPattern: "ACME", expectedPaycheckDates: [DATE] })
+    );
+    expect(result.txnType).toBe("income");
+  });
+
   it("falls back to expense type", () => {
     const result = classifyTransaction(
       { amount: new Prisma.Decimal(7), merchantName: "Unknown Merchant", date: DATE },

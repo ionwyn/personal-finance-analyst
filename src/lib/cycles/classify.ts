@@ -9,6 +9,8 @@ export type ClassifyInput = {
   amount: Prisma.Decimal | number;
   merchantName?: string | null;
   name?: string | null;
+  categoryPrimary?: string | null;
+  categoryDetailed?: string | null;
   date: Date;
   existingTxnType?: string | null;
 };
@@ -49,6 +51,8 @@ function withinPaycheckWindow(date: Date, expectedDates: Date[]) {
 export function classifyTransaction(input: ClassifyInput, ctx: ClassifyContext): ClassifyResult {
   const amount = toAmountNumber(input.amount);
   const merchant = searchableMerchant(input);
+  const categoryPrimary = input.categoryPrimary ?? "";
+  const categoryDetailed = input.categoryDetailed ?? "";
   const isDebit = amount > 0;
   const isCredit = amount < 0;
 
@@ -72,6 +76,10 @@ export function classifyTransaction(input: ClassifyInput, ctx: ClassifyContext):
     if (withinPaycheckWindow(input.date, ctx.expectedPaycheckDates ?? [])) {
       return { txnType: "income", reason: "income:employer" };
     }
+  }
+
+  if (isCredit && categoryPrimary === "INCOME" && categoryDetailed === "INCOME_SALARY") {
+    return { txnType: "income", reason: "income:plaid-salary" };
   }
 
   return { txnType: "expense", reason: "fallback" };

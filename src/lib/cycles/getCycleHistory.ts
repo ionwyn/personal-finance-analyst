@@ -41,10 +41,35 @@ export async function getCycleHistory(tenantId: string, limit = 24): Promise<Cyc
     where: { ...SPENDING_FILTER, tenantId, cycleId: { in: cycleIds } },
     _sum: { amount: true }
   });
+  const creditHistoryStart = await prisma.plaidTransaction.findFirst({
+    where: {
+      tenantId,
+      removed: false,
+      supersededById: null,
+      account: { type: "credit" }
+    },
+    orderBy: { date: "asc" },
+    select: { date: true }
+  });
+  const settlementRows = await prisma.plaidTransaction.groupBy({
+    by: ["cycleId"],
+    where: {
+      tenantId,
+      cycleId: { in: cycleIds },
+      removed: false,
+      supersededById: null,
+      txnType: "settlement"
+    },
+    _sum: { amount: true }
+  });
 
   const spentByCycle = new Map<string, Prisma.Decimal>();
   for (const row of spentRows) {
     if (row.cycleId) spentByCycle.set(row.cycleId, row._sum.amount ?? new Prisma.Decimal(0));
+  }
+  const settlementByCycle = new Map<string, Prisma.Decimal>();
+  for (const row of settlementRows) {
+    if (row.cycleId) settlementByCycle.set(row.cycleId, row._sum.amount ?? new Prisma.Decimal(0));
   }
 
   return cycles.map((c) => {
@@ -52,6 +77,11 @@ export async function getCycleHistory(tenantId: string, limit = 24): Promise<Cyc
     const fixedSavingsPull = c.fixedSavingsPull ?? new Prisma.Decimal(0);
     const sweptAmount = c.sweptAmount ?? new Prisma.Decimal(0);
     const spent = spentByCycle.get(c.id) ?? new Prisma.Decimal(0);
+    const shouldCountSettlements =
+      !creditHistoryStart?.date || c.endDate < creditHistoryStart.date;
+    const unbackedSettlements = shouldCountSettlements
+      ? settlementByCycle.get(c.id) ?? new Prisma.Decimal(0)
+      : new Prisma.Decimal(0);
 
     return {
       id: c.id,
@@ -61,7 +91,7 @@ export async function getCycleHistory(tenantId: string, limit = 24): Promise<Cyc
       fixedSavingsPull,
       sweptAmount,
       totalSaved: fixedSavingsPull.add(sweptAmount),
-      spent,
+      spent: spent.add(unbackedSettlements),
       carryover: c.carryover,
       closedAt: c.closedAt
     };

@@ -3,7 +3,9 @@ import "dotenv/config";
 import { prisma } from "../src/lib/prisma";
 import { classifyTransaction } from "../src/lib/cycles/classify";
 import { loadClassifyContext } from "../src/lib/cycles/context";
+import { closeOverdueCycles } from "../src/lib/cycles/close";
 import { ensureCycleForDate, generatePayCycles } from "../src/lib/cycles/generate";
+import { recomputeCycleTotals } from "../src/lib/cycles/recomputeTotals";
 import { reconcileSweeps } from "../src/lib/cycles/sweepReconcile";
 import { seedCycleDefaultsForTenant } from "../src/lib/cycles/seed";
 
@@ -58,6 +60,8 @@ async function backfillTenant(tenantId: string, cliAnchor: Date | null) {
       amount: true,
       merchantName: true,
       name: true,
+      categoryPrimary: true,
+      categoryDetailed: true,
       date: true,
       cycleId: true,
       txnType: true
@@ -76,6 +80,8 @@ async function backfillTenant(tenantId: string, cliAnchor: Date | null) {
         amount: tx.amount,
         merchantName: tx.merchantName,
         name: tx.name,
+        categoryPrimary: tx.categoryPrimary,
+        categoryDetailed: tx.categoryDetailed,
         date: tx.date,
         existingTxnType: tx.txnType
       },
@@ -113,6 +119,12 @@ async function backfillTenant(tenantId: string, cliAnchor: Date | null) {
   const reconciled = affectedCycleIds.size
     ? await reconcileSweeps(tenantId, Array.from(affectedCycleIds))
     : 0;
+
+  for (const cycleId of affectedCycleIds) {
+    await recomputeCycleTotals(tenantId, cycleId);
+  }
+
+  await closeOverdueCycles(tenantId);
 
   return { classified, reconciled };
 }
