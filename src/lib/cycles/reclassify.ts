@@ -24,6 +24,8 @@ export async function reclassifyTenant(tenantId: string) {
       amount: true,
       merchantName: true,
       name: true,
+      categoryPrimary: true,
+      categoryDetailed: true,
       date: true,
       txnType: true,
       cycleId: true
@@ -39,6 +41,8 @@ export async function reclassifyTenant(tenantId: string) {
         amount: tx.amount,
         merchantName: tx.merchantName,
         name: tx.name,
+        categoryPrimary: tx.categoryPrimary,
+        categoryDetailed: tx.categoryDetailed,
         date: tx.date,
         existingTxnType: tx.txnType
       },

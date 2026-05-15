@@ -67,6 +67,7 @@ export const SPENDING_FILTER: Prisma.PlaidTransactionWhereInput = {
   NOT: {
     OR: [
       { categoryPrimary: { in: [...TRANSFER_PRIMARIES] } },
+      { categoryPrimary: "INCOME" },
       { categoryPrimary: "LOAN_PAYMENTS" },
       {
         categoryDetailed: {
