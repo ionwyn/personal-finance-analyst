@@ -71,7 +71,10 @@ export function CycleView({
   const chequing = toNumber(chequingBalance);
   const ccBalance = toNumber(creditCardBalance);
   const buffer = toNumber(sweepBuffer);
-  const safe = toNumber(safeToSweep.amount);
+  const sweepSpace = toNumber(safeToSweep.rawAmount);
+  const sweepSuggestion = toNumber(safeToSweep.amount);
+  const dailySpendBudget =
+    daysRemaining > 0 ? Math.max(0, sweepSpace) / daysRemaining : 0;
 
   return (
     <>
@@ -110,7 +113,7 @@ export function CycleView({
 
       {settingsConfigured && daysRemaining <= 1 ? (
         <SweepPrompt
-          suggestedAmount={Math.max(0, safe)}
+          suggestedAmount={sweepSuggestion}
           alreadySwept={toNumber(cycle.sweptAmount)}
         />
       ) : null}
@@ -122,7 +125,7 @@ export function CycleView({
         >
           <div className="panel-body" style={{ fontSize: 12, color: "var(--neg)" }}>
             <strong>Over-committed.</strong> Pending charges + accruals exceed available cash.
-            Safe-to-sweep is clamped to zero.
+            Sweep suggestions are clamped to zero.
           </div>
         </section>
       ) : null}
@@ -139,7 +142,7 @@ export function CycleView({
             <span className="dot" style={{ background: "var(--accent)" }} />
             Sweep Space
           </div>
-          <BigNumber value={safe} />
+          <BigNumber value={sweepSpace} />
           <div className="kpi-meta">
             <span>Buffer {formatMoney(buffer)}</span>
             <span>·</span>
@@ -280,7 +283,7 @@ export function CycleView({
                   className="mono"
                   style={{ fontSize: 14, fontVariantNumeric: "tabular-nums" }}
                 >
-                  {formatMoney(safe)}
+                  {formatMoney(sweepSpace)}
                 </span>
               </div>
             </div>
@@ -331,9 +334,9 @@ export function CycleView({
               <div className="panel-meta">SWEEP SPACE ÷ DAYS LEFT</div>
             </div>
             <div className="panel-body" style={{ textAlign: "center" }}>
-              <BigNumber value={daysRemaining > 0 ? safe / daysRemaining : 0} />
+              <BigNumber value={dailySpendBudget} />
               <div style={{ fontSize: 12, color: "var(--text-3)", marginTop: 6 }}>
-                {formatMoney(safe)} ÷ {daysRemaining} {daysRemaining === 1 ? "day" : "days"} remaining
+                {formatMoney(Math.max(0, sweepSpace))} ÷ {daysRemaining} {daysRemaining === 1 ? "day" : "days"} remaining
               </div>
             </div>
           </div>
