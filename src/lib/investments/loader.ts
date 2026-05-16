@@ -152,7 +152,7 @@ export async function loadInvestments(tenantId?: string | null): Promise<LoadedI
       totalValue: holdingsCAD + cashCAD,
       cash: cashCAD,
       openedAt: account.openedAt?.toISOString() ?? account.snapTradeCreatedAt?.toISOString() ?? null,
-      lastSyncAt: account.lastHoldingsSyncAt?.toISOString() ?? account.connection.lastSyncAt?.toISOString() ?? null,
+      lastSyncAt: account.connection.lastSyncAt?.toISOString() ?? account.lastHoldingsSyncAt?.toISOString() ?? null,
       positionCount: account.positions.length,
       status: account.connection.status
     };

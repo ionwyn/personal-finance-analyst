@@ -228,7 +228,7 @@ async function syncPositions(input: {
         pnlCad: decimal(pnlCad),
         pnlPct: decimal(normalized.pnlPct),
         cashEquivalent: normalized.cashEquivalent,
-        logoId
+        logoId: logoId ?? undefined
       },
       create: {
         tenantId: input.tenantId,
