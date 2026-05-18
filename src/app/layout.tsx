@@ -15,8 +15,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "TD Personal Finance Analysis",
-  description: "Local-first personal finance analytics powered by Plaid and Postgres."
+  title: "WYN Financial Ltd. — Read-only finance terminal",
+  description: "See every bank, card, and brokerage account in one read-only dashboard."
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
