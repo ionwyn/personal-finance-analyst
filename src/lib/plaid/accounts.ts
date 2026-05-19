@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { decryptToken } from "@/lib/security/token-crypto";
 import { getPlaidClient } from "@/lib/plaid/client";
 import { normalizeAccount } from "@/lib/plaid/normalize";
+import { elapsedMs, ensureRequestId, logger, safeError, withLogContext } from "@/lib/logger";
 
 export async function upsertPlaidAccounts(input: {
   tenantId: string;
@@ -75,36 +76,104 @@ export async function refreshAccountsForItem(itemId: string) {
   const item = await prisma.plaidItem.findUniqueOrThrow({
     where: { id: itemId },
   });
-  const accessToken = decryptToken(item.accessTokenEncrypted);
-  const response = await getPlaidClient().accountsGet({ access_token: accessToken });
 
-  return upsertPlaidAccounts({
-    tenantId: item.tenantId,
-    itemId: item.id,
-    accounts: response.data.accounts,
-  });
+  return withLogContext(
+    {
+      requestId: ensureRequestId(),
+      provider: "plaid",
+      tenantId: item.tenantId,
+    },
+    async () => {
+      const startedAt = performance.now();
+      logger.info({ itemId: item.id }, "plaid accounts refresh started");
+
+      try {
+        const accessToken = decryptToken(item.accessTokenEncrypted);
+        const response = await getPlaidClient().accountsGet({ access_token: accessToken });
+
+        const accountsCount = await upsertPlaidAccounts({
+          tenantId: item.tenantId,
+          itemId: item.id,
+          accounts: response.data.accounts,
+        });
+
+        logger.info(
+          {
+            duration: elapsedMs(startedAt),
+            itemId: item.id,
+            accountsCount,
+          },
+          "plaid accounts refresh completed"
+        );
+        return accountsCount;
+      } catch (error) {
+        logger.error(
+          {
+            duration: elapsedMs(startedAt),
+            itemId: item.id,
+            error: safeError(error),
+          },
+          "plaid accounts refresh failed"
+        );
+        throw error;
+      }
+    }
+  );
 }
 
 export async function refreshBalancesForItem(itemId: string) {
   const item = await prisma.plaidItem.findUniqueOrThrow({
     where: { id: itemId },
   });
-  const accessToken = decryptToken(item.accessTokenEncrypted);
-  const response = await getPlaidClient().accountsBalanceGet({ access_token: accessToken });
 
-  const accountsCount = await upsertPlaidAccounts({
-    tenantId: item.tenantId,
-    itemId: item.id,
-    accounts: response.data.accounts,
-    captureSnapshot: true,
-  });
-
-  await prisma.plaidItem.update({
-    where: { id: item.id },
-    data: {
-      lastBalanceRefreshAt: new Date(),
+  return withLogContext(
+    {
+      requestId: ensureRequestId(),
+      provider: "plaid",
+      tenantId: item.tenantId,
     },
-  });
+    async () => {
+      const startedAt = performance.now();
+      logger.info({ itemId: item.id }, "plaid balance refresh started");
 
-  return { accountsCount };
+      try {
+        const accessToken = decryptToken(item.accessTokenEncrypted);
+        const response = await getPlaidClient().accountsBalanceGet({ access_token: accessToken });
+
+        const accountsCount = await upsertPlaidAccounts({
+          tenantId: item.tenantId,
+          itemId: item.id,
+          accounts: response.data.accounts,
+          captureSnapshot: true,
+        });
+
+        await prisma.plaidItem.update({
+          where: { id: item.id },
+          data: {
+            lastBalanceRefreshAt: new Date(),
+          },
+        });
+
+        logger.info(
+          {
+            duration: elapsedMs(startedAt),
+            itemId: item.id,
+            accountsCount,
+          },
+          "plaid balance refresh completed"
+        );
+        return { accountsCount };
+      } catch (error) {
+        logger.error(
+          {
+            duration: elapsedMs(startedAt),
+            itemId: item.id,
+            error: safeError(error),
+          },
+          "plaid balance refresh failed"
+        );
+        throw error;
+      }
+    }
+  );
 }

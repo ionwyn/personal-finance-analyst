@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { requireUserTenant } from "@/lib/http";
+import { setLogContext, withRequestLogging } from "@/lib/logger";
 import { exchangeAndStorePlaidItem } from "@/lib/plaid/items";
 
 const bodySchema = z.object({
@@ -16,20 +17,28 @@ const bodySchema = z.object({
 });
 
 export async function POST(request: Request) {
-  const auth = await requireUserTenant();
-  if ("error" in auth) return auth.error;
+  return withRequestLogging(
+    request,
+    { route: "/api/plaid/exchange-public-token", provider: "plaid", syncSource: "manual" },
+    async () => {
+      const auth = await requireUserTenant();
+      if ("error" in auth) return auth.error;
 
-  const userId = auth.session.user?.id;
-  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      setLogContext({ tenantId: auth.tenant.id });
 
-  const body = bodySchema.parse(await request.json());
-  const item = await exchangeAndStorePlaidItem({
-    tenantId: auth.tenant.id,
-    userId,
-    publicToken: body.public_token,
-    institutionId: body.institution?.institution_id,
-    institutionName: body.institution?.name,
-  });
+      const userId = auth.session.user?.id;
+      if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  return NextResponse.json({ item_id: item.id });
+      const body = bodySchema.parse(await request.json());
+      const item = await exchangeAndStorePlaidItem({
+        tenantId: auth.tenant.id,
+        userId,
+        publicToken: body.public_token,
+        institutionId: body.institution?.institution_id,
+        institutionName: body.institution?.name,
+      });
+
+      return NextResponse.json({ item_id: item.id });
+    }
+  );
 }

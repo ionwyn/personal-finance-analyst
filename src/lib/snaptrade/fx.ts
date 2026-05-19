@@ -1,5 +1,6 @@
 import { Prisma } from "@prisma/client";
 
+import { elapsedMs, ensureRequestId, logger, safeError, withLogContext } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
 import { getSnapTradeClient } from "@/lib/snaptrade/client";
 
@@ -15,14 +16,32 @@ function pairKey(sourceCurrency: string, targetCurrency: string) {
 
 async function fetchRateFromSnapTrade(sourceCurrency: string, targetCurrency: string) {
   const pair = pairKey(sourceCurrency, targetCurrency);
-  const response = await getSnapTradeClient().referenceData.getCurrencyExchangeRatePair({
-    currencyPair: pair,
+  return withLogContext({ requestId: ensureRequestId(), provider: "snaptrade" }, async () => {
+    const startedAt = performance.now();
+    logger.info({ pair }, "snaptrade fx rate fetch started");
+
+    try {
+      const response = await getSnapTradeClient().referenceData.getCurrencyExchangeRatePair({
+        currencyPair: pair,
+      });
+      const rate = response.data.exchange_rate;
+      if (!rate || rate <= 0) {
+        throw new Error(`SnapTrade did not return a usable FX rate for ${pair}.`);
+      }
+      logger.info({ duration: elapsedMs(startedAt), pair }, "snaptrade fx rate fetch completed");
+      return rate;
+    } catch (error) {
+      logger.error(
+        {
+          duration: elapsedMs(startedAt),
+          pair,
+          error: safeError(error),
+        },
+        "snaptrade fx rate fetch failed"
+      );
+      throw error;
+    }
   });
-  const rate = response.data.exchange_rate;
-  if (!rate || rate <= 0) {
-    throw new Error(`SnapTrade did not return a usable FX rate for ${pair}.`);
-  }
-  return rate;
 }
 
 async function saveRate(sourceCurrency: string, targetCurrency: string, rate: number) {

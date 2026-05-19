@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { requireUserTenant } from "@/lib/http";
+import { setLogContext, withRequestLogging } from "@/lib/logger";
 import { createSnapTradeConnectionPortal } from "@/lib/snaptrade/client";
 
 const bodySchema = z
@@ -11,13 +12,21 @@ const bodySchema = z
   .optional();
 
 export async function POST(request: Request) {
-  const auth = await requireUserTenant();
-  if ("error" in auth) return auth.error;
+  return withRequestLogging(
+    request,
+    { route: "/api/snaptrade/login", provider: "snaptrade" },
+    async () => {
+      const auth = await requireUserTenant();
+      if ("error" in auth) return auth.error;
 
-  const body = bodySchema.parse(await request.json().catch(() => undefined));
-  const portal = await createSnapTradeConnectionPortal({
-    reconnectAuthorizationId: body?.reconnectAuthorizationId,
-  });
+      setLogContext({ tenantId: auth.tenant.id });
 
-  return NextResponse.json(portal);
+      const body = bodySchema.parse(await request.json().catch(() => undefined));
+      const portal = await createSnapTradeConnectionPortal({
+        reconnectAuthorizationId: body?.reconnectAuthorizationId,
+      });
+
+      return NextResponse.json(portal);
+    }
+  );
 }

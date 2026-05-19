@@ -5,6 +5,14 @@ import { getPlaidClient } from "@/lib/plaid/client";
 import { refreshAccountsForItem, refreshBalancesForItem } from "@/lib/plaid/accounts";
 import { syncPlaidItem } from "@/lib/plaid/sync";
 import { encryptToken } from "@/lib/security/token-crypto";
+import {
+  elapsedMs,
+  ensureRequestId,
+  logger,
+  normalizeSyncSource,
+  safeError,
+  withLogContext,
+} from "@/lib/logger";
 
 export async function exchangeAndStorePlaidItem(input: {
   tenantId: string;
@@ -14,36 +22,69 @@ export async function exchangeAndStorePlaidItem(input: {
   institutionName?: string | null;
   source?: SyncSource;
 }) {
-  const response = await getPlaidClient().itemPublicTokenExchange({
-    public_token: input.publicToken,
-  });
+  const source = input.source ?? SyncSource.MANUAL;
 
-  const item = await prisma.plaidItem.upsert({
-    where: {
-      plaidItemId: response.data.item_id,
-    },
-    update: {
+  return withLogContext(
+    {
+      requestId: ensureRequestId(),
+      provider: "plaid",
       tenantId: input.tenantId,
-      createdById: input.userId,
-      accessTokenEncrypted: encryptToken(response.data.access_token),
-      institutionId: input.institutionId,
-      institutionName: input.institutionName,
-      errorCode: null,
-      errorMessage: null,
+      syncSource: normalizeSyncSource(source),
     },
-    create: {
-      tenantId: input.tenantId,
-      createdById: input.userId,
-      plaidItemId: response.data.item_id,
-      accessTokenEncrypted: encryptToken(response.data.access_token),
-      institutionId: input.institutionId,
-      institutionName: input.institutionName,
-    },
-  });
+    async () => {
+      const startedAt = performance.now();
+      logger.info("plaid item exchange started");
 
-  await refreshAccountsForItem(item.id);
-  await syncPlaidItem(item.id, input.source ?? SyncSource.MANUAL);
-  await refreshBalancesForItem(item.id);
+      try {
+        const response = await getPlaidClient().itemPublicTokenExchange({
+          public_token: input.publicToken,
+        });
 
-  return item;
+        const item = await prisma.plaidItem.upsert({
+          where: {
+            plaidItemId: response.data.item_id,
+          },
+          update: {
+            tenantId: input.tenantId,
+            createdById: input.userId,
+            accessTokenEncrypted: encryptToken(response.data.access_token),
+            institutionId: input.institutionId,
+            institutionName: input.institutionName,
+            errorCode: null,
+            errorMessage: null,
+          },
+          create: {
+            tenantId: input.tenantId,
+            createdById: input.userId,
+            plaidItemId: response.data.item_id,
+            accessTokenEncrypted: encryptToken(response.data.access_token),
+            institutionId: input.institutionId,
+            institutionName: input.institutionName,
+          },
+        });
+
+        await refreshAccountsForItem(item.id);
+        await syncPlaidItem(item.id, source);
+        await refreshBalancesForItem(item.id);
+
+        logger.info(
+          {
+            duration: elapsedMs(startedAt),
+            itemId: item.id,
+          },
+          "plaid item exchange completed"
+        );
+        return item;
+      } catch (error) {
+        logger.error(
+          {
+            duration: elapsedMs(startedAt),
+            error: safeError(error),
+          },
+          "plaid item exchange failed"
+        );
+        throw error;
+      }
+    }
+  );
 }

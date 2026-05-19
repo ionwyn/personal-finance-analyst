@@ -1,4 +1,4 @@
-import { PlaidItemStatus, SyncRunStatus, SyncSource, TenantKind } from "@prisma/client";
+import { PlaidItemStatus, Prisma, SyncRunStatus, SyncSource, TenantKind } from "@prisma/client";
 import type { RemovedTransaction, Transaction } from "plaid";
 
 import { prisma } from "@/lib/prisma";
@@ -18,6 +18,14 @@ import { loadClassifyContext } from "@/lib/cycles/context";
 import { ensureCycleForDate } from "@/lib/cycles/generate";
 import { recomputeCycleTotals } from "@/lib/cycles/recomputeTotals";
 import { reconcileSweeps } from "@/lib/cycles/sweepReconcile";
+import {
+  elapsedMs,
+  ensureRequestId,
+  logger,
+  normalizeSyncSource,
+  safeError,
+  withLogContext,
+} from "@/lib/logger";
 
 const PAGE_SIZE = 500;
 const ACTIVE_LOCK_MS = 15 * 60 * 1000;
@@ -27,6 +35,8 @@ type CycleSyncState = {
   affectedCycleIds: Set<string>;
   errors: string[];
 };
+
+type PlaidItemWithTenant = Prisma.PlaidItemGetPayload<{ include: { tenant: true } }>;
 
 async function applyAddedOrModified(input: {
   tenantId: string;
@@ -180,6 +190,21 @@ export async function syncPlaidItem(itemId: string, source: SyncSource) {
     include: { tenant: true },
   });
 
+  return withLogContext(
+    {
+      requestId: ensureRequestId(),
+      provider: "plaid",
+      tenantId: item.tenantId,
+      syncSource: normalizeSyncSource(source),
+    },
+    async () => syncPlaidItemWithContext(item, source)
+  );
+}
+
+async function syncPlaidItemWithContext(item: PlaidItemWithTenant, source: SyncSource) {
+  const startedAt = performance.now();
+  logger.info({ itemId: item.id }, "plaid sync started");
+
   const lockResult = await prisma.plaidItem.updateMany({
     where: {
       id: item.id,
@@ -199,7 +224,7 @@ export async function syncPlaidItem(itemId: string, source: SyncSource) {
   });
 
   if (lockResult.count === 0) {
-    return prisma.syncRun.create({
+    const skippedRun = await prisma.syncRun.create({
       data: {
         tenantId: item.tenantId,
         itemId: item.id,
@@ -209,6 +234,15 @@ export async function syncPlaidItem(itemId: string, source: SyncSource) {
         errorMessage: "Skipped: another sync is in progress.",
       },
     });
+    logger.info(
+      {
+        duration: elapsedMs(startedAt),
+        itemId: item.id,
+        status: skippedRun.status,
+      },
+      "plaid sync skipped"
+    );
+    return skippedRun;
   }
 
   const run = await prisma.syncRun.create({
@@ -233,7 +267,7 @@ export async function syncPlaidItem(itemId: string, source: SyncSource) {
       cycleState = { context, affectedCycleIds: new Set(), errors: [] };
     } catch (error) {
       // Classification is non-fatal — log the failure but proceed with the raw sync.
-      console.warn("Failed to load cycle classification context", error);
+      logger.warn({ error: safeError(error) }, "failed to load cycle classification context");
     }
 
     const accessToken = decryptToken(item.accessTokenEncrypted);
@@ -319,7 +353,7 @@ export async function syncPlaidItem(itemId: string, source: SyncSource) {
       ? cycleState.errors.slice(0, 5).join("; ")
       : null;
 
-    return prisma.syncRun.update({
+    const updatedRun = await prisma.syncRun.update({
       where: { id: run.id },
       data: {
         status: SyncRunStatus.SUCCESS,
@@ -332,6 +366,21 @@ export async function syncPlaidItem(itemId: string, source: SyncSource) {
         errorMessage: cycleErrorMessage,
       },
     });
+    logger.info(
+      {
+        duration: elapsedMs(startedAt),
+        itemId: item.id,
+        status: updatedRun.status,
+        addedCount,
+        modifiedCount,
+        removedCount,
+        accountsCount,
+        providerRequestId: requestId,
+        cycleErrorsCount: cycleState?.errors.length ?? 0,
+      },
+      "plaid sync completed"
+    );
+    return updatedRun;
   } catch (error) {
     const code = getPlaidErrorCode(error);
     await prisma.plaidItem.update({
@@ -343,7 +392,7 @@ export async function syncPlaidItem(itemId: string, source: SyncSource) {
       },
     });
 
-    return prisma.syncRun.update({
+    const updatedRun = await prisma.syncRun.update({
       where: { id: run.id },
       data: {
         status: SyncRunStatus.ERROR,
@@ -357,6 +406,18 @@ export async function syncPlaidItem(itemId: string, source: SyncSource) {
         plaidRequestId: getPlaidRequestId(error),
       },
     });
+    logger.error(
+      {
+        duration: elapsedMs(startedAt),
+        itemId: item.id,
+        status: updatedRun.status,
+        errorCode: code,
+        error: safeError(error),
+        providerRequestId: getPlaidRequestId(error),
+      },
+      "plaid sync failed"
+    );
+    return updatedRun;
   }
 }
 

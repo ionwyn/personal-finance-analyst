@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 
+import { elapsedMs, ensureRequestId, logger, safeError, withLogContext } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
 
 const ALLOWED_LOGO_HOSTS = new Set(["api.twelvedata.com", "logo.twelvedata.com"]);
@@ -58,47 +59,73 @@ export async function fetchAndCacheLogo(id: string) {
     });
   }
 
-  try {
-    const response = await fetch(sourceUrl, {
-      headers: { accept: "image/*" },
-    });
-    if (!response.ok) {
-      throw new Error(`Logo fetch failed with HTTP ${response.status}.`);
-    }
+  return withLogContext({ requestId: ensureRequestId(), provider: "twelvedata" }, async () => {
+    const startedAt = performance.now();
+    logger.info({ logoId: id }, "twelvedata logo fetch started");
 
-    const contentType = response.headers.get("content-type") ?? "";
-    if (!contentType.startsWith("image/")) {
-      throw new Error("Logo response was not an image.");
-    }
+    try {
+      const response = await fetch(sourceUrl, {
+        headers: { accept: "image/*" },
+      });
+      if (!response.ok) {
+        throw new Error(`Logo fetch failed with HTTP ${response.status}.`);
+      }
 
-    const contentLength = Number(response.headers.get("content-length") ?? 0);
-    if (contentLength > MAX_LOGO_BYTES) {
-      throw new Error("Logo response was too large.");
-    }
+      const contentType = response.headers.get("content-type") ?? "";
+      if (!contentType.startsWith("image/")) {
+        throw new Error("Logo response was not an image.");
+      }
 
-    const bytes = Buffer.from(await response.arrayBuffer());
-    if (bytes.length > MAX_LOGO_BYTES) {
-      throw new Error("Logo response was too large.");
-    }
+      const contentLength = Number(response.headers.get("content-length") ?? 0);
+      if (contentLength > MAX_LOGO_BYTES) {
+        throw new Error("Logo response was too large.");
+      }
 
-    return prisma.snapTradeSecurityLogo.update({
-      where: { id },
-      data: {
-        status: "READY",
-        contentType,
-        data: bytes,
-        errorMessage: null,
-        fetchedAt: new Date(),
-      },
-    });
-  } catch (error) {
-    return prisma.snapTradeSecurityLogo.update({
-      where: { id },
-      data: {
-        status: "ERROR",
-        errorMessage: error instanceof Error ? error.message : "Logo fetch failed.",
-        fetchedAt: new Date(),
-      },
-    });
-  }
+      const bytes = Buffer.from(await response.arrayBuffer());
+      if (bytes.length > MAX_LOGO_BYTES) {
+        throw new Error("Logo response was too large.");
+      }
+
+      const updatedLogo = await prisma.snapTradeSecurityLogo.update({
+        where: { id },
+        data: {
+          status: "READY",
+          contentType,
+          data: bytes,
+          errorMessage: null,
+          fetchedAt: new Date(),
+        },
+      });
+
+      logger.info(
+        {
+          duration: elapsedMs(startedAt),
+          logoId: id,
+          contentType,
+          bytes: bytes.length,
+        },
+        "twelvedata logo fetch completed"
+      );
+      return updatedLogo;
+    } catch (error) {
+      const updatedLogo = await prisma.snapTradeSecurityLogo.update({
+        where: { id },
+        data: {
+          status: "ERROR",
+          errorMessage: error instanceof Error ? error.message : "Logo fetch failed.",
+          fetchedAt: new Date(),
+        },
+      });
+
+      logger.error(
+        {
+          duration: elapsedMs(startedAt),
+          logoId: id,
+          error: safeError(error),
+        },
+        "twelvedata logo fetch failed"
+      );
+      return updatedLogo;
+    }
+  });
 }

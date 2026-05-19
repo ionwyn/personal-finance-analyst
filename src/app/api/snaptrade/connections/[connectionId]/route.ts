@@ -1,20 +1,29 @@
 import { NextResponse } from "next/server";
 
 import { requireOwnedSnapTradeConnection } from "@/lib/http";
+import { setLogContext, withRequestLogging } from "@/lib/logger";
 import { removeSnapTradeConnection } from "@/lib/snaptrade/sync";
 
 export async function DELETE(
-  _request: Request,
+  request: Request,
   context: { params: Promise<{ connectionId: string }> }
 ) {
-  const { connectionId } = await context.params;
-  const auth = await requireOwnedSnapTradeConnection(connectionId);
-  if (!("connection" in auth)) return auth.error;
+  return withRequestLogging(
+    request,
+    { route: "/api/snaptrade/connections/[connectionId]", provider: "snaptrade" },
+    async () => {
+      const { connectionId } = await context.params;
+      const auth = await requireOwnedSnapTradeConnection(connectionId);
+      if (!("connection" in auth)) return auth.error;
 
-  await removeSnapTradeConnection({
-    tenantId: auth.tenant.id,
-    connectionId: auth.connection.id,
-  });
+      setLogContext({ tenantId: auth.tenant.id });
 
-  return NextResponse.json({ ok: true });
+      await removeSnapTradeConnection({
+        tenantId: auth.tenant.id,
+        connectionId: auth.connection.id,
+      });
+
+      return NextResponse.json({ ok: true });
+    }
+  );
 }

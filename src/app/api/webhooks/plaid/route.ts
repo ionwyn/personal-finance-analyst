@@ -2,6 +2,7 @@ import { SyncSource } from "@prisma/client";
 import { NextResponse } from "next/server";
 
 import { assertWebhookConfig } from "@/lib/env";
+import { logger, setLogContext, withRequestLogging } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
 import { syncPlaidItem } from "@/lib/plaid/sync";
 import { verifyPlaidWebhook } from "@/lib/plaid/webhook";
@@ -13,36 +14,49 @@ type PlaidWebhookBody = {
 };
 
 export async function POST(request: Request) {
-  assertWebhookConfig();
+  return withRequestLogging(
+    request,
+    { route: "/api/webhooks/plaid", provider: "plaid", syncSource: "webhook" },
+    async () => {
+      assertWebhookConfig();
 
-  const rawBody = await request.text();
-  const signedJwt = request.headers.get("plaid-verification");
+      const rawBody = await request.text();
+      const signedJwt = request.headers.get("plaid-verification");
 
-  const verified = await verifyPlaidWebhook(rawBody, signedJwt);
-  if (!verified) {
-    return NextResponse.json({ error: "Invalid Plaid webhook signature" }, { status: 401 });
-  }
+      const verified = await verifyPlaidWebhook(rawBody, signedJwt);
+      if (!verified) {
+        return NextResponse.json({ error: "Invalid Plaid webhook signature" }, { status: 401 });
+      }
 
-  const body = JSON.parse(rawBody) as PlaidWebhookBody;
-  if (
-    body.webhook_type === "TRANSACTIONS" &&
-    body.webhook_code === "SYNC_UPDATES_AVAILABLE" &&
-    body.item_id
-  ) {
-    const item = await prisma.plaidItem.findUnique({
-      where: { plaidItemId: body.item_id },
-    });
+      const body = JSON.parse(rawBody) as PlaidWebhookBody;
+      if (
+        body.webhook_type === "TRANSACTIONS" &&
+        body.webhook_code === "SYNC_UPDATES_AVAILABLE" &&
+        body.item_id
+      ) {
+        const item = await prisma.plaidItem.findUnique({
+          where: { plaidItemId: body.item_id },
+        });
 
-    if (item) {
-      await syncPlaidItem(item.id, SyncSource.WEBHOOK);
+        if (item) {
+          setLogContext({ tenantId: item.tenantId });
+          await syncPlaidItem(item.id, SyncSource.WEBHOOK);
+        }
+      } else if (
+        body.webhook_type === "ITEM" &&
+        body.webhook_code === "NEW_ACCOUNTS_AVAILABLE" &&
+        body.item_id
+      ) {
+        logger.info(
+          {
+            webhookType: body.webhook_type,
+            webhookCode: body.webhook_code,
+          },
+          "plaid new accounts webhook received"
+        );
+      }
+
+      return NextResponse.json({ ok: true });
     }
-  } else if (
-    body.webhook_type === "ITEM" &&
-    body.webhook_code === "NEW_ACCOUNTS_AVAILABLE" &&
-    body.item_id
-  ) {
-    console.info(`Plaid new accounts available webhook received for item ${body.item_id}`);
-  }
-
-  return NextResponse.json({ ok: true });
+  );
 }
