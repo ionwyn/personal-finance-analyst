@@ -4,6 +4,11 @@ Local-first personal finance dashboard for banking, spending, pay-cycle planning
 
 The app syncs read-only banking data through Plaid and brokerage data through SnapTrade, stores it in your own PostgreSQL database, and renders a private Next.js dashboard.
 
+<img width="2940" height="1678" alt="Screenshot 2026-05-19 at 10-17-13 WYN Financial Ltd  — Read-only finance terminal" src="https://github.com/user-attachments/assets/4a728ce2-ac0e-49a0-9a0f-8ad963777038" />
+
+<img width="2940" height="1550" alt="Screenshot 2026-05-19 at 10-16-15 WYN Financial Ltd  — Read-only finance terminal" src="https://github.com/user-attachments/assets/b21c7cfb-6e12-41ad-8f9d-d6cc6589e9c7" />
+
+
 ## Features
 
 - Plaid banking connection for Canadian transaction and balance data
