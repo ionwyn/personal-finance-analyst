@@ -1,4 +1,6 @@
-// Transactions toolbar — search box, filter pills, date range.
+// Transactions toolbar — search box container.
+// The date range lives in transactions-toolbar.module.scss; the filter
+// dropdown is the FilterSelect primitive (select.module.scss).
 
 .tx-toolbar {
   display: flex;
@@ -37,69 +39,4 @@
   border: 1px solid var(--border);
   padding: 1px 5px;
   border-radius: 3px;
-}
-
-.filter-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 5px 10px;
-  border: 1px dashed var(--border-strong);
-  border-radius: var(--radius);
-  font-size: 12px;
-  color: var(--text-2);
-  background: var(--surface);
-}
-.filter-pill .ic {
-  width: 12px;
-  height: 12px;
-  opacity: 0.7;
-}
-.filter-pill:hover {
-  color: var(--text);
-  border-color: var(--text-4);
-  border-style: solid;
-}
-.filter-pill.active {
-  border-style: solid;
-  border-color: var(--border-strong);
-  background: var(--surface-2);
-  color: var(--text);
-}
-.filter-pill .x {
-  color: var(--text-4);
-  margin-left: 2px;
-  display: inline-flex;
-}
-.filter-pill .x:hover {
-  color: var(--text);
-}
-
-/* Date range */
-.daterange {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 5px 10px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  font-family: var(--font-mono);
-  font-size: 11px;
-  color: var(--text-2);
-  background: var(--surface);
-}
-.daterange:hover {
-  border-color: var(--border-strong);
-  color: var(--text);
-}
-.daterange .sep {
-  color: var(--text-4);
-}
-.daterange input {
-  font-family: var(--font-mono);
-  font-size: 11px;
-  color: var(--text);
-  background: transparent;
-  width: 96px;
-  color-scheme: dark;
 }

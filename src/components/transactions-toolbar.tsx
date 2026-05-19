@@ -1,117 +1,12 @@
 "use client";
 
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Calendar, ChevronRight, Download, Filter, Plus, Search, X } from "lucide-react";
+import { Calendar, ChevronRight, Download, Filter, Search } from "lucide-react";
 
-type FilterDropdownProps = {
-  label: string;
-  value: string | null;
-  options: string[];
-  dotMap?: Record<string, string>;
-  onChange: (value: string | null) => void;
-};
+import { Button, FilterSelect } from "@/components/ui";
 
-function FilterDropdown({ label, value, options, dotMap, onChange }: FilterDropdownProps) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement | null>(null);
-
-  useEffect(() => {
-    function onDoc(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
-    }
-    document.addEventListener("mousedown", onDoc);
-    return () => document.removeEventListener("mousedown", onDoc);
-  }, []);
-
-  return (
-    <div ref={ref} style={{ position: "relative" }}>
-      <button
-        className={`filter-pill ${value ? "active" : ""}`}
-        type="button"
-        onClick={() => setOpen((o) => !o)}
-      >
-        <Plus size={12} />
-        {label}
-        {value ? (
-          <>
-            <span style={{ color: "var(--text-4)" }}>:</span>
-            <span style={{ color: "var(--text)" }}>{value}</span>
-            <span
-              className="x"
-              role="button"
-              aria-label="Clear filter"
-              onClick={(e) => {
-                e.stopPropagation();
-                onChange(null);
-              }}
-            >
-              <X size={12} />
-            </span>
-          </>
-        ) : null}
-      </button>
-      {open ? (
-        <div
-          style={{
-            position: "absolute",
-            top: "calc(100% + 4px)",
-            left: 0,
-            zIndex: 20,
-            background: "var(--surface)",
-            border: "1px solid var(--border-strong)",
-            borderRadius: "var(--radius)",
-            padding: 4,
-            minWidth: 200,
-            maxHeight: 280,
-            overflowY: "auto",
-            boxShadow: "0 8px 24px rgba(0,0,0,0.5)",
-          }}
-        >
-          {options.length === 0 ? (
-            <div
-              style={{
-                padding: "6px 8px",
-                fontSize: 12,
-                color: "var(--text-4)",
-                fontFamily: "var(--font-mono)",
-              }}
-            >
-              No options
-            </div>
-          ) : null}
-          {options.map((o) => (
-            <button
-              key={o}
-              type="button"
-              onClick={() => {
-                onChange(o);
-                setOpen(false);
-              }}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-                width: "100%",
-                padding: "6px 8px",
-                borderRadius: 3,
-                fontSize: 12,
-                color: "var(--text-2)",
-                textAlign: "left",
-                background: value === o ? "var(--surface-3)" : "transparent",
-              }}
-            >
-              {dotMap?.[o] ? (
-                <i style={{ width: 8, height: 8, borderRadius: "50%", background: dotMap[o] }} />
-              ) : null}
-              {o}
-            </button>
-          ))}
-        </div>
-      ) : null}
-    </div>
-  );
-}
+import styles from "./transactions-toolbar.module.scss";
 
 export function TransactionsToolbar({
   initialQuery,
@@ -175,7 +70,7 @@ export function TransactionsToolbar({
         <span className="kbd">⌘F</span>
       </div>
 
-      <label className="daterange" aria-label="Date range">
+      <label className={styles.daterange} aria-label="Date range">
         <Calendar size={12} />
         <input
           type="date"
@@ -185,7 +80,7 @@ export function TransactionsToolbar({
             pushParams({ from: e.target.value || null });
           }}
         />
-        <span className="sep">→</span>
+        <span className={styles.sep}>→</span>
         <input
           type="date"
           value={to}
@@ -196,7 +91,7 @@ export function TransactionsToolbar({
         />
       </label>
 
-      <FilterDropdown
+      <FilterSelect
         label="Category"
         value={category}
         options={categoryOptions}
@@ -206,7 +101,7 @@ export function TransactionsToolbar({
           pushParams({ category: v });
         }}
       />
-      <FilterDropdown
+      <FilterSelect
         label="Account"
         value={account}
         options={accountOptions}
@@ -217,25 +112,24 @@ export function TransactionsToolbar({
       />
 
       <span style={{ flex: 1 }} />
-      <button
-        className="btn btn-ghost btn-sm"
-        type="button"
+      <Button
+        variant="ghost"
+        size="sm"
         disabled
+        icon={<Filter size={12} />}
         style={{ color: "var(--text-3)" }}
       >
-        <Filter size={12} />
         More filters
         <ChevronRight size={12} style={{ opacity: 0.5 }} />
-      </button>
+      </Button>
     </div>
   );
 }
 
 export function ExportCsvButton() {
   return (
-    <button className="btn" type="button" disabled title="CSV export coming soon">
-      <Download size={12} />
+    <Button disabled icon={<Download size={12} />} title="CSV export coming soon">
       Export CSV
-    </button>
+    </Button>
   );
 }
