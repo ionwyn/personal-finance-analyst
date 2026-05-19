@@ -1,0 +1,21 @@
+// Co-located styles for the Input primitive.
+
+.input {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 4px 8px;
+  color: var(--text);
+  font-size: 12px;
+  transition: border-color 80ms ease;
+}
+.input:focus {
+  border-color: var(--border-strong);
+}
+.input::placeholder {
+  color: var(--text-4);
+}
+.input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}

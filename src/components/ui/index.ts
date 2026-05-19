@@ -1,4 +1,10 @@
+export { Button, IconButton } from "./button";
+export type { ButtonProps, IconButtonProps } from "./button";
 export { EmptyPanelMessage } from "./empty-panel-message";
+export { FilterSelect } from "./select";
+export type { FilterSelectProps } from "./select";
+export { Input } from "./input";
+export type { InputProps } from "./input";
 export { PageHeader } from "./page-header";
 export { Panel } from "./panel";
 export { StatusPill } from "./status-pill";

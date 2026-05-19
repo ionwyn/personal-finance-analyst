@@ -1,0 +1,114 @@
+// Co-located styles for the FilterSelect primitive (react-aria Select).
+// Reproduces the filter-pill trigger look and styles the popover/listbox.
+
+.field {
+  display: inline-flex;
+  align-items: center;
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text-2);
+  font-size: 12px;
+}
+.field:hover {
+  border-style: solid;
+  border-color: var(--text-4);
+  color: var(--text);
+}
+.field.active {
+  border-style: solid;
+  border-color: var(--border-strong);
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+.trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  color: inherit;
+  background: transparent;
+  cursor: pointer;
+  font-size: 12px;
+}
+.trigger[data-focus-visible] {
+  outline: 1px solid var(--accent);
+  outline-offset: -1px;
+  border-radius: var(--radius);
+}
+.colon {
+  color: var(--text-4);
+}
+.value {
+  color: var(--text);
+}
+
+.clear {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 8px 5px 2px;
+  color: var(--text-4);
+  background: transparent;
+  cursor: pointer;
+}
+.clear:hover {
+  color: var(--text);
+}
+.clear[data-focus-visible] {
+  outline: 1px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.popover {
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  padding: 4px;
+  min-width: 200px;
+  max-height: 280px;
+  overflow-y: auto;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+
+.listbox {
+  display: flex;
+  flex-direction: column;
+  outline: none;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 3px;
+  font-size: 12px;
+  color: var(--text-2);
+  text-align: left;
+  cursor: pointer;
+  outline: none;
+}
+.item[data-hovered],
+.item[data-focused] {
+  background: var(--surface-3);
+  color: var(--text);
+}
+.item[data-selected] {
+  background: var(--surface-3);
+  color: var(--text);
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.empty {
+  padding: 6px 8px;
+  font-size: 12px;
+  color: var(--text-4);
+  font-family: var(--font-mono);
+}
