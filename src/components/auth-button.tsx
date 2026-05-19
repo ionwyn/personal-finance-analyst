@@ -2,17 +2,18 @@
 
 import { signIn } from "next-auth/react";
 
+import { Button } from "@/components/ui";
+
 export function AuthButton() {
   return (
-    <button
-      className="btn btn-primary"
+    <Button
+      variant="primary"
       style={{ width: "100%", justifyContent: "center", padding: "8px 12px", fontSize: 13 }}
       onClick={() => signIn("github", { callbackUrl: "/app" })}
-      type="button"
+      icon={<GithubMark />}
     >
-      <GithubMark />
       Continue with GitHub
-    </button>
+    </Button>
   );
 }
 

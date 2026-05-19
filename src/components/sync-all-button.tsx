@@ -4,6 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { RefreshCcw } from "lucide-react";
 
+import { Button } from "@/components/ui";
+
 export function SyncAllButton({ items }: { items: Array<{ id: string; status: string }> }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
@@ -28,10 +30,13 @@ export function SyncAllButton({ items }: { items: Array<{ id: string; status: st
 
   return (
     <>
-      <button className="btn" type="button" onClick={syncAll} disabled={busy}>
-        <RefreshCcw size={12} className={busy ? "spin" : undefined} />
+      <Button
+        onClick={syncAll}
+        disabled={busy}
+        icon={<RefreshCcw size={12} className={busy ? "spin" : undefined} />}
+      >
         {busy ? "Syncing…" : "Sync all"}
-      </button>
+      </Button>
       {error ? <span className="inline-error">{error}</span> : null}
     </>
   );

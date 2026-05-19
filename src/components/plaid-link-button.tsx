@@ -15,6 +15,8 @@ import { useRouter } from "next/navigation";
 import { Loader2, Plus } from "lucide-react";
 import { usePlaidLink } from "react-plaid-link";
 
+import { Button } from "@/components/ui";
+
 type PlaidMetadata = {
   institution?: {
     institution_id?: string | null;
@@ -109,15 +111,14 @@ export function PlaidLinkButton({ compact = false }: { compact?: boolean }) {
 
   return (
     <>
-      <button
-        className="btn btn-primary"
+      <Button
+        variant="primary"
         onClick={() => void link.startLink(buttonId)}
-        type="button"
         disabled={link.loading}
+        icon={link.loading ? <Loader2 size={12} className="spin" /> : <Plus size={12} />}
       >
-        {link.loading ? <Loader2 size={12} className="spin" /> : <Plus size={12} />}
         {compact ? "Link account" : "Link account"}
-      </button>
+      </Button>
       {showError ? <span className="inline-error">{showError}</span> : null}
     </>
   );

@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Trash2 } from "lucide-react";
 
-import { Panel } from "@/components/ui";
+import { Button, IconButton, Panel } from "@/components/ui";
 import type { SettingsData } from "@/lib/cycles/getSettings";
 import { FREQUENCIES } from "@/lib/cycles/types";
 
@@ -192,9 +192,9 @@ function PayCycleSection({ settings }: { settings: SettingsData["settings"] }) {
       </div>
 
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 14 }}>
-        <button className="btn btn-primary" type="button" onClick={save} disabled={busy}>
+        <Button variant="primary" onClick={save} disabled={busy}>
           {busy ? "Saving…" : "Save"}
-        </button>
+        </Button>
         <ErrorLine error={error} />
       </div>
     </Panel>
@@ -293,23 +293,18 @@ function RecurringExpensesSection({ expenses }: { expenses: SettingsData["recurr
                 <td className="num mono">${e.amount.toFixed(2)}</td>
                 <td className="num mono">${e.accrualPerCycle.toFixed(2)}</td>
                 <td>
-                  <button
-                    className="btn btn-ghost btn-sm"
-                    type="button"
+                  <Button
+                    variant="ghost"
+                    size="sm"
                     onClick={() => toggleActive(e.id, e.active)}
                   >
                     {e.active ? "Active" : "Paused"}
-                  </button>
+                  </Button>
                 </td>
                 <td>
-                  <button
-                    className="btn btn-ghost btn-sm"
-                    type="button"
-                    onClick={() => remove(e.id)}
-                    aria-label="Delete"
-                  >
+                  <IconButton label="Delete" onClick={() => remove(e.id)}>
                     <Trash2 size={11} />
-                  </button>
+                  </IconButton>
                 </td>
               </tr>
             ))}
@@ -386,9 +381,9 @@ function RecurringExpensesSection({ expenses }: { expenses: SettingsData["recurr
             style={NUMBER_INPUT_STYLE}
           />
         </label>
-        <button className="btn btn-primary btn-sm" type="button" onClick={create} disabled={busy}>
+        <Button variant="primary" size="sm" onClick={create} disabled={busy}>
           Add
-        </button>
+        </Button>
       </div>
       <div style={{ marginTop: 8 }}>
         <ErrorLine error={error} />
@@ -473,14 +468,9 @@ function SavingsDestinationsSection({
                 <td className="mono">{d.matchPattern}</td>
                 <td>{d.label ?? "—"}</td>
                 <td>
-                  <button
-                    className="btn btn-ghost btn-sm"
-                    type="button"
-                    onClick={() => remove(d.id)}
-                    aria-label="Delete"
-                  >
+                  <IconButton label="Delete" onClick={() => remove(d.id)}>
                     <Trash2 size={11} />
-                  </button>
+                  </IconButton>
                 </td>
               </tr>
             ))}
@@ -529,9 +519,9 @@ function SavingsDestinationsSection({
             style={INPUT_STYLE}
           />
         </label>
-        <button className="btn btn-primary btn-sm" type="button" onClick={create} disabled={busy}>
+        <Button variant="primary" size="sm" onClick={create} disabled={busy}>
           Add
-        </button>
+        </Button>
       </div>
       <div style={{ marginTop: 8 }}>
         <ErrorLine error={error} />
@@ -605,14 +595,9 @@ function SettlementPatternsSection({ patterns }: { patterns: SettingsData["settl
                 <td>{p.label}</td>
                 <td className="mono">{p.matchPattern}</td>
                 <td>
-                  <button
-                    className="btn btn-ghost btn-sm"
-                    type="button"
-                    onClick={() => remove(p.id)}
-                    aria-label="Delete"
-                  >
+                  <IconButton label="Delete" onClick={() => remove(p.id)}>
                     <Trash2 size={11} />
-                  </button>
+                  </IconButton>
                 </td>
               </tr>
             ))}
@@ -651,9 +636,9 @@ function SettlementPatternsSection({ patterns }: { patterns: SettingsData["settl
             style={INPUT_STYLE}
           />
         </label>
-        <button className="btn btn-primary btn-sm" type="button" onClick={create} disabled={busy}>
+        <Button variant="primary" size="sm" onClick={create} disabled={busy}>
           Add
-        </button>
+        </Button>
       </div>
       <div style={{ marginTop: 8 }}>
         <ErrorLine error={error} />

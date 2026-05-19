@@ -11,7 +11,7 @@ import {
 } from "@/components/snaptrade-actions";
 import { SyncAllButton } from "@/components/sync-all-button";
 import { formatMoney } from "@/components/big-number";
-import { PageHeader, StatusPill } from "@/components/ui";
+import { IconButton, PageHeader, StatusPill } from "@/components/ui";
 import { getDashboardData } from "@/lib/analytics";
 import { authOptions } from "@/lib/auth";
 import { formatRelativeTime, formatYearMonth } from "@/lib/format";
@@ -238,14 +238,9 @@ function InvestmentsSection({
                   </div>
                 </div>
                 <div className="acct-bal">{formatMoney(a.totalValue)}</div>
-                <button
-                  className="btn btn-ghost btn-sm"
-                  style={{ padding: 4 }}
-                  type="button"
-                  aria-label="More actions"
-                >
+                <IconButton label="More actions">
                   <MoreHorizontal size={14} />
-                </button>
+                </IconButton>
               </div>
             ))}
           </div>
@@ -353,14 +348,9 @@ function InstitutionCard({ institution, isDemo }: { institution: Institution; is
                 {account.currentBalance < 0 ? "−" : ""}
                 {formatMoney(Math.abs(account.currentBalance))}
               </div>
-              <button
-                className="btn btn-ghost btn-sm"
-                style={{ padding: 4 }}
-                type="button"
-                aria-label="More actions"
-              >
+              <IconButton label="More actions">
                 <MoreHorizontal size={14} />
-              </button>
+              </IconButton>
             </div>
           );
         })}

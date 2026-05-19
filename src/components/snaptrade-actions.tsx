@@ -4,6 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, Plus, RefreshCw, Unlink } from "lucide-react";
 
+import { Button } from "@/components/ui";
+
 export function SnapTradeLinkButton({ compact = false }: { compact?: boolean }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -25,10 +27,14 @@ export function SnapTradeLinkButton({ compact = false }: { compact?: boolean }) 
 
   return (
     <>
-      <button className="btn btn-primary" type="button" onClick={start} disabled={busy}>
-        {busy ? <Loader2 size={12} className="spin" /> : <Plus size={12} />}
+      <Button
+        variant="primary"
+        onClick={start}
+        disabled={busy}
+        icon={busy ? <Loader2 size={12} className="spin" /> : <Plus size={12} />}
+      >
         {compact ? "Add brokerage" : "Link brokerage"}
-      </button>
+      </Button>
       {error ? <span className="inline-error">{error}</span> : null}
     </>
   );
@@ -55,10 +61,13 @@ export function SnapTradeSyncButton({ compact = false }: { compact?: boolean }) 
 
   return (
     <>
-      <button className="btn" type="button" onClick={sync} disabled={busy}>
-        <RefreshCw size={compact ? 11 : 12} className={busy ? "spin" : undefined} />
+      <Button
+        onClick={sync}
+        disabled={busy}
+        icon={<RefreshCw size={compact ? 11 : 12} className={busy ? "spin" : undefined} />}
+      >
         {busy ? "Syncing..." : "Sync"}
-      </button>
+      </Button>
       {error ? <span className="inline-error">{error}</span> : null}
     </>
   );
@@ -96,32 +105,26 @@ export function SnapTradeConnectionActions({ connectionId }: { connectionId: str
 
   return (
     <>
-      <button
-        className="btn btn-sm"
-        type="button"
+      <Button
+        size="sm"
         onClick={() => run("sync")}
         disabled={Boolean(busyAction)}
+        icon={<RefreshCw size={11} className={busyAction === "sync" ? "spin" : undefined} />}
       >
-        <RefreshCw size={11} className={busyAction === "sync" ? "spin" : undefined} />
         Sync
-      </button>
-      <button
-        className="btn btn-sm"
-        type="button"
-        onClick={() => run("refresh")}
-        disabled={Boolean(busyAction)}
-      >
+      </Button>
+      <Button size="sm" onClick={() => run("refresh")} disabled={Boolean(busyAction)}>
         Refresh
-      </button>
-      <button
-        className="btn btn-sm btn-danger"
-        type="button"
+      </Button>
+      <Button
+        variant="danger"
+        size="sm"
         onClick={() => run("unlink")}
         disabled={Boolean(busyAction)}
+        icon={<Unlink size={11} />}
       >
-        <Unlink size={11} />
         Unlink
-      </button>
+      </Button>
       {error ? <span className="inline-error">{error}</span> : null}
     </>
   );

@@ -4,6 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { RefreshCcw, Unlink } from "lucide-react";
 
+import { Button } from "@/components/ui";
+
 export function ItemActions({ itemId, status }: { itemId: string; status: string }) {
   const router = useRouter();
   const [busyAction, setBusyAction] = useState<"sync" | "balance" | null>(null);
@@ -27,32 +29,26 @@ export function ItemActions({ itemId, status }: { itemId: string; status: string
 
   return (
     <>
-      <button
-        className="btn btn-sm"
-        type="button"
+      <Button
+        size="sm"
         onClick={() => run("sync")}
         disabled={Boolean(busyAction) || status === "SYNCING"}
+        icon={<RefreshCcw size={11} className={isSyncing ? "spin" : undefined} />}
       >
-        <RefreshCcw size={11} className={isSyncing ? "spin" : undefined} />
         Sync
-      </button>
-      <button
-        className="btn btn-sm"
-        type="button"
-        onClick={() => run("balance")}
-        disabled={Boolean(busyAction)}
-      >
+      </Button>
+      <Button size="sm" onClick={() => run("balance")} disabled={Boolean(busyAction)}>
         Refresh balance
-      </button>
-      <button
-        className="btn btn-sm btn-danger"
-        type="button"
+      </Button>
+      <Button
+        variant="danger"
+        size="sm"
         disabled
         title="Unlink not implemented"
+        icon={<Unlink size={11} />}
       >
-        <Unlink size={11} />
         Unlink
-      </button>
+      </Button>
       {error ? <span className="inline-error">{error}</span> : null}
     </>
   );

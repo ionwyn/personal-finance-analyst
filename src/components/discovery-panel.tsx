@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Check, Sparkles, X } from "lucide-react";
 
 import { formatMoney } from "@/components/big-number";
+import { Button, IconButton } from "@/components/ui";
 import type { DiscoveryCandidate } from "@/lib/cycles/discovery";
 
 export function DiscoveryPanel({ candidates }: { candidates: DiscoveryCandidate[] }) {
@@ -71,9 +72,9 @@ export function DiscoveryPanel({ candidates }: { candidates: DiscoveryCandidate[
           <Sparkles size={13} style={{ color: "var(--accent)" }} />
           Discovered recurring expenses
         </div>
-        <button type="button" className="btn btn-sm btn-ghost" onClick={() => setOpen((o) => !o)}>
+        <Button size="sm" variant="ghost" onClick={() => setOpen((o) => !o)}>
           {open ? "Hide" : `Review ${candidates.length}`}
-        </button>
+        </Button>
       </div>
       {open ? (
         <div className="panel-body flush">
@@ -107,25 +108,24 @@ export function DiscoveryPanel({ candidates }: { candidates: DiscoveryCandidate[
                       {c.occurrences}×
                     </td>
                     <td className="num">
-                      <button
-                        type="button"
-                        className="btn btn-sm"
+                      <IconButton
+                        label="Confirm as recurring expense"
+                        variant="default"
                         disabled={isBusy}
                         onClick={() => confirm(c)}
                         title="Confirm as recurring expense"
                         style={{ marginRight: 4 }}
                       >
                         <Check size={11} />
-                      </button>
-                      <button
-                        type="button"
-                        className="btn btn-sm btn-ghost"
+                      </IconButton>
+                      <IconButton
+                        label="Dismiss"
                         disabled={isBusy}
                         onClick={() => dismiss(c)}
                         title="Dismiss"
                       >
                         <X size={11} />
-                      </button>
+                      </IconButton>
                     </td>
                   </tr>
                 );

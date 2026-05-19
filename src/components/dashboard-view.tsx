@@ -9,7 +9,7 @@ import { RecentTransactionsPanel } from "@/components/dashboard/recent-transacti
 import type { DashboardData, DashboardMode } from "@/components/dashboard/types";
 import { InvestmentsCard } from "@/components/investments-card";
 import { PlaidLinkButton } from "@/components/plaid-link-button";
-import { PageHeader } from "@/components/ui";
+import { Button, PageHeader } from "@/components/ui";
 import { SyncAllButton } from "@/components/sync-all-button";
 import { formatRelativeTime } from "@/lib/format";
 
@@ -60,10 +60,9 @@ export function DashboardView({ data, mode }: { data: DashboardData; mode: Dashb
         actions={
           <>
             {!isDemo ? <SyncAllButton items={data.plaidItems} /> : null}
-            <button className="btn" type="button" disabled title="Coming soon">
-              <Download size={12} />
+            <Button disabled title="Coming soon" icon={<Download size={12} />}>
               Export
-            </button>
+            </Button>
             {!isDemo ? <PlaidLinkButton compact /> : null}
           </>
         }

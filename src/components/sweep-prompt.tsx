@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Wallet } from "lucide-react";
 
 import { formatMoney } from "@/components/big-number";
+import { Button, Input } from "@/components/ui";
 
 export function SweepPrompt({
   suggestedAmount,
@@ -104,7 +105,7 @@ export function SweepPrompt({
           >
             Amount
           </label>
-          <input
+          <Input
             type="number"
             min={0}
             step={0.01}
@@ -112,24 +113,16 @@ export function SweepPrompt({
             onChange={(e) => setAmount(Number(e.target.value))}
             disabled={busy}
             className="mono"
-            style={{
-              background: "var(--surface-2)",
-              border: "1px solid var(--border)",
-              borderRadius: 4,
-              padding: "4px 8px",
-              color: "var(--text)",
-              width: 140,
-              fontVariantNumeric: "tabular-nums",
-            }}
+            style={{ width: 140, fontVariantNumeric: "tabular-nums" }}
           />
         </div>
         <div style={{ display: "flex", gap: 8 }}>
-          <button type="button" className="btn" disabled={busy || amount <= 0} onClick={confirm}>
+          <Button disabled={busy || amount <= 0} onClick={confirm}>
             Confirm sweep
-          </button>
-          <button type="button" className="btn btn-ghost" disabled={busy} onClick={skip}>
+          </Button>
+          <Button variant="ghost" disabled={busy} onClick={skip}>
             Skip this cycle
-          </button>
+          </Button>
         </div>
       </div>
     </section>
