@@ -1,0 +1,49 @@
+name: Bug report
+description: Report incorrect behavior, broken flows, or runtime errors.
+title: "[Bug]: "
+labels: ["type: bug", "needs: triage"]
+body:
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: What happened, and what did you expect instead?
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Dashboard
+        - Transactions
+        - Pay cycles
+        - Plaid sync
+        - SnapTrade sync
+        - Auth
+        - Database/Prisma
+        - Styling/responsive UI
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Go to ...
+        2. Click ...
+        3. See ...
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Logs, screenshots, or traces
+      description: Remove account numbers, access tokens, personal transaction details, and other sensitive data.
+      render: shell
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      placeholder: Browser, OS, Node version, database, Plaid/SnapTrade environment.

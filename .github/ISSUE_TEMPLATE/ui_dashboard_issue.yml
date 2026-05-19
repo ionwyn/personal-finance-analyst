@@ -1,0 +1,33 @@
+name: UI or dashboard issue
+description: Report layout, responsiveness, chart, table, or dashboard usability issues.
+title: "[UI]: "
+labels: ["area: dashboard", "area: ui", "needs: triage"]
+body:
+  - type: textarea
+    id: issue
+    attributes:
+      label: Issue
+      description: What looks wrong or feels hard to use?
+    validations:
+      required: true
+  - type: dropdown
+    id: viewport
+    attributes:
+      label: Viewport
+      options:
+        - Mobile
+        - Tablet
+        - Desktop
+        - Multiple
+        - Not sure
+    validations:
+      required: true
+  - type: textarea
+    id: screenshot
+    attributes:
+      label: Screenshot or recording
+      description: Remove or blur balances, transaction descriptions, institution names, and other private data.
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
