@@ -338,32 +338,6 @@
   min-width: 110px;
 }
 
-/* CCY toggle in toolbar */
-.ccy-toggle {
-  display: inline-flex;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  overflow: hidden;
-  background: var(--surface);
-}
-.ccy-toggle button {
-  padding: 4px 10px;
-  font-family: var(--font-mono);
-  font-size: 11px;
-  color: var(--text-3);
-  border-right: 1px solid var(--border);
-}
-.ccy-toggle button:last-child {
-  border-right: none;
-}
-.ccy-toggle button.on {
-  background: var(--surface-3);
-  color: var(--text);
-}
-.ccy-toggle button:hover {
-  color: var(--text);
-}
-
 @include respond-to("lg") {
   .alloc-grid {
     grid-template-columns: 1fr;

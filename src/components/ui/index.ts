@@ -7,4 +7,8 @@ export { Input } from "./input";
 export type { InputProps } from "./input";
 export { PageHeader } from "./page-header";
 export { Panel } from "./panel";
+export { SegmentedControl } from "./segmented-control";
+export type { SegmentedControlProps, SegmentOption } from "./segmented-control";
 export { StatusPill } from "./status-pill";
+export { Switch } from "./switch";
+export type { SwitchProps } from "./switch";

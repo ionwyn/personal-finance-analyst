@@ -5,7 +5,7 @@ import { Search } from "lucide-react";
 
 import { SnapTradeLinkButton, SnapTradeSyncButton } from "@/components/snaptrade-actions";
 import { SymLogo } from "@/components/sym-logo";
-import { PageHeader } from "@/components/ui";
+import { PageHeader, SegmentedControl } from "@/components/ui";
 import { formatRelativeTime, formatYearMonth } from "@/lib/format";
 import type { InvestmentDashboardData, InvestmentPosition } from "@/lib/investments/types";
 
@@ -215,14 +215,15 @@ export function InvestmentsView({ data }: { data: InvestmentDashboardData }) {
           />
         </div>
         <span style={{ flex: 1 }} />
-        <div className="ccy-toggle" role="group" aria-label="Currency display">
-          <button type="button" className={!showCAD ? "on" : ""} onClick={() => setShowCAD(false)}>
-            NATIVE
-          </button>
-          <button type="button" className={showCAD ? "on" : ""} onClick={() => setShowCAD(true)}>
-            CAD
-          </button>
-        </div>
+        <SegmentedControl
+          label="Currency display"
+          value={showCAD ? "cad" : "native"}
+          onChange={(v) => setShowCAD(v === "cad")}
+          options={[
+            { value: "native", label: "NATIVE" },
+            { value: "cad", label: "CAD" },
+          ]}
+        />
       </div>
 
       <div className="panel">

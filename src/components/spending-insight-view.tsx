@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { ChevronRight } from "lucide-react";
 
 import { BigNumber, formatMoney } from "@/components/big-number";
+import { SegmentedControl, Switch } from "@/components/ui";
 import type {
   CategoryRow,
   DetailedRow,
@@ -270,48 +271,19 @@ export function SpendingInsightView({
         <div className="cat-toolbar">
           <span className="meta">Categories · {data.categories.length}</span>
           <span className="spacer" />
-          <div
-            role="switch"
-            aria-checked={showShadow}
-            tabIndex={0}
-            className={`shadow-toggle ${showShadow ? "on" : ""}`}
-            onClick={() => setShowShadow((s) => !s)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === " ") {
-                e.preventDefault();
-                setShowShadow((s) => !s);
-              }
-            }}
-          >
-            <span className="sw" />
-            <span>Shadow bar</span>
-          </div>
-          <div className="cat-sort">
-            <button
-              type="button"
-              className={sortKey === "amount" ? "on" : ""}
-              onClick={() => setSortKey("amount")}
-              aria-label="Sort by amount"
-            >
-              $
-            </button>
-            <button
-              type="button"
-              className={sortKey === "pct" ? "on" : ""}
-              onClick={() => setSortKey("pct")}
-              aria-label="Sort by percent of income"
-            >
-              %
-            </button>
-            <button
-              type="button"
-              className={sortKey === "delta" ? "on" : ""}
-              onClick={() => setSortKey("delta")}
-              aria-label="Sort by delta"
-            >
-              Δ
-            </button>
-          </div>
+          <Switch isSelected={showShadow} onChange={setShowShadow}>
+            Shadow bar
+          </Switch>
+          <SegmentedControl
+            label="Sort categories"
+            value={sortKey}
+            onChange={setSortKey}
+            options={[
+              { value: "amount", label: "$", ariaLabel: "Sort by amount" },
+              { value: "pct", label: "%", ariaLabel: "Sort by percent of income" },
+              { value: "delta", label: "Δ", ariaLabel: "Sort by delta" },
+            ]}
+          />
         </div>
 
         {sortedCategories.length === 0 ? (
@@ -462,20 +434,17 @@ function SubcatRow({
 
 function PeriodToggle({ period, onChange }: { period: Period; onChange: (p: Period) => void }) {
   return (
-    <div className="period-toggle" role="tablist">
-      {(["MTD", "YTD"] as Period[]).map((p) => (
-        <button
-          key={p}
-          type="button"
-          role="tab"
-          aria-selected={p === period}
-          className={p === period ? "on" : ""}
-          onClick={() => onChange(p)}
-        >
-          {p}
-        </button>
-      ))}
-    </div>
+    <SegmentedControl
+      label="Period"
+      variant="accent"
+      size="md"
+      value={period}
+      onChange={onChange}
+      options={[
+        { value: "MTD", label: "MTD" },
+        { value: "YTD", label: "YTD" },
+      ]}
+    />
   );
 }
 

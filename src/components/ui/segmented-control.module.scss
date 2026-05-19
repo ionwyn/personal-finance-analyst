@@ -1,0 +1,48 @@
+// Co-located styles for the SegmentedControl primitive (react-aria ToggleButtonGroup).
+
+.group {
+  display: inline-flex;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  overflow: hidden;
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+
+.segment {
+  padding: 4px 9px;
+  color: var(--text-3);
+  background: transparent;
+  border: none;
+  border-right: 1px solid var(--border);
+  cursor: pointer;
+}
+.segment:last-child {
+  border-right: none;
+}
+.segment:hover {
+  color: var(--text);
+  background: var(--hover);
+}
+.segment[data-selected] {
+  background: var(--surface-3);
+  color: var(--text);
+}
+.segment[data-focus-visible] {
+  outline: 1px solid var(--accent);
+  outline-offset: -1px;
+}
+
+/* md size — roomier segments */
+.md .segment {
+  padding: 5px 12px;
+  letter-spacing: 0.04em;
+}
+
+/* accent variant — amber active state */
+.accent .segment[data-selected] {
+  background: var(--accent);
+  color: #0a0a0b;
+  font-weight: 600;
+}
