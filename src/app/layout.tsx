@@ -1,15 +1,15 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Figtree, Manrope } from "next/font/google";
 
 import { Providers } from "@/components/providers";
 import "@/app/globals.css";
 
-const geistSans = Geist({
+const geistSans = Figtree({
   subsets: ["latin"],
   variable: "--font-geist-sans",
 });
 
-const geistMono = Geist_Mono({
+const geistMono = Manrope({
   subsets: ["latin"],
   variable: "--font-geist-mono",
 });
