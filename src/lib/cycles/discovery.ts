@@ -21,7 +21,7 @@ const FREQ_BANDS: Record<Frequency, [number, number]> = {
   weekly: [5, 9],
   biweekly: [12, 16],
   monthly: [28, 35],
-  annual: [355, 375]
+  annual: [355, 375],
 };
 
 /**
@@ -73,25 +73,22 @@ export async function discoverRecurringCandidates(
       supersededById: null,
       txnType: "expense",
       date: { gte: sixMonthsAgo, lte: now },
-      amount: { gt: 0 }
+      amount: { gt: 0 },
     },
     select: { id: true, name: true, merchantName: true, amount: true, date: true },
-    orderBy: { date: "asc" }
+    orderBy: { date: "asc" },
   });
 
   const existing = await prisma.recurringExpense.findMany({
     where: { tenantId },
-    select: { merchantPattern: true, active: true, dismissedAt: true, confirmed: true }
+    select: { merchantPattern: true, active: true, dismissedAt: true, confirmed: true },
   });
 
   const skipPatterns = existing
     .filter((r) => r.merchantPattern && (r.confirmed || r.dismissedAt))
     .map((r) => r.merchantPattern!.toUpperCase());
 
-  const groups = new Map<
-    string,
-    { sample: string; dates: Date[]; amounts: number[] }
-  >();
+  const groups = new Map<string, { sample: string; dates: Date[]; amounts: number[] }>();
 
   for (const tx of txs) {
     const raw = tx.merchantName ?? tx.name ?? "";
@@ -112,7 +109,8 @@ export async function discoverRecurringCandidates(
 
     const intervals: number[] = [];
     for (let i = 1; i < group.dates.length; i += 1) {
-      const diff = (group.dates[i].getTime() - group.dates[i - 1].getTime()) / (1000 * 60 * 60 * 24);
+      const diff =
+        (group.dates[i].getTime() - group.dates[i - 1].getTime()) / (1000 * 60 * 60 * 24);
       intervals.push(diff);
     }
 
@@ -132,7 +130,7 @@ export async function discoverRecurringCandidates(
       medianAmount: Math.round(medianAmount * 100) / 100,
       frequency,
       accrualPerCycle: Math.round(accrual * 100) / 100,
-      lastSeen: group.dates[group.dates.length - 1].toISOString()
+      lastSeen: group.dates[group.dates.length - 1].toISOString(),
     });
   }
 

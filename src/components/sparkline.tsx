@@ -3,7 +3,7 @@ export function Sparkline({
   color = "var(--accent)",
   width = 64,
   height = 22,
-  fill = false
+  fill = false,
 }: {
   data: number[];
   color?: string;
@@ -25,9 +25,21 @@ export function Sparkline({
   const area = `${path} L${width},${height} L0,${height} Z`;
 
   return (
-    <svg viewBox={`0 0 ${width} ${height}`} width={width} height={height} preserveAspectRatio="none">
+    <svg
+      viewBox={`0 0 ${width} ${height}`}
+      width={width}
+      height={height}
+      preserveAspectRatio="none"
+    >
       {fill ? <path d={area} fill={color} fillOpacity={0.12} /> : null}
-      <path d={path} stroke={color} strokeWidth={1.4} fill="none" strokeLinecap="round" strokeLinejoin="round" />
+      <path
+        d={path}
+        stroke={color}
+        strokeWidth={1.4}
+        fill="none"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </svg>
   );
 }

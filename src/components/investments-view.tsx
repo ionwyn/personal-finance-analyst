@@ -5,19 +5,9 @@ import { Search } from "lucide-react";
 
 import { SnapTradeLinkButton, SnapTradeSyncButton } from "@/components/snaptrade-actions";
 import { SymLogo } from "@/components/sym-logo";
-import type {
-  InvestmentDashboardData,
-  InvestmentPosition
-} from "@/lib/investments/types";
+import type { InvestmentDashboardData, InvestmentPosition } from "@/lib/investments/types";
 
-type SortKey =
-  | "symbol"
-  | "units"
-  | "avgCost"
-  | "price"
-  | "mvCAD"
-  | "plCAD"
-  | "plPct";
+type SortKey = "symbol" | "units" | "avgCost" | "price" | "mvCAD" | "plCAD" | "plPct";
 
 type SortDir = "asc" | "desc";
 
@@ -52,9 +42,8 @@ export function InvestmentsView({ data }: { data: InvestmentDashboardData }) {
 
   const sorted = useMemo(() => {
     const q = search.trim().toLowerCase();
-    let rows: InvestmentPosition[] = holdings.filter((h) =>
-      !q ||
-      `${h.symbol} ${h.description} ${h.type}`.toLowerCase().includes(q)
+    let rows: InvestmentPosition[] = holdings.filter(
+      (h) => !q || `${h.symbol} ${h.description} ${h.type}`.toLowerCase().includes(q)
     );
     rows = [...rows].sort((a, b) => {
       const av = a[sortKey];
@@ -76,8 +65,7 @@ export function InvestmentsView({ data }: { data: InvestmentDashboardData }) {
       setSortDir("desc");
     }
   };
-  const sortI = (k: SortKey) =>
-    sortKey === k ? (sortDir === "asc" ? "↑" : "↓") : "↕";
+  const sortI = (k: SortKey) => (sortKey === k ? (sortDir === "asc" ? "↑" : "↓") : "↕");
 
   const plPos = summary.plCAD >= 0;
 
@@ -208,16 +196,14 @@ export function InvestmentsView({ data }: { data: InvestmentDashboardData }) {
                     background: a.institutionLogoBg,
                     width: 28,
                     height: 28,
-                    fontSize: 10
+                    fontSize: 10,
                   }}
                 >
                   {a.institutionLogoText}
                 </div>
                 <div>
                   <div className="nm">{a.name}</div>
-                  <div className="meta">
-                    {a.positionCount} positions
-                  </div>
+                  <div className="meta">{a.positionCount} positions</div>
                 </div>
                 <span className="status reg">
                   <i className="pulse" />
@@ -243,18 +229,10 @@ export function InvestmentsView({ data }: { data: InvestmentDashboardData }) {
         </div>
         <span style={{ flex: 1 }} />
         <div className="ccy-toggle" role="group" aria-label="Currency display">
-          <button
-            type="button"
-            className={!showCAD ? "on" : ""}
-            onClick={() => setShowCAD(false)}
-          >
+          <button type="button" className={!showCAD ? "on" : ""} onClick={() => setShowCAD(false)}>
             NATIVE
           </button>
-          <button
-            type="button"
-            className={showCAD ? "on" : ""}
-            onClick={() => setShowCAD(true)}
-          >
+          <button type="button" className={showCAD ? "on" : ""} onClick={() => setShowCAD(true)}>
             CAD
           </button>
         </div>
@@ -328,13 +306,14 @@ export function InvestmentsView({ data }: { data: InvestmentDashboardData }) {
               {sorted.map((h) => {
                 const plPos2 = (h.plCAD ?? 0) >= 0;
                 const mv = showCAD ? h.mvCAD : h.mvNative;
-                const plDollar = h.plCAD == null
-                  ? null
-                  : showCAD
-                    ? h.plCAD
-                    : h.avgCost == null
-                      ? null
-                      : h.mvNative - h.units * h.avgCost;
+                const plDollar =
+                  h.plCAD == null
+                    ? null
+                    : showCAD
+                      ? h.plCAD
+                      : h.avgCost == null
+                        ? null
+                        : h.mvNative - h.units * h.avgCost;
                 return (
                   <tr key={h.id}>
                     <td>
@@ -346,7 +325,7 @@ export function InvestmentsView({ data }: { data: InvestmentDashboardData }) {
                           style={{
                             marginLeft: "auto",
                             fontSize: 9.5,
-                            padding: "1px 4px"
+                            padding: "1px 4px",
                           }}
                         >
                           {h.type}
@@ -357,7 +336,7 @@ export function InvestmentsView({ data }: { data: InvestmentDashboardData }) {
                     <td className="num">
                       {h.units.toLocaleString("en-US", {
                         minimumFractionDigits: h.units % 1 ? 3 : 0,
-                        maximumFractionDigits: 3
+                        maximumFractionDigits: 3,
                       })}
                     </td>
                     <td className="num" style={{ color: "var(--text-3)" }}>
@@ -425,13 +404,12 @@ export function InvestmentsView({ data }: { data: InvestmentDashboardData }) {
       </div>
 
       <div className="foot-note">
-        <span>
-          SnapTrade positions cached{" "}
-          {formatRelative(summary.lastSync)}
-        </span>
+        <span>SnapTrade positions cached {formatRelative(summary.lastSync)}</span>
         <span>
           Click column headers to sort · NATIVE/CAD toggle preserves listing currency
-          {summary.omittedPositionCount > 0 ? ` · ${summary.omittedPositionCount} positions omitted` : ""}
+          {summary.omittedPositionCount > 0
+            ? ` · ${summary.omittedPositionCount} positions omitted`
+            : ""}
         </span>
       </div>
     </>

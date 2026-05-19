@@ -29,8 +29,8 @@ export async function getCycleHistory(tenantId: string, limit = 24): Promise<Cyc
       fixedSavingsPull: true,
       sweptAmount: true,
       carryover: true,
-      closedAt: true
-    }
+      closedAt: true,
+    },
   });
 
   if (!cycles.length) return [];
@@ -39,17 +39,17 @@ export async function getCycleHistory(tenantId: string, limit = 24): Promise<Cyc
   const spentRows = await prisma.plaidTransaction.groupBy({
     by: ["cycleId"],
     where: { ...SPENDING_FILTER, tenantId, cycleId: { in: cycleIds } },
-    _sum: { amount: true }
+    _sum: { amount: true },
   });
   const creditHistoryStart = await prisma.plaidTransaction.findFirst({
     where: {
       tenantId,
       removed: false,
       supersededById: null,
-      account: { type: "credit" }
+      account: { type: "credit" },
     },
     orderBy: { date: "asc" },
-    select: { date: true }
+    select: { date: true },
   });
   const settlementRows = await prisma.plaidTransaction.groupBy({
     by: ["cycleId"],
@@ -58,9 +58,9 @@ export async function getCycleHistory(tenantId: string, limit = 24): Promise<Cyc
       cycleId: { in: cycleIds },
       removed: false,
       supersededById: null,
-      txnType: "settlement"
+      txnType: "settlement",
     },
-    _sum: { amount: true }
+    _sum: { amount: true },
   });
 
   const spentByCycle = new Map<string, Prisma.Decimal>();
@@ -77,10 +77,9 @@ export async function getCycleHistory(tenantId: string, limit = 24): Promise<Cyc
     const fixedSavingsPull = c.fixedSavingsPull ?? new Prisma.Decimal(0);
     const sweptAmount = c.sweptAmount ?? new Prisma.Decimal(0);
     const spent = spentByCycle.get(c.id) ?? new Prisma.Decimal(0);
-    const shouldCountSettlements =
-      !creditHistoryStart?.date || c.endDate < creditHistoryStart.date;
+    const shouldCountSettlements = !creditHistoryStart?.date || c.endDate < creditHistoryStart.date;
     const unbackedSettlements = shouldCountSettlements
-      ? settlementByCycle.get(c.id) ?? new Prisma.Decimal(0)
+      ? (settlementByCycle.get(c.id) ?? new Prisma.Decimal(0))
       : new Prisma.Decimal(0);
 
     return {
@@ -93,7 +92,7 @@ export async function getCycleHistory(tenantId: string, limit = 24): Promise<Cyc
       totalSaved: fixedSavingsPull.add(sweptAmount),
       spent: spent.add(unbackedSettlements),
       carryover: c.carryover,
-      closedAt: c.closedAt
+      closedAt: c.closedAt,
     };
   });
 }

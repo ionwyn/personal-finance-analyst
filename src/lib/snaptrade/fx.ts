@@ -16,7 +16,7 @@ function pairKey(sourceCurrency: string, targetCurrency: string) {
 async function fetchRateFromSnapTrade(sourceCurrency: string, targetCurrency: string) {
   const pair = pairKey(sourceCurrency, targetCurrency);
   const response = await getSnapTradeClient().referenceData.getCurrencyExchangeRatePair({
-    currencyPair: pair
+    currencyPair: pair,
   });
   const rate = response.data.exchange_rate;
   if (!rate || rate <= 0) {
@@ -37,15 +37,15 @@ async function saveRate(sourceCurrency: string, targetCurrency: string, rate: nu
       sourceCurrency: source,
       targetCurrency: target,
       rate: new Prisma.Decimal(rate),
-      fetchedAt: now
+      fetchedAt: now,
     },
     create: {
       pair,
       sourceCurrency: source,
       targetCurrency: target,
       rate: new Prisma.Decimal(rate),
-      fetchedAt: now
-    }
+      fetchedAt: now,
+    },
   });
 
   return rate;
@@ -58,7 +58,7 @@ export async function getFxRate(sourceCurrency: string, targetCurrency = "CAD") 
 
   const pair = pairKey(source, target);
   const cached = await prisma.snapTradeFxRate.findUnique({
-    where: { pair }
+    where: { pair },
   });
 
   if (cached && Date.now() - cached.fetchedAt.getTime() <= FX_CACHE_TTL_MS) {

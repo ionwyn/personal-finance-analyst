@@ -26,7 +26,7 @@ async function backfillTenant(tenantId: string, cliAnchor: Date | null) {
   const earliest = await prisma.plaidTransaction.findFirst({
     where: { tenantId, removed: false },
     orderBy: { date: "asc" },
-    select: { date: true }
+    select: { date: true },
   });
 
   const anchor = cliAnchor ?? settings?.lastPaycheckDate ?? earliest?.date ?? null;
@@ -38,15 +38,11 @@ async function backfillTenant(tenantId: string, cliAnchor: Date | null) {
   const latest = await prisma.plaidTransaction.findFirst({
     where: { tenantId, removed: false },
     orderBy: { date: "desc" },
-    select: { date: true }
+    select: { date: true },
   });
 
-  const backMonths = earliest
-    ? Math.max(6, monthsBetween(earliest.date, anchor) + 1)
-    : 6;
-  const forwardMonths = latest
-    ? Math.max(3, monthsBetween(anchor, latest.date) + 1)
-    : 3;
+  const backMonths = earliest ? Math.max(6, monthsBetween(earliest.date, anchor) + 1) : 6;
+  const forwardMonths = latest ? Math.max(3, monthsBetween(anchor, latest.date) + 1) : 3;
 
   await generatePayCycles(tenantId, anchor, { backMonths, forwardMonths });
 
@@ -64,8 +60,8 @@ async function backfillTenant(tenantId: string, cliAnchor: Date | null) {
       categoryDetailed: true,
       date: true,
       cycleId: true,
-      txnType: true
-    }
+      txnType: true,
+    },
   });
 
   const affectedCycleIds = new Set<string>();
@@ -83,7 +79,7 @@ async function backfillTenant(tenantId: string, cliAnchor: Date | null) {
         categoryPrimary: tx.categoryPrimary,
         categoryDetailed: tx.categoryDetailed,
         date: tx.date,
-        existingTxnType: tx.txnType
+        existingTxnType: tx.txnType,
       },
       context
     );
@@ -92,8 +88,8 @@ async function backfillTenant(tenantId: string, cliAnchor: Date | null) {
       where: { id: tx.id },
       data: {
         cycleId: cycle.id,
-        txnType: result.txnType
-      }
+        txnType: result.txnType,
+      },
     });
     classified += 1;
 
@@ -105,12 +101,12 @@ async function backfillTenant(tenantId: string, cliAnchor: Date | null) {
       if (result.txnType === "income") {
         await prisma.payCycle.update({
           where: { id: cycle.id },
-          data: { incomeReceived: amountAbs }
+          data: { incomeReceived: amountAbs },
         });
       } else {
         await prisma.payCycle.update({
           where: { id: cycle.id },
-          data: { fixedSavingsPull: amountAbs }
+          data: { fixedSavingsPull: amountAbs },
         });
       }
     }
@@ -149,9 +145,7 @@ async function main() {
 
   for (const tenant of tenants) {
     const stats = await backfillTenant(tenant.id, cliAnchor);
-    console.log(
-      `[${tenant.slug}] classified=${stats.classified} reconciled=${stats.reconciled}`
-    );
+    console.log(`[${tenant.slug}] classified=${stats.classified} reconciled=${stats.reconciled}`);
   }
 }
 

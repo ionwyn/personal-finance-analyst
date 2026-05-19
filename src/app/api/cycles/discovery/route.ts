@@ -3,10 +3,7 @@ import { z } from "zod";
 
 import { requireUserTenant } from "@/lib/http";
 import { prisma } from "@/lib/prisma";
-import {
-  discoverRecurringCandidates,
-  normalizeMerchant
-} from "@/lib/cycles/discovery";
+import { discoverRecurringCandidates, normalizeMerchant } from "@/lib/cycles/discovery";
 import { computeAccrualPerCycle } from "@/lib/cycles/accrual";
 import { FREQUENCIES } from "@/lib/cycles/types";
 
@@ -23,7 +20,7 @@ const confirmSchema = z.object({
   name: z.string().min(1).max(200),
   amount: z.number().positive(),
   frequency: z.enum(FREQUENCIES),
-  merchantPattern: z.string().min(1)
+  merchantPattern: z.string().min(1),
 });
 
 export async function POST(request: Request) {
@@ -53,8 +50,8 @@ export async function POST(request: Request) {
       anchorDate: null,
       accrualPerCycle,
       confirmed: true,
-      active: true
-    }
+      active: true,
+    },
   });
 
   return NextResponse.json({ expense });
@@ -65,7 +62,7 @@ const dismissSchema = z.object({
   name: z.string().min(1).max(200),
   merchantPattern: z.string().min(1),
   amount: z.number().nonnegative(),
-  frequency: z.enum(FREQUENCIES)
+  frequency: z.enum(FREQUENCIES),
 });
 
 export async function DELETE(request: Request) {
@@ -94,8 +91,8 @@ export async function DELETE(request: Request) {
       accrualPerCycle: 0,
       confirmed: false,
       active: false,
-      dismissedAt: new Date()
-    }
+      dismissedAt: new Date(),
+    },
   });
 
   return NextResponse.json({ ok: true });

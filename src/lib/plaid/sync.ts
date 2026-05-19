@@ -4,7 +4,12 @@ import type { RemovedTransaction, Transaction } from "plaid";
 import { prisma } from "@/lib/prisma";
 import { decryptToken } from "@/lib/security/token-crypto";
 import { getPlaidClient } from "@/lib/plaid/client";
-import { errorMessage, getPlaidErrorCode, getPlaidRequestId, isTransactionsMutationDuringPagination } from "@/lib/plaid/errors";
+import {
+  errorMessage,
+  getPlaidErrorCode,
+  getPlaidRequestId,
+  isTransactionsMutationDuringPagination,
+} from "@/lib/plaid/errors";
 import { normalizeTransaction, summarizeTransactionChanges } from "@/lib/plaid/normalize";
 import { refreshAccountsForItem, refreshBalancesForItem } from "@/lib/plaid/accounts";
 import { getPlaidEnv } from "@/lib/env";
@@ -32,16 +37,18 @@ async function applyAddedOrModified(input: {
   const normalized = normalizeTransaction(input.transaction);
   const account = await prisma.plaidAccount.findUnique({
     where: { plaidAccountId: normalized.plaidAccountId },
-    select: { id: true }
+    select: { id: true },
   });
 
   if (!account) {
-    throw new Error(`Missing Plaid account ${normalized.plaidAccountId} for transaction ${normalized.plaidTransactionId}`);
+    throw new Error(
+      `Missing Plaid account ${normalized.plaidAccountId} for transaction ${normalized.plaidTransactionId}`
+    );
   }
 
   const existing = await prisma.plaidTransaction.findUnique({
     where: { plaidTransactionId: normalized.plaidTransactionId },
-    select: { id: true, txnType: true }
+    select: { id: true, txnType: true },
   });
 
   const cycleFields: { cycleId?: string; txnType?: string } = {};
@@ -60,7 +67,7 @@ async function applyAddedOrModified(input: {
           categoryPrimary: normalized.categoryPrimary,
           categoryDetailed: normalized.categoryDetailed,
           date: normalized.date,
-          existingTxnType: existing?.txnType ?? null
+          existingTxnType: existing?.txnType ?? null,
         },
         input.cycleState.context
       );
@@ -74,7 +81,7 @@ async function applyAddedOrModified(input: {
 
   await prisma.plaidTransaction.upsert({
     where: {
-      plaidTransactionId: normalized.plaidTransactionId
+      plaidTransactionId: normalized.plaidTransactionId,
     },
     update: {
       accountId: account.id,
@@ -95,7 +102,7 @@ async function applyAddedOrModified(input: {
       pending: normalized.pending,
       removed: false,
       raw: normalized.raw,
-      ...cycleFields
+      ...cycleFields,
     },
     create: {
       tenantId: input.tenantId,
@@ -118,19 +125,19 @@ async function applyAddedOrModified(input: {
       categoryConfidence: normalized.categoryConfidence,
       pending: normalized.pending,
       raw: normalized.raw,
-      ...cycleFields
-    }
+      ...cycleFields,
+    },
   });
 }
 
 async function applyRemoved(transaction: RemovedTransaction) {
   await prisma.plaidTransaction.updateMany({
     where: {
-      plaidTransactionId: transaction.transaction_id
+      plaidTransactionId: transaction.transaction_id,
     },
     data: {
-      removed: true
-    }
+      removed: true,
+    },
   });
 }
 
@@ -147,7 +154,7 @@ async function applyTransactionChanges(input: {
       tenantId: input.tenantId,
       itemId: input.itemId,
       transaction,
-      cycleState: input.cycleState
+      cycleState: input.cycleState,
     });
   }
 
@@ -156,7 +163,7 @@ async function applyTransactionChanges(input: {
       tenantId: input.tenantId,
       itemId: input.itemId,
       transaction,
-      cycleState: input.cycleState
+      cycleState: input.cycleState,
     });
   }
 
@@ -170,7 +177,7 @@ async function applyTransactionChanges(input: {
 export async function syncPlaidItem(itemId: string, source: SyncSource) {
   const item = await prisma.plaidItem.findUniqueOrThrow({
     where: { id: itemId },
-    include: { tenant: true }
+    include: { tenant: true },
   });
 
   const lockResult = await prisma.plaidItem.updateMany({
@@ -178,14 +185,17 @@ export async function syncPlaidItem(itemId: string, source: SyncSource) {
       id: item.id,
       OR: [
         { status: { in: [PlaidItemStatus.IDLE, PlaidItemStatus.ERROR] } },
-        { status: PlaidItemStatus.SYNCING, updatedAt: { lt: new Date(Date.now() - ACTIVE_LOCK_MS) } }
-      ]
+        {
+          status: PlaidItemStatus.SYNCING,
+          updatedAt: { lt: new Date(Date.now() - ACTIVE_LOCK_MS) },
+        },
+      ],
     },
     data: {
       status: PlaidItemStatus.SYNCING,
       errorCode: null,
-      errorMessage: null
-    }
+      errorMessage: null,
+    },
   });
 
   if (lockResult.count === 0) {
@@ -196,8 +206,8 @@ export async function syncPlaidItem(itemId: string, source: SyncSource) {
         source,
         status: SyncRunStatus.SKIPPED,
         completedAt: new Date(),
-        errorMessage: "Skipped: another sync is in progress."
-      }
+        errorMessage: "Skipped: another sync is in progress.",
+      },
     });
   }
 
@@ -206,8 +216,8 @@ export async function syncPlaidItem(itemId: string, source: SyncSource) {
       tenantId: item.tenantId,
       itemId: item.id,
       source,
-      status: SyncRunStatus.RUNNING
-    }
+      status: SyncRunStatus.RUNNING,
+    },
   });
 
   let addedCount = 0;
@@ -241,7 +251,7 @@ export async function syncPlaidItem(itemId: string, source: SyncSource) {
         const response = await client.transactionsSync({
           access_token: accessToken,
           cursor,
-          count: PAGE_SIZE
+          count: PAGE_SIZE,
         });
 
         const changes = await applyTransactionChanges({
@@ -250,7 +260,7 @@ export async function syncPlaidItem(itemId: string, source: SyncSource) {
           added: response.data.added,
           modified: response.data.modified,
           removed: response.data.removed,
-          cycleState
+          cycleState,
         });
 
         addedCount += changes.addedCount;
@@ -301,8 +311,8 @@ export async function syncPlaidItem(itemId: string, source: SyncSource) {
       data: {
         syncCursor: nextCursor,
         lastSyncAt: new Date(),
-        status: PlaidItemStatus.IDLE
-      }
+        status: PlaidItemStatus.IDLE,
+      },
     });
 
     const cycleErrorMessage = cycleState?.errors.length
@@ -319,8 +329,8 @@ export async function syncPlaidItem(itemId: string, source: SyncSource) {
         removedCount,
         accountsCount,
         plaidRequestId: requestId,
-        errorMessage: cycleErrorMessage
-      }
+        errorMessage: cycleErrorMessage,
+      },
     });
   } catch (error) {
     const code = getPlaidErrorCode(error);
@@ -329,8 +339,8 @@ export async function syncPlaidItem(itemId: string, source: SyncSource) {
       data: {
         status: PlaidItemStatus.ERROR,
         errorCode: code,
-        errorMessage: errorMessage(error)
-      }
+        errorMessage: errorMessage(error),
+      },
     });
 
     return prisma.syncRun.update({
@@ -344,8 +354,8 @@ export async function syncPlaidItem(itemId: string, source: SyncSource) {
         accountsCount,
         errorCode: code,
         errorMessage: errorMessage(error),
-        plaidRequestId: getPlaidRequestId(error)
-      }
+        plaidRequestId: getPlaidRequestId(error),
+      },
     });
   }
 }
@@ -368,8 +378,8 @@ async function recoverStuckSyncRuns() {
       status: SyncRunStatus.ERROR,
       completedAt: new Date(),
       errorCode: "STUCK_SYNC_RECOVERY",
-      errorMessage: "Sync run was stuck in RUNNING state and was reset by the watchdog."
-    }
+      errorMessage: "Sync run was stuck in RUNNING state and was reset by the watchdog.",
+    },
   });
 
   await prisma.plaidItem.updateMany({
@@ -377,8 +387,8 @@ async function recoverStuckSyncRuns() {
     data: {
       status: PlaidItemStatus.ERROR,
       errorCode: "STUCK_SYNC_RECOVERY",
-      errorMessage: "PlaidItem was stuck in SYNCING state and was reset by the watchdog."
-    }
+      errorMessage: "PlaidItem was stuck in SYNCING state and was reset by the watchdog.",
+    },
   });
 }
 
@@ -386,13 +396,18 @@ async function syncAllPlaidItemsForTenant(tenantId: string, source: SyncSource) 
   const items = await prisma.plaidItem.findMany({
     where: { tenantId },
     include: { tenant: true },
-    orderBy: { createdAt: "asc" }
+    orderBy: { createdAt: "asc" },
   });
 
   const results = [];
   for (const item of items) {
     const syncRun = await syncPlaidItem(item.id, source);
-    if (shouldRefreshBalance({ tenantKind: item.tenant.kind, lastBalanceRefreshAt: item.lastBalanceRefreshAt })) {
+    if (
+      shouldRefreshBalance({
+        tenantKind: item.tenant.kind,
+        lastBalanceRefreshAt: item.lastBalanceRefreshAt,
+      })
+    ) {
       await refreshBalancesForItem(item.id);
     }
     results.push(syncRun);

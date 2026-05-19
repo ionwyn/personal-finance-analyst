@@ -43,7 +43,7 @@ export default async function CycleHistoryPage() {
               name: session?.user?.name,
               email: session?.user?.email,
               image: session?.user?.image,
-              handle: session?.user?.email ?? undefined
+              handle: session?.user?.email ?? undefined,
             }
       }
     >
@@ -119,8 +119,8 @@ export default async function CycleHistoryPage() {
 
       <div className="foot-note">
         <span>
-          Carryover is cumulative: previous carryover + income − Stage 1 − Stage 2 − spent.
-          Card payments count as spent before card transaction history begins.
+          Carryover is cumulative: previous carryover + income − Stage 1 − Stage 2 − spent. Card
+          payments count as spent before card transaction history begins.
         </span>
         <span>⌘5 current cycle</span>
       </div>

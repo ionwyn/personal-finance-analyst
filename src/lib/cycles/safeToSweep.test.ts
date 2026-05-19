@@ -8,7 +8,7 @@ describe("computeSafeToSweep", () => {
       chequingBalance: 3000,
       pendingExpenses: 200,
       unsettledAccruals: 800,
-      sweepBuffer: 100
+      sweepBuffer: 100,
     });
     expect(result.amount.toNumber()).toBe(1900);
     expect(result.overCommitted).toBe(false);
@@ -17,7 +17,7 @@ describe("computeSafeToSweep", () => {
   it("clamps to zero when overcommitted and flags it", () => {
     const result = computeSafeToSweep({
       chequingBalance: 500,
-      pendingExpenses: 700
+      pendingExpenses: 700,
     });
     expect(result.amount.toNumber()).toBe(0);
     expect(result.overCommitted).toBe(true);
@@ -28,7 +28,7 @@ describe("computeSafeToSweep", () => {
     const result = computeSafeToSweep({
       chequingBalance: 3000,
       creditCardBalance: 1500,
-      sweepBuffer: 100
+      sweepBuffer: 100,
     });
     expect(result.amount.toNumber()).toBe(1400);
   });
@@ -36,7 +36,7 @@ describe("computeSafeToSweep", () => {
   it("excludes CC balance when caller leaves it unset", () => {
     const result = computeSafeToSweep({
       chequingBalance: 3000,
-      sweepBuffer: 100
+      sweepBuffer: 100,
     });
     expect(result.amount.toNumber()).toBe(2900);
   });
@@ -45,7 +45,7 @@ describe("computeSafeToSweep", () => {
     const result = computeSafeToSweep({
       chequingBalance: 1000,
       sweepBuffer: 100,
-      carryover: 250
+      carryover: 250,
     });
     expect(result.amount.toNumber()).toBe(1150);
   });
@@ -54,7 +54,7 @@ describe("computeSafeToSweep", () => {
     const result = computeSafeToSweep({
       chequingBalance: 1000,
       sweepBuffer: 100,
-      carryover: -250
+      carryover: -250,
     });
     expect(result.amount.toNumber()).toBe(650);
   });

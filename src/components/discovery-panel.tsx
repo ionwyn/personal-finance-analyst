@@ -28,8 +28,8 @@ export function DiscoveryPanel({ candidates }: { candidates: DiscoveryCandidate[
           name: c.suggestedName,
           amount: c.medianAmount,
           frequency: c.frequency,
-          merchantPattern: c.key
-        })
+          merchantPattern: c.key,
+        }),
       });
       if (!res.ok) throw new Error((await res.json()).error ?? "Failed to confirm");
       startTransition(() => router.refresh());
@@ -52,8 +52,8 @@ export function DiscoveryPanel({ candidates }: { candidates: DiscoveryCandidate[
           name: c.suggestedName,
           amount: c.medianAmount,
           frequency: c.frequency,
-          merchantPattern: c.key
-        })
+          merchantPattern: c.key,
+        }),
       });
       if (!res.ok) throw new Error((await res.json()).error ?? "Failed to dismiss");
       startTransition(() => router.refresh());
@@ -67,18 +67,11 @@ export function DiscoveryPanel({ candidates }: { candidates: DiscoveryCandidate[
   return (
     <div className="panel" style={{ borderColor: "var(--accent-dim)" }}>
       <div className="panel-head">
-        <div
-          className="panel-title"
-          style={{ display: "flex", alignItems: "center", gap: 6 }}
-        >
+        <div className="panel-title" style={{ display: "flex", alignItems: "center", gap: 6 }}>
           <Sparkles size={13} style={{ color: "var(--accent)" }} />
           Discovered recurring expenses
         </div>
-        <button
-          type="button"
-          className="btn btn-sm btn-ghost"
-          onClick={() => setOpen((o) => !o)}
-        >
+        <button type="button" className="btn btn-sm btn-ghost" onClick={() => setOpen((o) => !o)}>
           {open ? "Hide" : `Review ${candidates.length}`}
         </button>
       </div>
@@ -106,9 +99,7 @@ export function DiscoveryPanel({ candidates }: { candidates: DiscoveryCandidate[
                     <td>{c.suggestedName}</td>
                     <td style={{ color: "var(--text-3)", fontSize: 11 }}>
                       {c.frequency}{" "}
-                      <span style={{ color: "var(--text-4)" }}>
-                        · ~{c.medianIntervalDays}d
-                      </span>
+                      <span style={{ color: "var(--text-4)" }}>· ~{c.medianIntervalDays}d</span>
                     </td>
                     <td className="num mono">{formatMoney(c.medianAmount)}</td>
                     <td className="num mono">{formatMoney(c.accrualPerCycle)}</td>

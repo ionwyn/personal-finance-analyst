@@ -1,9 +1,4 @@
-import {
-  Prisma,
-  SnapTradeConnectionStatus,
-  SyncRunStatus,
-  SyncSource
-} from "@prisma/client";
+import { Prisma, SnapTradeConnectionStatus, SyncRunStatus, SyncSource } from "@prisma/client";
 import type { Account, Balance, BrokerageAuthorization, Position } from "snaptrade-typescript-sdk";
 
 import { prisma } from "@/lib/prisma";
@@ -14,7 +9,7 @@ import {
   normalizeAccount,
   normalizeBalance,
   normalizeConnection,
-  normalizePosition
+  normalizePosition,
 } from "@/lib/snaptrade/normalize";
 import { getSnapTradeClient, getSnapTradeCredentials } from "@/lib/snaptrade/client";
 
@@ -44,7 +39,7 @@ async function ensureConnectionRecord(input: {
       brokerageName: normalized.brokerageName,
       brokerageSlug: normalized.brokerageSlug,
       disabled: normalized.disabled,
-      disabledAt: normalized.disabledAt
+      disabledAt: normalized.disabledAt,
     },
     create: {
       tenantId: input.tenantId,
@@ -57,8 +52,8 @@ async function ensureConnectionRecord(input: {
       disabledAt: normalized.disabledAt,
       status: normalized.disabled
         ? SnapTradeConnectionStatus.DISABLED
-        : SnapTradeConnectionStatus.IDLE
-    }
+        : SnapTradeConnectionStatus.IDLE,
+    },
   });
 }
 
@@ -71,9 +66,8 @@ async function recoverStuckSnapTradeSyncRuns() {
       status: SyncRunStatus.ERROR,
       completedAt: new Date(),
       errorCode: "STUCK_SYNC_RECOVERY",
-      errorMessage:
-        "SnapTrade sync run was stuck in RUNNING state and was reset by the watchdog."
-    }
+      errorMessage: "SnapTrade sync run was stuck in RUNNING state and was reset by the watchdog.",
+    },
   });
 
   await prisma.snapTradeConnection.updateMany({
@@ -82,16 +76,12 @@ async function recoverStuckSnapTradeSyncRuns() {
       status: SnapTradeConnectionStatus.ERROR,
       errorCode: "STUCK_SYNC_RECOVERY",
       errorMessage:
-        "SnapTrade connection was stuck in SYNCING state and was reset by the watchdog."
-    }
+        "SnapTrade connection was stuck in SYNCING state and was reset by the watchdog.",
+    },
   });
 }
 
-async function upsertAccount(input: {
-  tenantId: string;
-  connectionId: string;
-  account: Account;
-}) {
+async function upsertAccount(input: { tenantId: string; connectionId: string; account: Account }) {
   const normalized = normalizeAccount(input.account);
   return prisma.snapTradeAccount.upsert({
     where: { snapTradeAccountId: normalized.snapTradeAccountId },
@@ -109,7 +99,7 @@ async function upsertAccount(input: {
       status: normalized.status,
       isPaper: normalized.isPaper,
       lastHoldingsSyncAt: normalized.lastHoldingsSyncAt,
-      holdingsInitialSyncComplete: normalized.holdingsInitialSyncComplete
+      holdingsInitialSyncComplete: normalized.holdingsInitialSyncComplete,
     },
     create: {
       tenantId: input.tenantId,
@@ -126,16 +116,12 @@ async function upsertAccount(input: {
       status: normalized.status,
       isPaper: normalized.isPaper,
       lastHoldingsSyncAt: normalized.lastHoldingsSyncAt,
-      holdingsInitialSyncComplete: normalized.holdingsInitialSyncComplete
-    }
+      holdingsInitialSyncComplete: normalized.holdingsInitialSyncComplete,
+    },
   });
 }
 
-async function syncBalances(input: {
-  tenantId: string;
-  accountId: string;
-  balances: Balance[];
-}) {
+async function syncBalances(input: { tenantId: string; accountId: string; balances: Balance[] }) {
   const seen = new Set<string>();
   let balancesCount = 0;
 
@@ -148,14 +134,14 @@ async function syncBalances(input: {
       where: {
         accountId_currency: {
           accountId: input.accountId,
-          currency: normalized.currency
-        }
+          currency: normalized.currency,
+        },
       },
       update: {
         tenantId: input.tenantId,
         cash: new Prisma.Decimal(normalized.cash),
         buyingPower: decimal(normalized.buyingPower),
-        cashCad: new Prisma.Decimal(normalized.cash * fxRate)
+        cashCad: new Prisma.Decimal(normalized.cash * fxRate),
       },
       create: {
         tenantId: input.tenantId,
@@ -163,8 +149,8 @@ async function syncBalances(input: {
         currency: normalized.currency,
         cash: new Prisma.Decimal(normalized.cash),
         buyingPower: decimal(normalized.buyingPower),
-        cashCad: new Prisma.Decimal(normalized.cash * fxRate)
-      }
+        cashCad: new Prisma.Decimal(normalized.cash * fxRate),
+      },
     });
 
     seen.add(normalized.currency);
@@ -174,8 +160,8 @@ async function syncBalances(input: {
   await prisma.snapTradeCashBalance.deleteMany({
     where: {
       accountId: input.accountId,
-      currency: { notIn: [...seen] }
-    }
+      currency: { notIn: [...seen] },
+    },
   });
 
   return balancesCount;
@@ -208,8 +194,8 @@ async function syncPositions(input: {
         accountId_symbol_currency: {
           accountId: input.accountId,
           symbol: normalized.symbol,
-          currency: normalized.currency
-        }
+          currency: normalized.currency,
+        },
       },
       update: {
         tenantId: input.tenantId,
@@ -228,7 +214,7 @@ async function syncPositions(input: {
         pnlCad: decimal(pnlCad),
         pnlPct: decimal(normalized.pnlPct),
         cashEquivalent: normalized.cashEquivalent,
-        logoId: logoId ?? undefined
+        logoId: logoId ?? undefined,
       },
       create: {
         tenantId: input.tenantId,
@@ -250,8 +236,8 @@ async function syncPositions(input: {
         pnlCad: decimal(pnlCad),
         pnlPct: decimal(normalized.pnlPct),
         cashEquivalent: normalized.cashEquivalent,
-        logoId
-      }
+        logoId,
+      },
     });
 
     seenIds.push(saved.id);
@@ -261,34 +247,43 @@ async function syncPositions(input: {
   await prisma.snapTradePosition.deleteMany({
     where: {
       accountId: input.accountId,
-      id: { notIn: seenIds }
-    }
+      id: { notIn: seenIds },
+    },
   });
 
   return { positionsCount, omittedPositionsCount };
 }
 
-async function syncConnection(input: {
-  tenantId: string;
-  authorization: BrokerageAuthorization;
-}) {
+async function syncConnection(input: { tenantId: string; authorization: BrokerageAuthorization }) {
   const client = getSnapTradeClient();
   const { userId, userSecret } = getSnapTradeCredentials();
   const connection = await ensureConnectionRecord({
     tenantId: input.tenantId,
-    authorization: input.authorization
+    authorization: input.authorization,
   });
 
   if (!connection) {
-    return { accountsCount: 0, balancesCount: 0, positionsCount: 0, omittedPositionsCount: 0, skipped: false };
+    return {
+      accountsCount: 0,
+      balancesCount: 0,
+      positionsCount: 0,
+      omittedPositionsCount: 0,
+      skipped: false,
+    };
   }
 
   if (connection.disabled) {
     await prisma.snapTradeConnection.update({
       where: { id: connection.id },
-      data: { status: SnapTradeConnectionStatus.DISABLED }
+      data: { status: SnapTradeConnectionStatus.DISABLED },
     });
-    return { accountsCount: 0, balancesCount: 0, positionsCount: 0, omittedPositionsCount: 0, skipped: false };
+    return {
+      accountsCount: 0,
+      balancesCount: 0,
+      positionsCount: 0,
+      omittedPositionsCount: 0,
+      skipped: false,
+    };
   }
 
   const stale = new Date(Date.now() - ACTIVE_LOCK_MS);
@@ -297,25 +292,31 @@ async function syncConnection(input: {
       id: connection.id,
       OR: [
         { status: { in: [SnapTradeConnectionStatus.IDLE, SnapTradeConnectionStatus.ERROR] } },
-        { status: SnapTradeConnectionStatus.SYNCING, updatedAt: { lt: stale } }
-      ]
+        { status: SnapTradeConnectionStatus.SYNCING, updatedAt: { lt: stale } },
+      ],
     },
     data: {
       status: SnapTradeConnectionStatus.SYNCING,
       errorCode: null,
-      errorMessage: null
-    }
+      errorMessage: null,
+    },
   });
 
   if (lockResult.count === 0) {
-    return { accountsCount: 0, balancesCount: 0, positionsCount: 0, omittedPositionsCount: 0, skipped: true };
+    return {
+      accountsCount: 0,
+      balancesCount: 0,
+      positionsCount: 0,
+      omittedPositionsCount: 0,
+      skipped: true,
+    };
   }
 
   try {
     const accountsResponse = await client.connections.listBrokerageAuthorizationAccounts({
       authorizationId: connection.snapTradeAuthorizationId,
       userId,
-      userSecret
+      userSecret,
     });
 
     let accountsCount = 0;
@@ -333,7 +334,7 @@ async function syncConnection(input: {
       const savedAccount = await upsertAccount({
         tenantId: input.tenantId,
         connectionId: connection.id,
-        account
+        account,
       });
       seenAccountIds.push(savedAccount.id);
       accountsCount += 1;
@@ -341,23 +342,23 @@ async function syncConnection(input: {
       const balancesResponse = await client.accountInformation.getUserAccountBalance({
         accountId: account.id,
         userId,
-        userSecret
+        userSecret,
       });
       balancesCount += await syncBalances({
         tenantId: input.tenantId,
         accountId: savedAccount.id,
-        balances: balancesResponse.data
+        balances: balancesResponse.data,
       });
 
       const positionsResponse = await client.accountInformation.getUserAccountPositions({
         accountId: account.id,
         userId,
-        userSecret
+        userSecret,
       });
       const positionCounts = await syncPositions({
         tenantId: input.tenantId,
         accountId: savedAccount.id,
-        positions: positionsResponse.data
+        positions: positionsResponse.data,
       });
       positionsCount += positionCounts.positionsCount;
       omittedPositionsCount += positionCounts.omittedPositionsCount;
@@ -366,8 +367,8 @@ async function syncConnection(input: {
     await prisma.snapTradeAccount.deleteMany({
       where: {
         connectionId: connection.id,
-        id: { notIn: seenAccountIds }
-      }
+        id: { notIn: seenAccountIds },
+      },
     });
 
     await prisma.snapTradeConnection.update({
@@ -376,8 +377,8 @@ async function syncConnection(input: {
         status: SnapTradeConnectionStatus.IDLE,
         lastSyncAt: new Date(),
         errorCode: null,
-        errorMessage: null
-      }
+        errorMessage: null,
+      },
     });
 
     return { accountsCount, balancesCount, positionsCount, omittedPositionsCount, skipped: false };
@@ -387,8 +388,8 @@ async function syncConnection(input: {
       data: {
         status: SnapTradeConnectionStatus.ERROR,
         errorCode: "SNAPTRADE_SYNC_ERROR",
-        errorMessage: errorMessage(error)
-      }
+        errorMessage: errorMessage(error),
+      },
     });
     throw error;
   }
@@ -404,8 +405,8 @@ export async function syncSnapTradeTenant(
     where: {
       tenantId,
       status: SyncRunStatus.RUNNING,
-      startedAt: { gte: new Date(Date.now() - ACTIVE_LOCK_MS) }
-    }
+      startedAt: { gte: new Date(Date.now() - ACTIVE_LOCK_MS) },
+    },
   });
 
   if (activeRun) {
@@ -415,8 +416,8 @@ export async function syncSnapTradeTenant(
         source,
         status: SyncRunStatus.SKIPPED,
         completedAt: new Date(),
-        errorMessage: "Skipped: another SnapTrade sync is in progress."
-      }
+        errorMessage: "Skipped: another SnapTrade sync is in progress.",
+      },
     });
   }
 
@@ -424,8 +425,8 @@ export async function syncSnapTradeTenant(
     data: {
       tenantId,
       source,
-      status: SyncRunStatus.RUNNING
-    }
+      status: SyncRunStatus.RUNNING,
+    },
   });
 
   let connectionsCount = 0;
@@ -439,7 +440,7 @@ export async function syncSnapTradeTenant(
     const { userId, userSecret } = getSnapTradeCredentials();
     const authorizations = await getSnapTradeClient().connections.listBrokerageAuthorizations({
       userId,
-      userSecret
+      userSecret,
     });
 
     const authorizationIds = authorizations.data
@@ -459,12 +460,12 @@ export async function syncSnapTradeTenant(
     await prisma.snapTradeConnection.updateMany({
       where: {
         tenantId,
-        snapTradeAuthorizationId: { notIn: authorizationIds }
+        snapTradeAuthorizationId: { notIn: authorizationIds },
       },
       data: {
         disabled: true,
-        status: SnapTradeConnectionStatus.DISABLED
-      }
+        status: SnapTradeConnectionStatus.DISABLED,
+      },
     });
 
     return prisma.snapTradeSyncRun.update({
@@ -479,8 +480,8 @@ export async function syncSnapTradeTenant(
         omittedPositionsCount,
         errorMessage: skippedConnections
           ? `${skippedConnections} connection(s) skipped: another sync was in progress.`
-          : null
-      }
+          : null,
+      },
     });
   } catch (error) {
     return prisma.snapTradeSyncRun.update({
@@ -494,8 +495,8 @@ export async function syncSnapTradeTenant(
         positionsCount,
         omittedPositionsCount,
         errorCode: "SNAPTRADE_SYNC_ERROR",
-        errorMessage: errorMessage(error)
-      }
+        errorMessage: errorMessage(error),
+      },
     });
   }
 }
@@ -506,7 +507,7 @@ export async function syncAllSnapTradeTenants(source: SyncSource = SyncSource.SC
   const tenants = await prisma.tenant.findMany({
     where: { snapTradeConnections: { some: {} } },
     select: { id: true },
-    orderBy: { createdAt: "asc" }
+    orderBy: { createdAt: "asc" },
   });
 
   const results = [];
@@ -523,8 +524,8 @@ export async function refreshSnapTradeConnection(input: {
   const connection = await prisma.snapTradeConnection.findFirst({
     where: {
       id: input.connectionId,
-      tenantId: input.tenantId
-    }
+      tenantId: input.tenantId,
+    },
   });
   if (!connection) throw new Error("SnapTrade connection not found.");
 
@@ -532,26 +533,23 @@ export async function refreshSnapTradeConnection(input: {
   const response = await getSnapTradeClient().connections.refreshBrokerageAuthorization({
     authorizationId: connection.snapTradeAuthorizationId,
     userId,
-    userSecret
+    userSecret,
   });
 
   await prisma.snapTradeConnection.update({
     where: { id: connection.id },
-    data: { lastManualRefreshAt: new Date() }
+    data: { lastManualRefreshAt: new Date() },
   });
 
   return response.data;
 }
 
-export async function removeSnapTradeConnection(input: {
-  tenantId: string;
-  connectionId: string;
-}) {
+export async function removeSnapTradeConnection(input: { tenantId: string; connectionId: string }) {
   const connection = await prisma.snapTradeConnection.findFirst({
     where: {
       id: input.connectionId,
-      tenantId: input.tenantId
-    }
+      tenantId: input.tenantId,
+    },
   });
   if (!connection) throw new Error("SnapTrade connection not found.");
 
@@ -559,7 +557,7 @@ export async function removeSnapTradeConnection(input: {
   await getSnapTradeClient().connections.removeBrokerageAuthorization({
     authorizationId: connection.snapTradeAuthorizationId,
     userId,
-    userSecret
+    userSecret,
   });
 
   await prisma.snapTradeConnection.delete({ where: { id: connection.id } });

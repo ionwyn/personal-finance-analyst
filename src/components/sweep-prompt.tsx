@@ -8,7 +8,7 @@ import { formatMoney } from "@/components/big-number";
 
 export function SweepPrompt({
   suggestedAmount,
-  alreadySwept
+  alreadySwept,
 }: {
   suggestedAmount: number;
   alreadySwept: number;
@@ -26,8 +26,8 @@ export function SweepPrompt({
       <section className="panel" style={{ marginBottom: 16, borderColor: "var(--pos)" }}>
         <div className="panel-body" style={{ fontSize: 12 }}>
           <strong style={{ color: "var(--pos)" }}>Sweep recorded.</strong>{" "}
-          {formatMoney(alreadySwept)} moved this cycle. The next Plaid sync will reconcile
-          it with the real debit.
+          {formatMoney(alreadySwept)} moved this cycle. The next Plaid sync will reconcile it with
+          the real debit.
         </div>
       </section>
     );
@@ -40,7 +40,7 @@ export function SweepPrompt({
       const res = await fetch("/api/cycles/sweep", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ amount })
+        body: JSON.stringify({ amount }),
       });
       if (!res.ok) throw new Error((await res.json()).error ?? "Failed to record sweep");
       startTransition(() => router.refresh());
@@ -58,7 +58,7 @@ export function SweepPrompt({
       const res = await fetch("/api/cycles/sweep", {
         method: "PATCH",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({})
+        body: JSON.stringify({}),
       });
       if (!res.ok) throw new Error((await res.json()).error ?? "Failed to skip");
       setOpen(false);
@@ -76,7 +76,7 @@ export function SweepPrompt({
       style={{
         marginBottom: 16,
         borderColor: "var(--accent)",
-        background: "var(--accent-dim)"
+        background: "var(--accent-dim)",
       }}
     >
       <div className="panel-head">
@@ -99,7 +99,7 @@ export function SweepPrompt({
               fontSize: 11,
               color: "var(--text-3)",
               textTransform: "uppercase",
-              letterSpacing: "0.06em"
+              letterSpacing: "0.06em",
             }}
           >
             Amount
@@ -119,7 +119,7 @@ export function SweepPrompt({
               padding: "4px 8px",
               color: "var(--text)",
               width: 140,
-              fontVariantNumeric: "tabular-nums"
+              fontVariantNumeric: "tabular-nums",
             }}
           />
         </div>

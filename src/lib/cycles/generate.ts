@@ -59,16 +59,12 @@ export async function generatePayCycles(
   const firstStart = cycleStartForDate(anchorStart, rangeStart);
   const created: PayCycle[] = [];
 
-  for (
-    let start = firstStart;
-    start <= rangeEnd;
-    start = addDays(start, CYCLE_LENGTH_DAYS)
-  ) {
+  for (let start = firstStart; start <= rangeEnd; start = addDays(start, CYCLE_LENGTH_DAYS)) {
     const end = cycleEndForStart(start);
     const upserted = await client.payCycle.upsert({
       where: { tenantId_startDate: { tenantId, startDate: start } },
       update: { endDate: end },
-      create: { tenantId, startDate: start, endDate: end }
+      create: { tenantId, startDate: start, endDate: end },
     });
     created.push(upserted);
   }
@@ -94,22 +90,22 @@ export async function ensureCycleForDate(
     where: {
       tenantId,
       startDate: { lte: target },
-      endDate: { gte: target }
-    }
+      endDate: { gte: target },
+    },
   });
   if (existing) return existing;
 
-  const settings = options.anchor === undefined
-    ? await client.userSettings.findUnique({ where: { tenantId } })
-    : null;
-  const anchor =
-    options.anchor ?? settings?.lastPaycheckDate ?? target;
+  const settings =
+    options.anchor === undefined
+      ? await client.userSettings.findUnique({ where: { tenantId } })
+      : null;
+  const anchor = options.anchor ?? settings?.lastPaycheckDate ?? target;
 
   const start = cycleStartForDate(anchor, target);
   const end = cycleEndForStart(start);
   return client.payCycle.upsert({
     where: { tenantId_startDate: { tenantId, startDate: start } },
     update: { endDate: end },
-    create: { tenantId, startDate: start, endDate: end }
+    create: { tenantId, startDate: start, endDate: end },
   });
 }

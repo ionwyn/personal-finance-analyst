@@ -44,7 +44,12 @@ export function ItemActions({ itemId, status }: { itemId: string; status: string
       >
         Refresh balance
       </button>
-      <button className="btn btn-sm btn-danger" type="button" disabled title="Unlink not implemented">
+      <button
+        className="btn btn-sm btn-danger"
+        type="button"
+        disabled
+        title="Unlink not implemented"
+      >
         <Unlink size={11} />
         Unlink
       </button>

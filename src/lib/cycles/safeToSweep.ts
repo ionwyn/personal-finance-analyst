@@ -59,7 +59,7 @@ export function computeSafeToSweep(input: SafeToSweepInput): SafeToSweepResult {
       unsettledAccruals,
       creditCardBalance,
       sweepBuffer,
-      carryover
-    }
+      carryover,
+    },
   };
 }

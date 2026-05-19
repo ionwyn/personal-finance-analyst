@@ -8,9 +8,7 @@ type FxRecord = {
 
 function decimalLike(value: unknown) {
   const number = Number(
-    typeof value === "object" && value && "toString" in value
-      ? value.toString()
-      : value
+    typeof value === "object" && value && "toString" in value ? value.toString() : value
   );
   return { toNumber: () => number };
 }
@@ -27,39 +25,43 @@ describe("SnapTrade FX cache", () => {
     vi.doMock("@/lib/prisma", () => ({
       prisma: {
         snapTradeFxRate: {
-          findUnique: vi.fn(async ({ where }: { where: { pair: string } }) => records.get(where.pair) ?? null),
-          upsert: vi.fn(async ({
-            where,
-            create,
-            update
-          }: {
-            where: { pair: string };
-            create?: { rate?: unknown; fetchedAt?: Date };
-            update?: { rate?: unknown; fetchedAt?: Date };
-          }) => {
-            const rate = decimalLike(create?.rate ?? update?.rate);
-            const record = {
-              pair: where.pair,
-              rate,
-              fetchedAt: create?.fetchedAt ?? update?.fetchedAt ?? new Date()
-            };
-            records.set(where.pair, record);
-            return record;
-          })
-        }
-      }
+          findUnique: vi.fn(
+            async ({ where }: { where: { pair: string } }) => records.get(where.pair) ?? null
+          ),
+          upsert: vi.fn(
+            async ({
+              where,
+              create,
+              update,
+            }: {
+              where: { pair: string };
+              create?: { rate?: unknown; fetchedAt?: Date };
+              update?: { rate?: unknown; fetchedAt?: Date };
+            }) => {
+              const rate = decimalLike(create?.rate ?? update?.rate);
+              const record = {
+                pair: where.pair,
+                rate,
+                fetchedAt: create?.fetchedAt ?? update?.fetchedAt ?? new Date(),
+              };
+              records.set(where.pair, record);
+              return record;
+            }
+          ),
+        },
+      },
     }));
 
     vi.doMock("@/lib/snaptrade/client", () => ({
       getSnapTradeClient: () => ({
-        referenceData: { getCurrencyExchangeRatePair }
-      })
+        referenceData: { getCurrencyExchangeRatePair },
+      }),
     }));
   });
 
   it("fetches and caches direct currency pairs", async () => {
     getCurrencyExchangeRatePair.mockResolvedValueOnce({
-      data: { exchange_rate: 1.37 }
+      data: { exchange_rate: 1.37 },
     });
     const { getFxRate } = await import("@/lib/snaptrade/fx");
 
@@ -77,10 +79,10 @@ describe("SnapTrade FX cache", () => {
 
     await expect(getFxRate("USD", "CAD")).resolves.toBeCloseTo(1.333333, 5);
     expect(getCurrencyExchangeRatePair).toHaveBeenNthCalledWith(1, {
-      currencyPair: "USD-CAD"
+      currencyPair: "USD-CAD",
     });
     expect(getCurrencyExchangeRatePair).toHaveBeenNthCalledWith(2, {
-      currencyPair: "CAD-USD"
+      currencyPair: "CAD-USD",
     });
   });
 

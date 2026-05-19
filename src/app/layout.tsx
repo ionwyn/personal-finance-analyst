@@ -6,17 +6,17 @@ import "@/app/globals.css";
 
 const geistSans = Geist({
   subsets: ["latin"],
-  variable: "--font-geist-sans"
+  variable: "--font-geist-sans",
 });
 
 const geistMono = Geist_Mono({
   subsets: ["latin"],
-  variable: "--font-geist-mono"
+  variable: "--font-geist-mono",
 });
 
 export const metadata: Metadata = {
   title: "WYN Financial Ltd. — Read-only finance terminal",
-  description: "See every bank, card, and brokerage account in one read-only dashboard."
+  description: "See every bank, card, and brokerage account in one read-only dashboard.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

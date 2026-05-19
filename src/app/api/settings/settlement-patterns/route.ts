@@ -8,7 +8,7 @@ import { reclassifyTenant } from "@/lib/cycles/reclassify";
 const bodySchema = z.object({
   label: z.string().min(1).max(200),
   matchPattern: z.string().min(1).max(200),
-  active: z.boolean().optional()
+  active: z.boolean().optional(),
 });
 
 export async function POST(request: Request) {
@@ -30,8 +30,8 @@ export async function POST(request: Request) {
       tenantId: auth.tenant.id,
       label: body.label.trim(),
       matchPattern: body.matchPattern.trim().toUpperCase(),
-      active: body.active ?? true
-    }
+      active: body.active ?? true,
+    },
   });
 
   const reclassified = await reclassifyTenant(auth.tenant.id);

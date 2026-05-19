@@ -29,7 +29,7 @@ export async function upsertPlaidAccounts(input: {
         availableBalance: normalized.availableBalance,
         currentBalance: normalized.currentBalance,
         limit: normalized.limit,
-        lastBalanceAt: input.captureSnapshot ? now : undefined
+        lastBalanceAt: input.captureSnapshot ? now : undefined,
       },
       create: {
         tenantId: input.tenantId,
@@ -45,8 +45,8 @@ export async function upsertPlaidAccounts(input: {
         availableBalance: normalized.availableBalance,
         currentBalance: normalized.currentBalance,
         limit: normalized.limit,
-        lastBalanceAt: input.captureSnapshot ? now : null
-      }
+        lastBalanceAt: input.captureSnapshot ? now : null,
+      },
     });
 
     if (input.captureSnapshot) {
@@ -60,8 +60,8 @@ export async function upsertPlaidAccounts(input: {
           isoCurrencyCode: normalized.isoCurrencyCode,
           unofficialCurrencyCode: normalized.unofficialCurrencyCode,
           capturedAt: now,
-          raw: account as never
-        }
+          raw: account as never,
+        },
       });
     }
 
@@ -73,7 +73,7 @@ export async function upsertPlaidAccounts(input: {
 
 export async function refreshAccountsForItem(itemId: string) {
   const item = await prisma.plaidItem.findUniqueOrThrow({
-    where: { id: itemId }
+    where: { id: itemId },
   });
   const accessToken = decryptToken(item.accessTokenEncrypted);
   const response = await getPlaidClient().accountsGet({ access_token: accessToken });
@@ -81,13 +81,13 @@ export async function refreshAccountsForItem(itemId: string) {
   return upsertPlaidAccounts({
     tenantId: item.tenantId,
     itemId: item.id,
-    accounts: response.data.accounts
+    accounts: response.data.accounts,
   });
 }
 
 export async function refreshBalancesForItem(itemId: string) {
   const item = await prisma.plaidItem.findUniqueOrThrow({
-    where: { id: itemId }
+    where: { id: itemId },
   });
   const accessToken = decryptToken(item.accessTokenEncrypted);
   const response = await getPlaidClient().accountsBalanceGet({ access_token: accessToken });
@@ -96,14 +96,14 @@ export async function refreshBalancesForItem(itemId: string) {
     tenantId: item.tenantId,
     itemId: item.id,
     accounts: response.data.accounts,
-    captureSnapshot: true
+    captureSnapshot: true,
   });
 
   await prisma.plaidItem.update({
     where: { id: item.id },
     data: {
-      lastBalanceRefreshAt: new Date()
-    }
+      lastBalanceRefreshAt: new Date(),
+    },
   });
 
   return { accountsCount };

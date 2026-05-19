@@ -6,7 +6,7 @@ export const FALLBACK_COLORS = [
   "var(--cat-5)",
   "var(--cat-6)",
   "var(--cat-7)",
-  "var(--cat-8)"
+  "var(--cat-8)",
 ];
 
 export function hashColor(str: string): string {

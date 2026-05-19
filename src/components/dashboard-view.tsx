@@ -13,13 +13,7 @@ import type { getDashboardData } from "@/lib/analytics";
 
 type DashboardData = Awaited<ReturnType<typeof getDashboardData>>;
 
-export function DashboardView({
-  data,
-  mode
-}: {
-  data: DashboardData;
-  mode: "demo" | "private";
-}) {
+export function DashboardView({ data, mode }: { data: DashboardData; mode: "demo" | "private" }) {
   const isDemo = mode === "demo";
   const totals = data.totals;
   const insights = data.insights;
@@ -33,7 +27,7 @@ export function DashboardView({
     isDemo ? "READ-ONLY · PLAID SANDBOX" : "PRIVATE · LOCAL-FIRST",
     data.plaidItems.length ? `${data.plaidItems.length} INSTITUTIONS` : null,
     totals.accountCount ? `${totals.accountCount} ACCOUNTS` : null,
-    lastSyncAt ? `LAST SYNC ${formatRelative(lastSyncAt)}` : null
+    lastSyncAt ? `LAST SYNC ${formatRelative(lastSyncAt)}` : null,
   ]
     .filter(Boolean)
     .join(" · ");
@@ -41,7 +35,11 @@ export function DashboardView({
   if (!data.hasTenant || totals.accountCount === 0) {
     return (
       <>
-        <PageHeader title="Overview" subtitle={subLine} actions={!isDemo ? <PlaidLinkButton /> : null} />
+        <PageHeader
+          title="Overview"
+          subtitle={subLine}
+          actions={!isDemo ? <PlaidLinkButton /> : null}
+        />
         <section className="empty-state">
           <h2>{isDemo ? "Demo data has not been seeded yet" : "No accounts linked yet"}</h2>
           <p>
@@ -263,7 +261,7 @@ export function DashboardView({
                           ? "var(--pos)"
                           : insights.savingsRate != null && insights.savingsRate < 0
                             ? "var(--neg)"
-                            : undefined
+                            : undefined,
                     }}
                   >
                     {insights.savingsRate != null ? `${insights.savingsRate.toFixed(1)}%` : "—"}
@@ -301,7 +299,7 @@ export function DashboardView({
                       gap: 12,
                       padding: "10px 14px",
                       borderBottom: "1px solid var(--border-subtle)",
-                      fontSize: 12
+                      fontSize: 12,
                     }}
                   >
                     <div style={{ minWidth: 0 }}>
@@ -313,7 +311,7 @@ export function DashboardView({
                           fontFamily: "var(--font-mono)",
                           fontSize: 11,
                           color: "var(--text-4)",
-                          marginTop: 2
+                          marginTop: 2,
                         }}
                       >
                         {item.lastSyncAt ? formatRelative(item.lastSyncAt) : "Never synced"}
@@ -330,7 +328,9 @@ export function DashboardView({
 
       <div className="foot-note">
         <span>
-          {isDemo ? "Demo viewer · Plaid sandbox" : `${totals.transactionCount} transactions in last 6 months`}
+          {isDemo
+            ? "Demo viewer · Plaid sandbox"
+            : `${totals.transactionCount} transactions in last 6 months`}
         </span>
         <span>↑↓ navigate · ⏎ open · ⌘K command</span>
       </div>
@@ -341,7 +341,7 @@ export function DashboardView({
 function PageHeader({
   title,
   subtitle,
-  actions
+  actions,
 }: {
   title: string;
   subtitle?: string;
@@ -367,7 +367,7 @@ function KpiCell({
   spark,
   sparkColor,
   deltaInvert = false,
-  subline
+  subline,
 }: {
   label: string;
   dot: string;
@@ -395,7 +395,9 @@ function KpiCell({
             {Math.abs(delta).toFixed(1)}%
           </span>
         ) : (
-          <span className="delta" style={{ color: "var(--text-4)" }}>—</span>
+          <span className="delta" style={{ color: "var(--text-4)" }}>
+            —
+          </span>
         )}
         <span>{subline ?? `vs ${versus}`}</span>
       </div>
@@ -427,7 +429,7 @@ function EmptyChart({ text }: { text: string }) {
         placeItems: "center",
         color: "var(--text-4)",
         fontFamily: "var(--font-mono)",
-        fontSize: 11
+        fontSize: 11,
       }}
     >
       {text}

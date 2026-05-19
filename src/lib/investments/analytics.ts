@@ -1,8 +1,5 @@
 import { loadInvestments } from "./loader";
-import type {
-  Allocation,
-  InvestmentDashboardData
-} from "./types";
+import type { Allocation, InvestmentDashboardData } from "./types";
 
 const TYPE_COLORS: Record<string, string> = {
   ETF: "var(--invest)",
@@ -12,12 +9,12 @@ const TYPE_COLORS: Record<string, string> = {
   Bond: "var(--cat-6)",
   CEF: "var(--cat-7)",
   Crypto: "var(--cat-3)",
-  Other: "var(--cat-8)"
+  Other: "var(--cat-8)",
 };
 
 const CCY_COLORS: Record<string, string> = {
   CAD: "var(--cat-1)",
-  USD: "var(--cat-2)"
+  USD: "var(--cat-2)",
 };
 
 const FALLBACK_COLORS = [
@@ -28,7 +25,7 @@ const FALLBACK_COLORS = [
   "var(--cat-5)",
   "var(--cat-6)",
   "var(--cat-7)",
-  "var(--cat-8)"
+  "var(--cat-8)",
 ];
 
 function fallbackColor(name: string) {
@@ -37,7 +34,9 @@ function fallbackColor(name: string) {
   return FALLBACK_COLORS[Math.abs(h) % FALLBACK_COLORS.length];
 }
 
-export async function getInvestmentDashboardData(tenantId?: string | null): Promise<InvestmentDashboardData> {
+export async function getInvestmentDashboardData(
+  tenantId?: string | null
+): Promise<InvestmentDashboardData> {
   const {
     accounts,
     holdings,
@@ -45,7 +44,7 @@ export async function getInvestmentDashboardData(tenantId?: string | null): Prom
     fxUSDtoCAD,
     omittedPositionCount,
     connectionHealth,
-    lastRunErrorMessage
+    lastRunErrorMessage,
   } = await loadInvestments(tenantId);
 
   const cashCAD = cashBalances.reduce((s, c) => s + c.valueCAD, 0);
@@ -80,7 +79,7 @@ export async function getInvestmentDashboardData(tenantId?: string | null): Prom
     errorCode: connectionHealth.errorCode,
     errorMessage: connectionHealth.errorMessage ?? lastRunErrorMessage,
     connectionCount: connectionHealth.connectionCount,
-    failingConnectionCount: connectionHealth.failingConnectionCount
+    failingConnectionCount: connectionHealth.failingConnectionCount,
   };
 
   const totalAlloc = holdingsCAD || 1;
@@ -94,7 +93,7 @@ export async function getInvestmentDashboardData(tenantId?: string | null): Prom
       name,
       value,
       pct: (value / totalAlloc) * 100,
-      color: TYPE_COLORS[name] ?? fallbackColor(name)
+      color: TYPE_COLORS[name] ?? fallbackColor(name),
     }))
     .sort((a, b) => b.value - a.value);
 
@@ -107,7 +106,7 @@ export async function getInvestmentDashboardData(tenantId?: string | null): Prom
       name,
       value,
       pct: (value / totalAlloc) * 100,
-      color: CCY_COLORS[name] ?? fallbackColor(name)
+      color: CCY_COLORS[name] ?? fallbackColor(name),
     }))
     .sort((a, b) => b.value - a.value);
 
@@ -117,6 +116,6 @@ export async function getInvestmentDashboardData(tenantId?: string | null): Prom
     holdings,
     cashBalances,
     allocByType,
-    allocByCcy
+    allocByCcy,
   };
 }

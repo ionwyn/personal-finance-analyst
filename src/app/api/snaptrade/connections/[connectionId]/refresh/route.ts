@@ -13,7 +13,7 @@ export async function POST(
 
   const result = await refreshSnapTradeConnection({
     tenantId: auth.tenant.id,
-    connectionId: auth.connection.id
+    connectionId: auth.connection.id,
   });
 
   return NextResponse.json(result);

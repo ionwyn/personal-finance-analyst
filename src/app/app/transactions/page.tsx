@@ -31,7 +31,7 @@ export default async function TransactionsPage({ searchParams }: Props) {
     from: params.from,
     to: params.to,
     category: params.category,
-    account: params.account
+    account: params.account,
   });
 
   const income = transactions
@@ -55,7 +55,7 @@ export default async function TransactionsPage({ searchParams }: Props) {
   const subLine = [
     `${transactions.length} OF ${totalCount} ROWS`,
     transfersCount > 0 ? `${transfersCount} EXCLUDED` : null,
-    rangeLabel(params.from, params.to)
+    rangeLabel(params.from, params.to),
   ]
     .filter(Boolean)
     .join(" · ");
@@ -70,7 +70,7 @@ export default async function TransactionsPage({ searchParams }: Props) {
               name: session?.user?.name,
               email: session?.user?.email,
               image: session?.user?.image,
-              handle: session?.user?.email ?? undefined
+              handle: session?.user?.email ?? undefined,
             }
       }
     >
@@ -137,9 +137,7 @@ export default async function TransactionsPage({ searchParams }: Props) {
             <tbody>
               {transactions.map((t) => {
                 const excluded =
-                  t.bucket === "transfer" ||
-                  t.bucket === "settlement" ||
-                  t.bucket === "savings";
+                  t.bucket === "transfer" || t.bucket === "settlement" || t.bucket === "savings";
                 return (
                   <tr key={t.id} style={excluded ? { opacity: 0.6 } : undefined}>
                     <td className="t-date">{formatPlaidDate(t.authorizedDate)}</td>
@@ -153,7 +151,7 @@ export default async function TransactionsPage({ searchParams }: Props) {
                             fontFamily: "var(--font-mono)",
                             color: "var(--text-4)",
                             textTransform: "uppercase",
-                            letterSpacing: "0.06em"
+                            letterSpacing: "0.06em",
                           }}
                         >
                           Pending
@@ -167,7 +165,7 @@ export default async function TransactionsPage({ searchParams }: Props) {
                             fontFamily: "var(--font-mono)",
                             color: "var(--text-4)",
                             textTransform: "uppercase",
-                            letterSpacing: "0.06em"
+                            letterSpacing: "0.06em",
                           }}
                           title="Excluded from spending/income totals"
                         >
@@ -200,7 +198,7 @@ export default async function TransactionsPage({ searchParams }: Props) {
                       padding: "40px",
                       color: "var(--text-4)",
                       fontFamily: "var(--font-mono)",
-                      fontSize: 11
+                      fontSize: 11,
                     }}
                   >
                     NO MATCHING TRANSACTIONS

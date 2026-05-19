@@ -6,7 +6,7 @@ import type {
   ConnectionStatus,
   InvestmentAccount,
   InvestmentCashBalance,
-  InvestmentPosition
+  InvestmentPosition,
 } from "./types";
 
 const LOGO_PALETTE = [
@@ -26,7 +26,7 @@ const LOGO_PALETTE = [
   "#0668e1",
   "#cc0000",
   "#e21c2c",
-  "#000000"
+  "#000000",
 ];
 
 function hashColor(value: string): string {
@@ -48,12 +48,14 @@ function nullableNumber(value: { toNumber(): number } | number | null | undefine
 }
 
 function logoText(name: string | null | undefined) {
-  return (name ?? "ST")
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase() ?? "")
-    .join("") || "ST";
+  return (
+    (name ?? "ST")
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((part) => part[0]?.toUpperCase() ?? "")
+      .join("") || "ST"
+  );
 }
 
 export type ConnectionHealth = {
@@ -78,7 +80,7 @@ const STATUS_PRIORITY: Record<ConnectionStatus, number> = {
   ERROR: 4,
   DISABLED: 3,
   SYNCING: 2,
-  IDLE: 1
+  IDLE: 1,
 };
 
 function emptyHealth(): ConnectionHealth {
@@ -87,7 +89,7 @@ function emptyHealth(): ConnectionHealth {
     errorCode: null,
     errorMessage: null,
     connectionCount: 0,
-    failingConnectionCount: 0
+    failingConnectionCount: 0,
   };
 }
 
@@ -100,7 +102,7 @@ export async function loadInvestments(tenantId?: string | null): Promise<LoadedI
       fxUSDtoCAD: null,
       omittedPositionCount: 0,
       connectionHealth: emptyHealth(),
-      lastRunErrorMessage: null
+      lastRunErrorMessage: null,
     };
   }
 
@@ -113,19 +115,19 @@ export async function loadInvestments(tenantId?: string | null): Promise<LoadedI
         balances: true,
         positions: {
           orderBy: { marketValueCad: "desc" },
-          include: { logo: true }
-        }
-      }
+          include: { logo: true },
+        },
+      },
     }),
     prisma.snapTradeFxRate.findUnique({ where: { pair: "USD-CAD" } }),
     prisma.snapTradeSyncRun.findFirst({
       where: { tenantId },
-      orderBy: { startedAt: "desc" }
+      orderBy: { startedAt: "desc" },
     }),
     prisma.snapTradeConnection.findMany({
       where: { tenantId },
-      orderBy: { createdAt: "asc" }
-    })
+      orderBy: { createdAt: "asc" },
+    }),
   ]);
 
   const activeAccountsRaw = accountsRaw.filter(
@@ -137,7 +139,10 @@ export async function loadInvestments(tenantId?: string | null): Promise<LoadedI
       (sum, position) => sum + numberValue(position.marketValueCad),
       0
     );
-    const cashCAD = account.balances.reduce((sum, balance) => sum + numberValue(balance.cashCad), 0);
+    const cashCAD = account.balances.reduce(
+      (sum, balance) => sum + numberValue(balance.cashCad),
+      0
+    );
     const institution = account.institutionName ?? account.connection.brokerageName ?? "SnapTrade";
 
     return {
@@ -151,34 +156,40 @@ export async function loadInvestments(tenantId?: string | null): Promise<LoadedI
       currency: account.currency ?? "CAD",
       totalValue: holdingsCAD + cashCAD,
       cash: cashCAD,
-      openedAt: account.openedAt?.toISOString() ?? account.snapTradeCreatedAt?.toISOString() ?? null,
-      lastSyncAt: account.connection.lastSyncAt?.toISOString() ?? account.lastHoldingsSyncAt?.toISOString() ?? null,
+      openedAt:
+        account.openedAt?.toISOString() ?? account.snapTradeCreatedAt?.toISOString() ?? null,
+      lastSyncAt:
+        account.connection.lastSyncAt?.toISOString() ??
+        account.lastHoldingsSyncAt?.toISOString() ??
+        null,
       positionCount: account.positions.length,
-      status: account.connection.status
+      status: account.connection.status,
     };
   });
 
   const holdings: InvestmentPosition[] = activeAccountsRaw.flatMap((account) =>
-    account.positions.map((position): InvestmentPosition => ({
-      id: position.id,
-      accountId: account.id,
-      symbol: position.symbol,
-      description: position.description ?? position.symbol,
-      type: position.assetType,
-      exchange: position.exchange ?? "",
-      currency: position.currency,
-      units: numberValue(position.units),
-      price: numberValue(position.price),
-      avgCost: nullableNumber(position.avgCost),
-      mvNative: numberValue(position.marketValueNative),
-      mvCAD: numberValue(position.marketValueCad),
-      costNative: nullableNumber(position.costNative),
-      costCAD: nullableNumber(position.costCad),
-      plCAD: nullableNumber(position.pnlCad),
-      plPct: nullableNumber(position.pnlPct),
-      logoBg: hashColor(position.symbol),
-      logoId: position.logo?.status === "READY" || position.logoId ? position.logoId : null
-    }))
+    account.positions.map(
+      (position): InvestmentPosition => ({
+        id: position.id,
+        accountId: account.id,
+        symbol: position.symbol,
+        description: position.description ?? position.symbol,
+        type: position.assetType,
+        exchange: position.exchange ?? "",
+        currency: position.currency,
+        units: numberValue(position.units),
+        price: numberValue(position.price),
+        avgCost: nullableNumber(position.avgCost),
+        mvNative: numberValue(position.marketValueNative),
+        mvCAD: numberValue(position.marketValueCad),
+        costNative: nullableNumber(position.costNative),
+        costCAD: nullableNumber(position.costCad),
+        plCAD: nullableNumber(position.pnlCad),
+        plPct: nullableNumber(position.pnlPct),
+        logoBg: hashColor(position.symbol),
+        logoId: position.logo?.status === "READY" || position.logoId ? position.logoId : null,
+      })
+    )
   );
 
   const cashByCurrency = new Map<string, InvestmentCashBalance>();
@@ -197,7 +208,7 @@ export async function loadInvestments(tenantId?: string | null): Promise<LoadedI
           currency: balance.currency,
           value,
           valueCAD,
-          buyingPower
+          buyingPower,
         });
       }
     }
@@ -222,7 +233,7 @@ export async function loadInvestments(tenantId?: string | null): Promise<LoadedI
     errorCode: firstError?.code ?? null,
     errorMessage: firstError?.message ?? null,
     connectionCount: connections.length,
-    failingConnectionCount: failing
+    failingConnectionCount: failing,
   };
 
   return {
@@ -232,6 +243,6 @@ export async function loadInvestments(tenantId?: string | null): Promise<LoadedI
     fxUSDtoCAD: usdCad?.rate.toNumber() ?? null,
     omittedPositionCount: lastSyncRun?.omittedPositionsCount ?? 0,
     connectionHealth,
-    lastRunErrorMessage: lastSyncRun?.errorMessage ?? null
+    lastRunErrorMessage: lastSyncRun?.errorMessage ?? null,
   };
 }

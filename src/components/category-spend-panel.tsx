@@ -11,13 +11,13 @@ type Period = "7d" | "30d" | "mtd";
 const PERIODS: { label: string; key: Period }[] = [
   { label: "1W", key: "7d" },
   { label: "30D", key: "30d" },
-  { label: "MTD", key: "mtd" }
+  { label: "MTD", key: "mtd" },
 ];
 
 export function CategorySpendPanel({
   spend7d,
   spend30d,
-  spendMTD
+  spendMTD,
 }: {
   spend7d: CategorySpend[];
   spend30d: CategorySpend[];
@@ -47,7 +47,7 @@ export function CategorySpendPanel({
                   borderRadius: 4,
                   cursor: "pointer",
                   background: period === p.key ? "var(--text)" : "transparent",
-                  color: period === p.key ? "var(--bg)" : "var(--text-3)"
+                  color: period === p.key ? "var(--bg)" : "var(--text-3)",
                 }}
               >
                 {p.label}
@@ -73,7 +73,7 @@ export function CategorySpendPanel({
                   fontFamily: "var(--font-mono)",
                   fontSize: 12,
                   color: "var(--text-2)",
-                  marginTop: 2
+                  marginTop: 2,
                 }}
               >
                 {formatMoney(data[0].amount)} · {data[0].pct.toFixed(1)}%

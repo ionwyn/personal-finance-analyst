@@ -9,7 +9,7 @@ const bodySchema = z.object({
   accountName: z.string().min(1).max(200),
   matchPattern: z.string().min(1).max(200),
   label: z.string().nullable().optional(),
-  active: z.boolean().optional()
+  active: z.boolean().optional(),
 });
 
 export async function POST(request: Request) {
@@ -32,8 +32,8 @@ export async function POST(request: Request) {
       accountName: body.accountName.trim(),
       matchPattern: body.matchPattern.trim().toUpperCase(),
       label: body.label ?? null,
-      active: body.active ?? true
-    }
+      active: body.active ?? true,
+    },
   });
 
   const reclassified = await reclassifyTenant(auth.tenant.id);

@@ -15,7 +15,7 @@ async function main() {
         added: run.addedCount,
         modified: run.modifiedCount,
         removed: run.removedCount,
-        error: run.errorCode ?? run.errorMessage
+        error: run.errorCode ?? run.errorMessage,
       })),
       null,
       2

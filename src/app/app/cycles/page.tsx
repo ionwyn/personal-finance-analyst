@@ -25,7 +25,7 @@ export default async function CyclesPage() {
 
   const [data, discoveryCandidates] = await Promise.all([
     getCurrentCycleData(tenantId),
-    discoverRecurringCandidates(tenantId)
+    discoverRecurringCandidates(tenantId),
   ]);
 
   return (
@@ -38,7 +38,7 @@ export default async function CyclesPage() {
               name: session?.user?.name,
               email: session?.user?.email,
               image: session?.user?.image,
-              handle: session?.user?.email ?? undefined
+              handle: session?.user?.email ?? undefined,
             }
       }
     >

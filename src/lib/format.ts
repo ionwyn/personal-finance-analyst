@@ -2,7 +2,7 @@ export function formatCurrency(value: number, currency = "USD") {
   return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency,
-    maximumFractionDigits: 2
+    maximumFractionDigits: 2,
   }).format(value);
 }
 
@@ -11,7 +11,7 @@ export function formatDate(value?: Date | string | null) {
   return new Intl.DateTimeFormat("en-US", {
     month: "short",
     day: "numeric",
-    year: "numeric"
+    year: "numeric",
   }).format(new Date(value));
 }
 
@@ -21,7 +21,7 @@ export function formatPlaidDate(value?: Date | string | null) {
     month: "short",
     day: "numeric",
     year: "numeric",
-    timeZone: "UTC"
+    timeZone: "UTC",
   }).format(new Date(value));
 }
 
@@ -31,7 +31,7 @@ export function formatUtcDate(value?: Date | string | null) {
     month: "short",
     day: "numeric",
     year: "numeric",
-    timeZone: "UTC"
+    timeZone: "UTC",
   }).format(new Date(value));
 }
 
@@ -42,6 +42,6 @@ export function formatDateTime(value?: Date | string | null) {
     day: "numeric",
     year: "numeric",
     hour: "numeric",
-    minute: "2-digit"
+    minute: "2-digit",
   }).format(new Date(value));
 }

@@ -9,10 +9,10 @@ const bodySchema = z.object({
   institution: z
     .object({
       institution_id: z.string().optional().nullable(),
-      name: z.string().optional().nullable()
+      name: z.string().optional().nullable(),
     })
     .optional()
-    .nullable()
+    .nullable(),
 });
 
 export async function POST(request: Request) {
@@ -28,7 +28,7 @@ export async function POST(request: Request) {
     userId,
     publicToken: body.public_token,
     institutionId: body.institution?.institution_id,
-    institutionName: body.institution?.name
+    institutionName: body.institution?.name,
   });
 
   return NextResponse.json({ item_id: item.id });

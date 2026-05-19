@@ -16,9 +16,7 @@ export function SyncAllButton({ items }: { items: Array<{ id: string; status: st
     setError(null);
     try {
       await Promise.allSettled(
-        items.map((item) =>
-          fetch(`/api/plaid/items/${item.id}/sync`, { method: "POST" })
-        )
+        items.map((item) => fetch(`/api/plaid/items/${item.id}/sync`, { method: "POST" }))
       );
       router.refresh();
     } catch (e) {

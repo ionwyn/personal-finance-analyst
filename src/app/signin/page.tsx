@@ -18,15 +18,13 @@ export default async function SignInPage() {
       <section className="signin-panel">
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <div className="brand-mark">WYN</div>
-          <div className="brand-name">
-            WYN Financial Ltd.
-          </div>
+          <div className="brand-name">WYN Financial Ltd.</div>
         </div>
         <p className="eyebrow">Private workspace</p>
         <h1>Sign in to your finance workspace</h1>
         <p>
-          GitHub OAuth is used for the private app. Set <code>ADMIN_EMAILS</code> to limit access
-          to specific identities before deploying.
+          GitHub OAuth is used for the private app. Set <code>ADMIN_EMAILS</code> to limit access to
+          specific identities before deploying.
         </p>
         {configured ? (
           <AuthButton />
@@ -39,15 +37,13 @@ export default async function SignInPage() {
             fontSize: 11,
             color: "var(--text-3)",
             display: "flex",
-            justifyContent: "space-between"
+            justifyContent: "space-between",
           }}
         >
           <Link href="/demo" style={{ color: "var(--text-2)" }}>
             View public demo →
           </Link>
-          <span style={{ fontFamily: "var(--font-mono)" }}>
-            local · encrypted-at-rest
-          </span>
+          <span style={{ fontFamily: "var(--font-mono)" }}>local · encrypted-at-rest</span>
         </div>
       </section>
     </main>

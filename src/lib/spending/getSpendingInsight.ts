@@ -66,7 +66,7 @@ function computeRanges(period: Period, now: Date) {
       prevRangeStart,
       prevRangeEnd,
       periodLabel: format(now, "MMMM yyyy"),
-      prevPeriodLabel: format(subMonths(now, 1), "MMMM yyyy")
+      prevPeriodLabel: format(subMonths(now, 1), "MMMM yyyy"),
     };
   }
   const rangeStart = startOfYear(now);
@@ -79,7 +79,7 @@ function computeRanges(period: Period, now: Date) {
     prevRangeStart,
     prevRangeEnd,
     periodLabel: `${format(now, "yyyy")} YTD`,
-    prevPeriodLabel: `${format(subYears(now, 1), "yyyy")} YTD (to ${format(prevRangeEnd, "MMM d")})`
+    prevPeriodLabel: `${format(subYears(now, 1), "yyyy")} YTD (to ${format(prevRangeEnd, "MMM d")})`,
   };
 }
 
@@ -87,7 +87,7 @@ async function spendByPrimary(tenantId: string, gte: Date, lt: Date) {
   const rows = await prisma.plaidTransaction.groupBy({
     by: ["categoryPrimary"],
     where: spendingWhere(tenantId, gte, lt),
-    _sum: { amount: true }
+    _sum: { amount: true },
   });
   const map = new Map<string | null, number>();
   for (const r of rows) {
@@ -100,7 +100,7 @@ async function spendByDetailed(tenantId: string, gte: Date, lt: Date) {
   const rows = await prisma.plaidTransaction.groupBy({
     by: ["categoryPrimary", "categoryDetailed"],
     where: spendingWhere(tenantId, gte, lt),
-    _sum: { amount: true }
+    _sum: { amount: true },
   });
   const map = new Map<string | null, Map<string | null, number>>();
   for (const r of rows) {
@@ -114,7 +114,7 @@ async function spendByDetailed(tenantId: string, gte: Date, lt: Date) {
 async function incomeTotal(tenantId: string, gte: Date, lt: Date) {
   const agg = await prisma.plaidTransaction.aggregate({
     where: incomeWhere(tenantId, gte, lt),
-    _sum: { amount: true }
+    _sum: { amount: true },
   });
   // credits are negative — flip the sign to get a positive income total
   return Math.max(0, -num(agg._sum.amount));
@@ -127,29 +127,20 @@ export async function getSpendingInsight(
   const now = new Date();
   const ranges = computeRanges(period, now);
 
-  const [
-    currentPrimary,
-    prevPrimary,
-    currentDetailed,
-    prevDetailed,
-    totalIncome,
-    prevTotalIncome
-  ] = await Promise.all([
-    spendByPrimary(tenantId, ranges.rangeStart, ranges.rangeEnd),
-    spendByPrimary(tenantId, ranges.prevRangeStart, ranges.prevRangeEnd),
-    spendByDetailed(tenantId, ranges.rangeStart, ranges.rangeEnd),
-    spendByDetailed(tenantId, ranges.prevRangeStart, ranges.prevRangeEnd),
-    incomeTotal(tenantId, ranges.rangeStart, ranges.rangeEnd),
-    incomeTotal(tenantId, ranges.prevRangeStart, ranges.prevRangeEnd)
-  ]);
+  const [currentPrimary, prevPrimary, currentDetailed, prevDetailed, totalIncome, prevTotalIncome] =
+    await Promise.all([
+      spendByPrimary(tenantId, ranges.rangeStart, ranges.rangeEnd),
+      spendByPrimary(tenantId, ranges.prevRangeStart, ranges.prevRangeEnd),
+      spendByDetailed(tenantId, ranges.rangeStart, ranges.rangeEnd),
+      spendByDetailed(tenantId, ranges.prevRangeStart, ranges.prevRangeEnd),
+      incomeTotal(tenantId, ranges.rangeStart, ranges.rangeEnd),
+      incomeTotal(tenantId, ranges.prevRangeStart, ranges.prevRangeEnd),
+    ]);
 
   const totalSpending = [...currentPrimary.values()].reduce((s, v) => s + v, 0);
   const prevTotalSpending = [...prevPrimary.values()].reduce((s, v) => s + v, 0);
 
-  const primaryKeys = new Set<string | null>([
-    ...currentPrimary.keys(),
-    ...prevPrimary.keys()
-  ]);
+  const primaryKeys = new Set<string | null>([...currentPrimary.keys(), ...prevPrimary.keys()]);
 
   const categories: CategoryRow[] = [];
   for (const key of primaryKeys) {
@@ -162,7 +153,7 @@ export async function getSpendingInsight(
     const prevInner = prevDetailed.get(key);
     const detailedKeys = new Set<string | null>([
       ...(currentInner?.keys() ?? []),
-      ...(prevInner?.keys() ?? [])
+      ...(prevInner?.keys() ?? []),
     ]);
 
     const detailed: DetailedRow[] = [];
@@ -174,7 +165,7 @@ export async function getSpendingInsight(
         name: formatCategoryName(dKey),
         detailedRaw: dKey ?? "",
         amount: dAmount,
-        prevAmount: dPrev
+        prevAmount: dPrev,
       });
     }
     detailed.sort((a, b) => b.amount - a.amount);
@@ -186,7 +177,7 @@ export async function getSpendingInsight(
       prevAmount,
       pctOfIncome: totalIncome > 0 ? (amount / totalIncome) * 100 : 0,
       color: hashColor(primaryName),
-      detailed
+      detailed,
     });
   }
 
@@ -204,6 +195,6 @@ export async function getSpendingInsight(
     prevTotalSpending,
     totalIncome,
     prevTotalIncome,
-    categories
+    categories,
   };
 }

@@ -9,12 +9,16 @@ export default function LegalLayout({ children }: { children: React.ReactNode })
       <nav className={styles.topnav}>
         <Link href="/" className={styles.monoLockup}>
           <span className={styles.navGlyph} aria-hidden="true">
-            <i /><i /><i />
+            <i />
+            <i />
+            <i />
           </span>
           <span>WYN FINANCIAL LTD.</span>
         </Link>
         <span className={styles.spacer} />
-        <Link href="/" className={styles.navBack}>← Back to home</Link>
+        <Link href="/" className={styles.navBack}>
+          ← Back to home
+        </Link>
       </nav>
 
       {/* ─── Document ─── */}

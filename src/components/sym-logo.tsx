@@ -2,7 +2,7 @@ export function SymLogo({
   symbol,
   bg,
   size = 22,
-  logoId
+  logoId,
 }: {
   symbol: string;
   bg?: string;
@@ -23,7 +23,7 @@ export function SymLogo({
         backgroundPosition: "center",
         width: size,
         height: size,
-        fontSize: size <= 22 ? 9.5 : 10
+        fontSize: size <= 22 ? 9.5 : 10,
       }}
     >
       {hasLogo ? null : txt}

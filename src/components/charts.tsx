@@ -12,7 +12,7 @@ import {
   ResponsiveContainer,
   Tooltip,
   XAxis,
-  YAxis
+  YAxis,
 } from "recharts";
 
 import { formatMoney } from "@/components/big-number";
@@ -133,13 +133,7 @@ export function BalanceChart({ data }: { data: BalanceDatum[] }) {
   );
 }
 
-export function CategoryDonut({
-  data,
-  total
-}: {
-  data: CategoryDatum[];
-  total: number;
-}) {
+export function CategoryDonut({ data, total }: { data: CategoryDatum[]; total: number }) {
   return (
     <div style={{ position: "relative", width: 120, height: 120 }}>
       <ResponsiveContainer width="100%" height="100%">
@@ -167,7 +161,7 @@ export function CategoryDonut({
           inset: 0,
           display: "grid",
           placeItems: "center",
-          pointerEvents: "none"
+          pointerEvents: "none",
         }}
       >
         <div style={{ textAlign: "center" }}>
@@ -176,7 +170,7 @@ export function CategoryDonut({
               fontFamily: "var(--font-mono)",
               fontSize: 14,
               fontWeight: 500,
-              letterSpacing: "-0.02em"
+              letterSpacing: "-0.02em",
             }}
           >
             ${(total / 1000).toFixed(1)}k
@@ -187,7 +181,7 @@ export function CategoryDonut({
               color: "var(--text-4)",
               textTransform: "uppercase",
               letterSpacing: "0.08em",
-              marginTop: 1
+              marginTop: 1,
             }}
           >
             Total

@@ -12,7 +12,7 @@ export async function POST(request: Request) {
   const runs = await syncAllPlaidItems(SyncSource.SCHEDULED);
   return NextResponse.json({
     ok: true,
-    runs: runs.length
+    runs: runs.length,
   });
 }
 

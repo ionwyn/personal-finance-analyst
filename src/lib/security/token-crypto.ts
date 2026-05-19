@@ -46,8 +46,5 @@ export function decryptToken(payload: string): string {
 
   const decipher = createDecipheriv("aes-256-gcm", getKey(), decode(iv));
   decipher.setAuthTag(decode(tag));
-  return Buffer.concat([
-    decipher.update(decode(ciphertext)),
-    decipher.final()
-  ]).toString("utf8");
+  return Buffer.concat([decipher.update(decode(ciphertext)), decipher.final()]).toString("utf8");
 }

@@ -65,7 +65,7 @@ function FilterDropdown({ label, value, options, dotMap, onChange }: FilterDropd
             minWidth: 200,
             maxHeight: 280,
             overflowY: "auto",
-            boxShadow: "0 8px 24px rgba(0,0,0,0.5)"
+            boxShadow: "0 8px 24px rgba(0,0,0,0.5)",
           }}
         >
           {options.length === 0 ? (
@@ -74,7 +74,7 @@ function FilterDropdown({ label, value, options, dotMap, onChange }: FilterDropd
                 padding: "6px 8px",
                 fontSize: 12,
                 color: "var(--text-4)",
-                fontFamily: "var(--font-mono)"
+                fontFamily: "var(--font-mono)",
               }}
             >
               No options
@@ -98,7 +98,7 @@ function FilterDropdown({ label, value, options, dotMap, onChange }: FilterDropd
                 fontSize: 12,
                 color: "var(--text-2)",
                 textAlign: "left",
-                background: value === o ? "var(--surface-3)" : "transparent"
+                background: value === o ? "var(--surface-3)" : "transparent",
               }}
             >
               {dotMap?.[o] ? (
@@ -121,7 +121,7 @@ export function TransactionsToolbar({
   initialAccount,
   categoryOptions,
   accountOptions,
-  categoryColors
+  categoryColors,
 }: {
   initialQuery?: string;
   initialFrom?: string;
@@ -153,7 +153,7 @@ export function TransactionsToolbar({
     }
     const qs = params.toString();
     startTransition(() => {
-      router.replace((`${pathname}${qs ? `?${qs}` : ""}`) as never, { scroll: false });
+      router.replace(`${pathname}${qs ? `?${qs}` : ""}` as never, { scroll: false });
     });
   }
 
@@ -217,7 +217,12 @@ export function TransactionsToolbar({
       />
 
       <span style={{ flex: 1 }} />
-      <button className="btn btn-ghost btn-sm" type="button" disabled style={{ color: "var(--text-3)" }}>
+      <button
+        className="btn btn-ghost btn-sm"
+        type="button"
+        disabled
+        style={{ color: "var(--text-3)" }}
+      >
         <Filter size={12} />
         More filters
         <ChevronRight size={12} style={{ opacity: 0.5 }} />

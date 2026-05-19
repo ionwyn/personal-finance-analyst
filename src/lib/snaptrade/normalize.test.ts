@@ -9,9 +9,9 @@ describe("SnapTrade normalization", () => {
         snapTradeSecurityLogo: {
           upsert: vi.fn(),
           findUnique: vi.fn(),
-          update: vi.fn()
-        }
-      }
+          update: vi.fn(),
+        },
+      },
     }));
   });
 
@@ -27,15 +27,15 @@ describe("SnapTrade normalization", () => {
           currency: { code: "USD" },
           exchange: { code: "NASDAQ", mic_code: "XNAS" },
           type: { code: "cs", description: "Common Stock" },
-          logo_url: "https://api.twelvedata.com/logo/apple.com"
-        }
+          logo_url: "https://api.twelvedata.com/logo/apple.com",
+        },
       },
       units: 2,
       price: 200,
       average_purchase_price: 150,
       currency: { code: "USD" },
       cash_equivalent: false,
-      tax_lots: [{ ignored: true }]
+      tax_lots: [{ ignored: true }],
     } as unknown as Position);
 
     expect(normalized).toMatchObject({
@@ -46,7 +46,7 @@ describe("SnapTrade normalization", () => {
       marketValueNative: 400,
       costNative: 300,
       pnlNative: 100,
-      logoUrl: "https://api.twelvedata.com/logo/apple.com"
+      logoUrl: "https://api.twelvedata.com/logo/apple.com",
     });
   });
 
@@ -62,13 +62,13 @@ describe("SnapTrade normalization", () => {
           currency: { code: "CAD" },
           exchange: { code: "TSX" },
           type: { code: "et", description: "ETF" },
-          logo_url: "https://example.com/logo.png"
-        }
+          logo_url: "https://example.com/logo.png",
+        },
       },
       units: 10,
       price: 25,
       average_purchase_price: null,
-      currency: { code: "CAD" }
+      currency: { code: "CAD" },
     } as unknown as Position);
 
     expect(normalized?.assetType).toBe("ETF");
@@ -89,13 +89,13 @@ describe("SnapTrade normalization", () => {
           raw_symbol: "VTI",
           description: "Vanguard Total Stock Market ETF",
           currency: { code: "USD" },
-          type: { code: "et", description: "ETF" }
+          type: { code: "et", description: "ETF" },
         },
-        logo_url: "https://api.twelvedata.com/logo/vanguard.com"
+        logo_url: "https://api.twelvedata.com/logo/vanguard.com",
       },
       units: 1,
       price: 250,
-      currency: { code: "USD" }
+      currency: { code: "USD" },
     } as unknown as Position);
 
     const topLevelLogo = normalizePosition({
@@ -106,13 +106,13 @@ describe("SnapTrade normalization", () => {
           raw_symbol: "GLDM",
           description: "SPDR Gold MiniShares Trust",
           currency: { code: "USD" },
-          type: { code: "et", description: "ETF" }
-        }
+          type: { code: "et", description: "ETF" },
+        },
       },
       logo_url: "https://api.twelvedata.com/logo/spdr.com",
       units: 1,
       price: 50,
-      currency: { code: "USD" }
+      currency: { code: "USD" },
     } as unknown as Position);
 
     expect(wrapperLogo?.logoUrl).toBe("https://api.twelvedata.com/logo/vanguard.com");

@@ -1,7 +1,7 @@
 export function BigNumber({
   value,
   signed = false,
-  currency = "$"
+  currency = "$",
 }: {
   value: number;
   signed?: boolean;

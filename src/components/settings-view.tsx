@@ -15,13 +15,13 @@ const INPUT_STYLE: React.CSSProperties = {
   fontSize: 12,
   borderRadius: 4,
   fontFamily: "var(--font-sans)",
-  width: "100%"
+  width: "100%",
 };
 
 const NUMBER_INPUT_STYLE: React.CSSProperties = {
   ...INPUT_STYLE,
   fontFamily: "var(--font-mono)",
-  textAlign: "right"
+  textAlign: "right",
 };
 
 const LABEL_STYLE: React.CSSProperties = {
@@ -31,7 +31,7 @@ const LABEL_STYLE: React.CSSProperties = {
   fontSize: 11,
   letterSpacing: "0.04em",
   textTransform: "uppercase",
-  color: "var(--text-3)"
+  color: "var(--text-3)",
 };
 
 const HINT_STYLE: React.CSSProperties = {
@@ -40,7 +40,7 @@ const HINT_STYLE: React.CSSProperties = {
   textTransform: "none",
   color: "var(--text-4)",
   lineHeight: 1.4,
-  fontWeight: 400
+  fontWeight: 400,
 };
 
 type ApiResponse = { error?: string } & Record<string, unknown>;
@@ -49,7 +49,7 @@ async function postJSON(url: string, method: string, body: unknown): Promise<Api
   const response = await fetch(url, {
     method,
     headers: { "content-type": "application/json" },
-    body: body == null ? undefined : JSON.stringify(body)
+    body: body == null ? undefined : JSON.stringify(body),
   });
   let data: ApiResponse = {};
   try {
@@ -84,7 +84,7 @@ export function SettingsView({ data }: { data: SettingsData }) {
 function Panel({
   title,
   meta,
-  children
+  children,
 }: {
   title: string;
   meta?: string;
@@ -115,9 +115,11 @@ function PayCycleSection({ settings }: { settings: SettingsData["settings"] }) {
   const [form, setForm] = useState({
     lastPaycheckDate: toDateInput(settings.lastPaycheckDate),
     employerMerchantPattern: settings.employerMerchantPattern ?? "",
-    defaultFixedSavings: settings.defaultFixedSavings != null ? String(settings.defaultFixedSavings) : "",
+    defaultFixedSavings:
+      settings.defaultFixedSavings != null ? String(settings.defaultFixedSavings) : "",
     sweepBuffer: String(settings.sweepBuffer ?? 100),
-    ccPaymentDayOfMonth: settings.ccPaymentDayOfMonth != null ? String(settings.ccPaymentDayOfMonth) : ""
+    ccPaymentDayOfMonth:
+      settings.ccPaymentDayOfMonth != null ? String(settings.ccPaymentDayOfMonth) : "",
   });
 
   async function save() {
@@ -129,7 +131,7 @@ function PayCycleSection({ settings }: { settings: SettingsData["settings"] }) {
         employerMerchantPattern: form.employerMerchantPattern.trim() || null,
         defaultFixedSavings: form.defaultFixedSavings ? Number(form.defaultFixedSavings) : null,
         sweepBuffer: form.sweepBuffer ? Number(form.sweepBuffer) : 100,
-        ccPaymentDayOfMonth: form.ccPaymentDayOfMonth ? Number(form.ccPaymentDayOfMonth) : null
+        ccPaymentDayOfMonth: form.ccPaymentDayOfMonth ? Number(form.ccPaymentDayOfMonth) : null,
       });
       router.refresh();
     } catch (e) {
@@ -146,7 +148,7 @@ function PayCycleSection({ settings }: { settings: SettingsData["settings"] }) {
           display: "grid",
           gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
           gap: 12,
-          maxWidth: 720
+          maxWidth: 720,
         }}
       >
         <label style={LABEL_STYLE}>
@@ -169,8 +171,8 @@ function PayCycleSection({ settings }: { settings: SettingsData["settings"] }) {
           />
           <span style={HINT_STYLE}>
             Case-insensitive substring match against the transaction description (Plaid
-            &quot;name&quot;, always present) plus the merchant name (if Plaid set one). e.g.
-            ACME PAYROLL matches &quot;ACME PAYROLL DIRECT DEP&quot;.
+            &quot;name&quot;, always present) plus the merchant name (if Plaid set one). e.g. ACME
+            PAYROLL matches &quot;ACME PAYROLL DIRECT DEP&quot;.
           </span>
         </label>
         <label style={LABEL_STYLE}>
@@ -220,11 +222,7 @@ function PayCycleSection({ settings }: { settings: SettingsData["settings"] }) {
 
 /* ---------- Recurring expenses ---------- */
 
-function RecurringExpensesSection({
-  expenses
-}: {
-  expenses: SettingsData["recurringExpenses"];
-}) {
+function RecurringExpensesSection({ expenses }: { expenses: SettingsData["recurringExpenses"] }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -233,7 +231,7 @@ function RecurringExpensesSection({
     merchantPattern: "",
     amount: "",
     frequency: "monthly" as (typeof FREQUENCIES)[number],
-    anchorDate: ""
+    anchorDate: "",
   });
 
   async function create() {
@@ -250,7 +248,7 @@ function RecurringExpensesSection({
         amount: Number(draft.amount),
         frequency: draft.frequency,
         anchorDate: draft.anchorDate ? Number(draft.anchorDate) : null,
-        confirmed: true
+        confirmed: true,
       });
       setDraft({ name: "", merchantPattern: "", amount: "", frequency: "monthly", anchorDate: "" });
       router.refresh();
@@ -346,7 +344,7 @@ function RecurringExpensesSection({
           display: "grid",
           gridTemplateColumns: "1.5fr 1.5fr 1fr 1fr 60px auto",
           gap: 8,
-          alignItems: "end"
+          alignItems: "end",
         }}
       >
         <label style={LABEL_STYLE}>
@@ -383,7 +381,9 @@ function RecurringExpensesSection({
           Frequency
           <select
             value={draft.frequency}
-            onChange={(e) => setDraft({ ...draft, frequency: e.target.value as (typeof FREQUENCIES)[number] })}
+            onChange={(e) =>
+              setDraft({ ...draft, frequency: e.target.value as (typeof FREQUENCIES)[number] })
+            }
             style={INPUT_STYLE}
           >
             {FREQUENCIES.map((f) => (
@@ -418,7 +418,11 @@ function RecurringExpensesSection({
 
 /* ---------- Savings destinations ---------- */
 
-function SavingsDestinationsSection({ destinations }: { destinations: SettingsData["savingsDestinations"] }) {
+function SavingsDestinationsSection({
+  destinations,
+}: {
+  destinations: SettingsData["savingsDestinations"];
+}) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -435,7 +439,7 @@ function SavingsDestinationsSection({ destinations }: { destinations: SettingsDa
       await postJSON("/api/settings/savings-destinations", "POST", {
         accountName: draft.accountName.trim(),
         matchPattern: draft.matchPattern.trim(),
-        label: draft.label.trim() || null
+        label: draft.label.trim() || null,
       });
       setDraft({ accountName: "", matchPattern: "", label: "" });
       router.refresh();
@@ -459,10 +463,13 @@ function SavingsDestinationsSection({ destinations }: { destinations: SettingsDa
   }
 
   return (
-    <Panel title="Savings destinations" meta={`${destinations.length} TOTAL · DEBITS TO THESE = SAVINGS`}>
+    <Panel
+      title="Savings destinations"
+      meta={`${destinations.length} TOTAL · DEBITS TO THESE = SAVINGS`}
+    >
       <div style={{ fontSize: 11, color: "var(--text-3)", marginBottom: 10, lineHeight: 1.5 }}>
-        Patterns are case-insensitive substring matches against the transaction description
-        (Plaid &quot;name&quot;, always present) plus the merchant name (if Plaid set one). e.g.{" "}
+        Patterns are case-insensitive substring matches against the transaction description (Plaid
+        &quot;name&quot;, always present) plus the merchant name (if Plaid set one). e.g.{" "}
         <span className="mono">WEALTHSIMPLE</span> matches &quot;Wealthsimple Transfer 1234&quot;
         and &quot;EFT TO WEALTHSIMPLE&quot;.
       </div>
@@ -508,7 +515,7 @@ function SavingsDestinationsSection({ destinations }: { destinations: SettingsDa
           display: "grid",
           gridTemplateColumns: "2fr 2fr 1fr auto",
           gap: 8,
-          alignItems: "end"
+          alignItems: "end",
         }}
       >
         <label style={LABEL_STYLE}>
@@ -570,7 +577,7 @@ function SettlementPatternsSection({ patterns }: { patterns: SettingsData["settl
     try {
       await postJSON("/api/settings/settlement-patterns", "POST", {
         label: draft.label.trim(),
-        matchPattern: draft.matchPattern.trim()
+        matchPattern: draft.matchPattern.trim(),
       });
       setDraft({ label: "", matchPattern: "" });
       router.refresh();
@@ -596,8 +603,8 @@ function SettlementPatternsSection({ patterns }: { patterns: SettingsData["settl
   return (
     <Panel title="Settlement patterns" meta={`${patterns.length} TOTAL · EXCLUDED FROM BUDGET`}>
       <div style={{ fontSize: 11, color: "var(--text-3)", marginBottom: 10, lineHeight: 1.5 }}>
-        Patterns are case-insensitive substring matches against the transaction description
-        (Plaid &quot;name&quot;, always present) plus the merchant name (if Plaid set one). e.g.{" "}
+        Patterns are case-insensitive substring matches against the transaction description (Plaid
+        &quot;name&quot;, always present) plus the merchant name (if Plaid set one). e.g.{" "}
         <span className="mono">AMEX PAYMENT</span> matches &quot;AMEX EPAYMENT THANK YOU&quot;.
       </div>
       {patterns.length === 0 ? (
@@ -640,7 +647,7 @@ function SettlementPatternsSection({ patterns }: { patterns: SettingsData["settl
           display: "grid",
           gridTemplateColumns: "1fr 2fr auto",
           gap: 8,
-          alignItems: "end"
+          alignItems: "end",
         }}
       >
         <label style={LABEL_STYLE}>

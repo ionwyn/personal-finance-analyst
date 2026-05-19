@@ -13,7 +13,7 @@ const bodySchema = z.object({
   frequency: z.enum(FREQUENCIES).optional(),
   anchorDate: z.number().int().min(1).max(31).nullable().optional(),
   confirmed: z.boolean().optional(),
-  active: z.boolean().optional()
+  active: z.boolean().optional(),
 });
 
 export async function PATCH(request: Request, context: { params: Promise<{ id: string }> }) {
@@ -22,7 +22,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
   const { id } = await context.params;
 
   const existing = await prisma.recurringExpense.findFirst({
-    where: { id, tenantId: auth.tenant.id }
+    where: { id, tenantId: auth.tenant.id },
   });
   if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
@@ -52,8 +52,8 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
       ...(body.anchorDate !== undefined ? { anchorDate: body.anchorDate } : {}),
       ...(body.confirmed !== undefined ? { confirmed: body.confirmed } : {}),
       ...(body.active !== undefined ? { active: body.active } : {}),
-      accrualPerCycle
-    }
+      accrualPerCycle,
+    },
   });
 
   return NextResponse.json({ expense });

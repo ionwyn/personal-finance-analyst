@@ -22,7 +22,7 @@ export function InvestmentsCard({ data }: { data: InvestmentDashboardData }) {
               height: 6,
               borderRadius: "50%",
               background: "var(--invest)",
-              display: "inline-block"
+              display: "inline-block",
             }}
           />
           <div className="panel-title">
@@ -37,7 +37,7 @@ export function InvestmentsCard({ data }: { data: InvestmentDashboardData }) {
             display: "inline-flex",
             alignItems: "center",
             gap: 4,
-            color: "var(--text-2)"
+            color: "var(--text-2)",
           }}
         >
           View all
@@ -60,7 +60,7 @@ export function InvestmentsCard({ data }: { data: InvestmentDashboardData }) {
               {plPos ? "+" : "−"}$
               {Math.abs(summary.plCAD).toLocaleString("en-US", {
                 minimumFractionDigits: 2,
-                maximumFractionDigits: 2
+                maximumFractionDigits: 2,
               })}
             </span>
             <span className={`pct ${plPos ? "pos" : "neg"}`}>
@@ -83,7 +83,7 @@ export function InvestmentsCard({ data }: { data: InvestmentDashboardData }) {
               <div className="mv">
                 $
                 {h.mvCAD.toLocaleString("en-US", {
-                  maximumFractionDigits: 0
+                  maximumFractionDigits: 0,
                 })}
               </div>
               {h.plPct == null ? (

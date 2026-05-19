@@ -7,7 +7,7 @@ export function AppShell({
   children,
   mode,
   user,
-  topbarMeta
+  topbarMeta,
 }: {
   children: React.ReactNode;
   mode: AppShellMode;

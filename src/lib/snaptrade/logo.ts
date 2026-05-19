@@ -33,8 +33,8 @@ export async function ensureLogoRecord(sourceUrl: string | null) {
     update: { sourceUrl: url },
     create: {
       id,
-      sourceUrl: url
-    }
+      sourceUrl: url,
+    },
   });
 
   return id;
@@ -53,14 +53,14 @@ export async function fetchAndCacheLogo(id: string) {
       data: {
         status: "ERROR",
         errorMessage: "Logo URL is not allowed.",
-        fetchedAt: new Date()
-      }
+        fetchedAt: new Date(),
+      },
     });
   }
 
   try {
     const response = await fetch(sourceUrl, {
-      headers: { accept: "image/*" }
+      headers: { accept: "image/*" },
     });
     if (!response.ok) {
       throw new Error(`Logo fetch failed with HTTP ${response.status}.`);
@@ -88,8 +88,8 @@ export async function fetchAndCacheLogo(id: string) {
         contentType,
         data: bytes,
         errorMessage: null,
-        fetchedAt: new Date()
-      }
+        fetchedAt: new Date(),
+      },
     });
   } catch (error) {
     return prisma.snapTradeSecurityLogo.update({
@@ -97,8 +97,8 @@ export async function fetchAndCacheLogo(id: string) {
       data: {
         status: "ERROR",
         errorMessage: error instanceof Error ? error.message : "Logo fetch failed.",
-        fetchedAt: new Date()
-      }
+        fetchedAt: new Date(),
+      },
     });
   }
 }

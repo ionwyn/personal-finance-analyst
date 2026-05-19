@@ -26,7 +26,7 @@ export async function verifyPlaidWebhook(rawBody: string, signedJwt: string | nu
   let jwk = keyCache.get(header.kid);
   if (!jwk) {
     const response = await getPlaidClient().webhookVerificationKeyGet({
-      key_id: header.kid
+      key_id: header.kid,
     });
     jwk = response.data.key as JWK;
     keyCache.set(header.kid, jwk);
@@ -34,7 +34,7 @@ export async function verifyPlaidWebhook(rawBody: string, signedJwt: string | nu
 
   const key = await importJWK(jwk, "ES256");
   const { payload } = await jwtVerify(signedJwt, key, {
-    algorithms: ["ES256"]
+    algorithms: ["ES256"],
   });
 
   const expectedHash = payload.request_body_sha256;

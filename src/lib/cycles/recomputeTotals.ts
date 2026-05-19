@@ -10,9 +10,9 @@ export async function recomputeCycleTotals(tenantId: string, cycleId: string) {
       cycleId,
       removed: false,
       supersededById: null,
-      txnType: { in: ["income", "savings"] }
+      txnType: { in: ["income", "savings"] },
     },
-    _sum: { amount: true }
+    _sum: { amount: true },
   });
 
   const incomeRaw = agg.find((r) => r.txnType === "income")?._sum.amount ?? null;
@@ -22,7 +22,7 @@ export async function recomputeCycleTotals(tenantId: string, cycleId: string) {
     where: { id: cycleId },
     data: {
       incomeReceived: incomeRaw ? incomeRaw.abs() : new Prisma.Decimal(0),
-      fixedSavingsPull: savingsRaw ? savingsRaw.abs() : new Prisma.Decimal(0)
-    }
+      fixedSavingsPull: savingsRaw ? savingsRaw.abs() : new Prisma.Decimal(0),
+    },
   });
 }

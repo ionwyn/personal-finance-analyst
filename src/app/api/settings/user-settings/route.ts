@@ -12,7 +12,7 @@ const bodySchema = z.object({
   employerMerchantPattern: z.string().nullable().optional(),
   defaultFixedSavings: z.number().nullable().optional(),
   sweepBuffer: z.number().nullable().optional(),
-  ccPaymentDayOfMonth: z.number().int().min(1).max(31).nullable().optional()
+  ccPaymentDayOfMonth: z.number().int().min(1).max(31).nullable().optional(),
 });
 
 function parseDateOnly(value: string | null | undefined): Date | null | undefined {
@@ -44,20 +44,22 @@ export async function PATCH(request: Request) {
   const lastPaycheckDate = parseDateOnly(body.lastPaycheckDate);
   const existing = await prisma.userSettings.findUnique({
     where: { tenantId: auth.tenant.id },
-    select: { lastPaycheckDate: true, employerMerchantPattern: true }
+    select: { lastPaycheckDate: true, employerMerchantPattern: true },
   });
 
   const updateData: Record<string, unknown> = {};
   if (lastPaycheckDate !== undefined) updateData.lastPaycheckDate = lastPaycheckDate;
   if (body.employerMerchantPattern !== undefined)
     updateData.employerMerchantPattern = body.employerMerchantPattern?.trim() || null;
-  if (body.defaultFixedSavings !== undefined) updateData.defaultFixedSavings = body.defaultFixedSavings;
+  if (body.defaultFixedSavings !== undefined)
+    updateData.defaultFixedSavings = body.defaultFixedSavings;
   if (body.sweepBuffer !== undefined) updateData.sweepBuffer = body.sweepBuffer ?? 100;
-  if (body.ccPaymentDayOfMonth !== undefined) updateData.ccPaymentDayOfMonth = body.ccPaymentDayOfMonth;
+  if (body.ccPaymentDayOfMonth !== undefined)
+    updateData.ccPaymentDayOfMonth = body.ccPaymentDayOfMonth;
 
   const settings = await prisma.userSettings.update({
     where: { tenantId: auth.tenant.id },
-    data: updateData
+    data: updateData,
   });
 
   const paycheckChanged =

@@ -9,7 +9,7 @@ function ctx(partial: Partial<ClassifyContext> = {}): ClassifyContext {
     settlementPatterns: [],
     employerMerchantPattern: null,
     expectedPaycheckDates: [],
-    ...partial
+    ...partial,
   };
 }
 
@@ -37,7 +37,7 @@ describe("classifyTransaction", () => {
       { amount: new Prisma.Decimal(250), merchantName: "Wealthsimple Visa Payment", date: DATE },
       ctx({
         savingsDestinations: [{ id: "s1", matchPattern: "WEALTHSIMPLE", active: true }],
-        settlementPatterns: [{ id: "p1", matchPattern: "VISA PAYMENT", active: true }]
+        settlementPatterns: [{ id: "p1", matchPattern: "VISA PAYMENT", active: true }],
       })
     );
     expect(result.txnType).toBe("savings");
@@ -75,7 +75,7 @@ describe("classifyTransaction", () => {
         merchantName: "Legacy Payroll",
         categoryPrimary: "INCOME",
         categoryDetailed: "INCOME_SALARY",
-        date: DATE
+        date: DATE,
       },
       ctx({ employerMerchantPattern: "ACME", expectedPaycheckDates: [DATE] })
     );

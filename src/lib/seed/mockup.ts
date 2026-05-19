@@ -33,7 +33,9 @@ export async function seedMockupDemo() {
     console.log("  Wiping existing demo tenant...");
     const tenantId = existingTenant.id;
 
-    const connIds = await prisma.snapTradeConnection.findMany({ where: { tenantId }, select: { id: true } }).then(c => c.map(x => x.id));
+    const connIds = await prisma.snapTradeConnection
+      .findMany({ where: { tenantId }, select: { id: true } })
+      .then((c) => c.map((x) => x.id));
 
     await prisma.syncRun.deleteMany({ where: { tenantId } });
     await prisma.balanceSnapshot.deleteMany({ where: { tenantId } });
@@ -60,8 +62,8 @@ export async function seedMockupDemo() {
     data: {
       slug: "demo",
       name: "Sandbox Demo",
-      kind: TenantKind.DEMO
-    }
+      kind: TenantKind.DEMO,
+    },
   });
   console.log(`  ✓ Created tenant: ${tenant.slug}`);
 
@@ -72,8 +74,8 @@ export async function seedMockupDemo() {
       payFrequencyDays: 14,
       lastPaycheckDate,
       employerMerchantPattern: "TD BANK PAYROLL",
-      defaultFixedSavings: 200000
-    }
+      defaultFixedSavings: 200000,
+    },
   });
 
   const plaidItem = await prisma.plaidItem.create({
@@ -85,8 +87,8 @@ export async function seedMockupDemo() {
       accessTokenEncrypted: encrypt("access-sandbox-demo-tdbank"),
       syncCursor: null,
       status: "IDLE",
-      lastSyncAt: new Date()
-    }
+      lastSyncAt: new Date(),
+    },
   });
 
   const accounts = await Promise.all([
@@ -100,8 +102,8 @@ export async function seedMockupDemo() {
         name: "TD Chequing",
         availableBalance: 8200,
         currentBalance: 8200,
-        officialName: "TD Chequing Account"
-      }
+        officialName: "TD Chequing Account",
+      },
     }),
     prisma.plaidAccount.create({
       data: {
@@ -113,8 +115,8 @@ export async function seedMockupDemo() {
         name: "TD eSavings",
         availableBalance: 12500,
         currentBalance: 12500,
-        officialName: "TD eSavings Account"
-      }
+        officialName: "TD eSavings Account",
+      },
     }),
     prisma.plaidAccount.create({
       data: {
@@ -126,9 +128,9 @@ export async function seedMockupDemo() {
         name: "TD Visa",
         availableBalance: 23160,
         currentBalance: -1840,
-        officialName: "TD Visa Credit Card"
-      }
-    })
+        officialName: "TD Visa Credit Card",
+      },
+    }),
   ]);
 
   const [chequing, savings, visa] = accounts;
@@ -153,7 +155,7 @@ export async function seedMockupDemo() {
       pending: false,
       source: SyncSource.SEED,
       removed: false,
-      raw: {}
+      raw: {},
     });
   }
 
@@ -175,7 +177,7 @@ export async function seedMockupDemo() {
       pending: false,
       source: SyncSource.SEED,
       removed: false,
-      raw: {}
+      raw: {},
     });
   }
 
@@ -197,7 +199,7 @@ export async function seedMockupDemo() {
       pending: false,
       source: SyncSource.SEED,
       removed: false,
-      raw: {}
+      raw: {},
     });
   }
 
@@ -219,15 +221,35 @@ export async function seedMockupDemo() {
       pending: false,
       source: SyncSource.SEED,
       removed: false,
-      raw: {}
+      raw: {},
     });
   }
 
   const subscriptions = [
-    { name: "BELL CANADA", amount: 120, cat: "RENT_AND_UTILITIES", catDetail: "RENT_AND_UTILITIES_UTILITIES" },
-    { name: "NETFLIX", amount: 18.99, cat: "ENTERTAINMENT", catDetail: "ENTERTAINMENT_STREAMING_AND_DOWNLOADS" },
-    { name: "SPOTIFY", amount: 10.99, cat: "ENTERTAINMENT", catDetail: "ENTERTAINMENT_STREAMING_AND_DOWNLOADS" },
-    { name: "GOODLIFE FITNESS", amount: 59.99, cat: "PERSONAL_CARE", catDetail: "PERSONAL_CARE_GYMS_AND_FITNESS" }
+    {
+      name: "BELL CANADA",
+      amount: 120,
+      cat: "RENT_AND_UTILITIES",
+      catDetail: "RENT_AND_UTILITIES_UTILITIES",
+    },
+    {
+      name: "NETFLIX",
+      amount: 18.99,
+      cat: "ENTERTAINMENT",
+      catDetail: "ENTERTAINMENT_STREAMING_AND_DOWNLOADS",
+    },
+    {
+      name: "SPOTIFY",
+      amount: 10.99,
+      cat: "ENTERTAINMENT",
+      catDetail: "ENTERTAINMENT_STREAMING_AND_DOWNLOADS",
+    },
+    {
+      name: "GOODLIFE FITNESS",
+      amount: 59.99,
+      cat: "PERSONAL_CARE",
+      catDetail: "PERSONAL_CARE_GYMS_AND_FITNESS",
+    },
   ];
 
   for (const sub of subscriptions) {
@@ -249,7 +271,7 @@ export async function seedMockupDemo() {
         pending: false,
         source: SyncSource.SEED,
         removed: false,
-        raw: {}
+        raw: {},
       });
     }
   }
@@ -261,7 +283,7 @@ export async function seedMockupDemo() {
     { name: "LOBLAWS", min: 80, max: 140 },
     { name: "FOOD BASICS", min: 40, max: 90 },
     { name: "RESTAURANT", min: 30, max: 90 },
-    { name: "MCDONALDS", min: 10, max: 20 }
+    { name: "MCDONALDS", min: 10, max: 20 },
   ];
 
   for (let i = 0; i < 100; i++) {
@@ -283,7 +305,7 @@ export async function seedMockupDemo() {
       pending: false,
       source: SyncSource.SEED,
       removed: false,
-      raw: {}
+      raw: {},
     });
   }
 
@@ -301,17 +323,19 @@ export async function seedMockupDemo() {
       amount: isPresto ? 50 : 12 + Math.random() * 23,
       date: getDateDaysAgo(daysBack),
       categoryPrimary: "TRANSPORTATION",
-      categoryDetailed: isPresto ? "TRANSPORTATION_PUBLIC_TRANSIT" : "TRANSPORTATION_TAXIS_AND_RIDE_SHARING",
+      categoryDetailed: isPresto
+        ? "TRANSPORTATION_PUBLIC_TRANSIT"
+        : "TRANSPORTATION_TAXIS_AND_RIDE_SHARING",
       pending: false,
       source: SyncSource.SEED,
       removed: false,
-      raw: {}
+      raw: {},
     });
   }
 
   const shopping = [
     { name: "AMAZON.CA", min: 20, max: 150, cat: "GENERAL_MERCHANDISE_ONLINE_MARKETPLACES" },
-    { name: "REXALL DRUG STORE", min: 15, max: 45, cat: "PERSONAL_CARE_DRUGSTORES" }
+    { name: "REXALL DRUG STORE", min: 15, max: 45, cat: "PERSONAL_CARE_DRUGSTORES" },
   ];
 
   for (let i = 0; i < 36; i++) {
@@ -333,7 +357,7 @@ export async function seedMockupDemo() {
       pending: false,
       source: SyncSource.SEED,
       removed: false,
-      raw: {}
+      raw: {},
     });
   }
 
@@ -353,7 +377,7 @@ export async function seedMockupDemo() {
   const accountBalances: Record<string, number> = {
     [chequing.id]: 8200,
     [savings.id]: 12500,
-    [visa.id]: -1840
+    [visa.id]: -1840,
   };
 
   for (let daysBack = 180; daysBack >= 0; daysBack--) {
@@ -373,7 +397,7 @@ export async function seedMockupDemo() {
         availableBalance: accountBalances[accId],
         currentBalance: accountBalances[accId],
         capturedAt: date,
-        raw: {}
+        raw: {},
       });
     }
   }
@@ -389,8 +413,8 @@ export async function seedMockupDemo() {
       status: SyncRunStatus.SUCCESS,
       addedCount: transactions.length,
       modifiedCount: 0,
-      removedCount: 0
-    }
+      removedCount: 0,
+    },
   });
 
   const connection = await prisma.snapTradeConnection.create({
@@ -401,8 +425,8 @@ export async function seedMockupDemo() {
       brokerageSlug: "QUESTRADE",
       status: SnapTradeConnectionStatus.IDLE,
       disabled: false,
-      lastSyncAt: new Date()
-    }
+      lastSyncAt: new Date(),
+    },
   });
 
   console.log(`  ✓ Created SnapTradeConnection`);
@@ -418,8 +442,8 @@ export async function seedMockupDemo() {
         totalValue: 95000,
         isPaper: false,
         holdingsInitialSyncComplete: true,
-        name: "Questrade TFSA"
-      }
+        name: "Questrade TFSA",
+      },
     }),
     prisma.snapTradeAccount.create({
       data: {
@@ -431,8 +455,8 @@ export async function seedMockupDemo() {
         totalValue: 80000,
         isPaper: false,
         holdingsInitialSyncComplete: true,
-        name: "Questrade RRSP"
-      }
+        name: "Questrade RRSP",
+      },
     }),
     prisma.snapTradeAccount.create({
       data: {
@@ -444,9 +468,9 @@ export async function seedMockupDemo() {
         totalValue: 27000,
         isPaper: false,
         holdingsInitialSyncComplete: true,
-        name: "Questrade Non-Registered"
-      }
-    })
+        name: "Questrade Non-Registered",
+      },
+    }),
   ]);
 
   const [tfsaAcc, rrspAcc, nonregAcc] = snapTradeAccounts;
@@ -455,21 +479,171 @@ export async function seedMockupDemo() {
   const usdToCAD = 1.38;
 
   const positions: Parameters<typeof prisma.snapTradePosition.createMany>[0]["data"] = [
-    { snapTradeAccountId: tfsaAcc.id, symbol: "QQQ", rawSymbol: "QQQ", assetType: "et", exchange: "ARCA", currency: "USD", units: 35, price: 538.42, avgCost: 494.18 },
-    { snapTradeAccountId: tfsaAcc.id, symbol: "SPY", rawSymbol: "SPY", assetType: "et", exchange: "ARCA", currency: "USD", units: 20, price: 568.25, avgCost: 527.12 },
-    { snapTradeAccountId: tfsaAcc.id, symbol: "XIC.TO", rawSymbol: "XIC", assetType: "et", exchange: "TSX", currency: "CAD", units: 400, price: 34.15, avgCost: 29.5 },
-    { snapTradeAccountId: tfsaAcc.id, symbol: "XUU.TO", rawSymbol: "XUU", assetType: "et", exchange: "TSX", currency: "CAD", units: 600, price: 44.8, avgCost: 38.2 },
-    { snapTradeAccountId: tfsaAcc.id, symbol: "BND", rawSymbol: "BND", assetType: "et", exchange: "BATS", currency: "USD", units: 80, price: 81.22, avgCost: 83.67 },
-    { snapTradeAccountId: rrspAcc.id, symbol: "AAPL", rawSymbol: "AAPL", assetType: "cs", exchange: "NASDAQ", currency: "USD", units: 40, price: 227.45, avgCost: 189.22 },
-    { snapTradeAccountId: rrspAcc.id, symbol: "MSFT", rawSymbol: "MSFT", assetType: "cs", exchange: "NASDAQ", currency: "USD", units: 20, price: 415.3, avgCost: 363.45 },
-    { snapTradeAccountId: rrspAcc.id, symbol: "NVDA", rawSymbol: "NVDA", assetType: "cs", exchange: "NASDAQ", currency: "USD", units: 25, price: 214.82, avgCost: 158.34 },
-    { snapTradeAccountId: rrspAcc.id, symbol: "VTI", rawSymbol: "VTI", assetType: "et", exchange: "ARCA", currency: "USD", units: 25, price: 363.48, avgCost: 324.22 },
-    { snapTradeAccountId: rrspAcc.id, symbol: "IVV", rawSymbol: "IVV", assetType: "et", exchange: "BATS", currency: "USD", units: 18, price: 568.15, avgCost: 530.27 },
-    { snapTradeAccountId: rrspAcc.id, symbol: "RY.TO", rawSymbol: "RY", assetType: "cs", exchange: "TSX", currency: "CAD", units: 100, price: 175.4, avgCost: 165.5 },
-    { snapTradeAccountId: nonregAcc.id, symbol: "META", rawSymbol: "META", assetType: "cs", exchange: "NASDAQ", currency: "USD", units: 8, price: 611.25, avgCost: 550.75 },
-    { snapTradeAccountId: nonregAcc.id, symbol: "GOOG", rawSymbol: "GOOG", assetType: "cs", exchange: "NASDAQ", currency: "USD", units: 10, price: 396.45, avgCost: 357.29 },
-    { snapTradeAccountId: nonregAcc.id, symbol: "TSLA", rawSymbol: "TSLA", assetType: "cs", exchange: "NASDAQ", currency: "USD", units: 15, price: 427.15, avgCost: 505.12 },
-    { snapTradeAccountId: nonregAcc.id, symbol: "TD.TO", rawSymbol: "TD", assetType: "cs", exchange: "TSX", currency: "CAD", units: 50, price: 81.6, avgCost: 76.8 }
+    {
+      snapTradeAccountId: tfsaAcc.id,
+      symbol: "QQQ",
+      rawSymbol: "QQQ",
+      assetType: "et",
+      exchange: "ARCA",
+      currency: "USD",
+      units: 35,
+      price: 538.42,
+      avgCost: 494.18,
+    },
+    {
+      snapTradeAccountId: tfsaAcc.id,
+      symbol: "SPY",
+      rawSymbol: "SPY",
+      assetType: "et",
+      exchange: "ARCA",
+      currency: "USD",
+      units: 20,
+      price: 568.25,
+      avgCost: 527.12,
+    },
+    {
+      snapTradeAccountId: tfsaAcc.id,
+      symbol: "XIC.TO",
+      rawSymbol: "XIC",
+      assetType: "et",
+      exchange: "TSX",
+      currency: "CAD",
+      units: 400,
+      price: 34.15,
+      avgCost: 29.5,
+    },
+    {
+      snapTradeAccountId: tfsaAcc.id,
+      symbol: "XUU.TO",
+      rawSymbol: "XUU",
+      assetType: "et",
+      exchange: "TSX",
+      currency: "CAD",
+      units: 600,
+      price: 44.8,
+      avgCost: 38.2,
+    },
+    {
+      snapTradeAccountId: tfsaAcc.id,
+      symbol: "BND",
+      rawSymbol: "BND",
+      assetType: "et",
+      exchange: "BATS",
+      currency: "USD",
+      units: 80,
+      price: 81.22,
+      avgCost: 83.67,
+    },
+    {
+      snapTradeAccountId: rrspAcc.id,
+      symbol: "AAPL",
+      rawSymbol: "AAPL",
+      assetType: "cs",
+      exchange: "NASDAQ",
+      currency: "USD",
+      units: 40,
+      price: 227.45,
+      avgCost: 189.22,
+    },
+    {
+      snapTradeAccountId: rrspAcc.id,
+      symbol: "MSFT",
+      rawSymbol: "MSFT",
+      assetType: "cs",
+      exchange: "NASDAQ",
+      currency: "USD",
+      units: 20,
+      price: 415.3,
+      avgCost: 363.45,
+    },
+    {
+      snapTradeAccountId: rrspAcc.id,
+      symbol: "NVDA",
+      rawSymbol: "NVDA",
+      assetType: "cs",
+      exchange: "NASDAQ",
+      currency: "USD",
+      units: 25,
+      price: 214.82,
+      avgCost: 158.34,
+    },
+    {
+      snapTradeAccountId: rrspAcc.id,
+      symbol: "VTI",
+      rawSymbol: "VTI",
+      assetType: "et",
+      exchange: "ARCA",
+      currency: "USD",
+      units: 25,
+      price: 363.48,
+      avgCost: 324.22,
+    },
+    {
+      snapTradeAccountId: rrspAcc.id,
+      symbol: "IVV",
+      rawSymbol: "IVV",
+      assetType: "et",
+      exchange: "BATS",
+      currency: "USD",
+      units: 18,
+      price: 568.15,
+      avgCost: 530.27,
+    },
+    {
+      snapTradeAccountId: rrspAcc.id,
+      symbol: "RY.TO",
+      rawSymbol: "RY",
+      assetType: "cs",
+      exchange: "TSX",
+      currency: "CAD",
+      units: 100,
+      price: 175.4,
+      avgCost: 165.5,
+    },
+    {
+      snapTradeAccountId: nonregAcc.id,
+      symbol: "META",
+      rawSymbol: "META",
+      assetType: "cs",
+      exchange: "NASDAQ",
+      currency: "USD",
+      units: 8,
+      price: 611.25,
+      avgCost: 550.75,
+    },
+    {
+      snapTradeAccountId: nonregAcc.id,
+      symbol: "GOOG",
+      rawSymbol: "GOOG",
+      assetType: "cs",
+      exchange: "NASDAQ",
+      currency: "USD",
+      units: 10,
+      price: 396.45,
+      avgCost: 357.29,
+    },
+    {
+      snapTradeAccountId: nonregAcc.id,
+      symbol: "TSLA",
+      rawSymbol: "TSLA",
+      assetType: "cs",
+      exchange: "NASDAQ",
+      currency: "USD",
+      units: 15,
+      price: 427.15,
+      avgCost: 505.12,
+    },
+    {
+      snapTradeAccountId: nonregAcc.id,
+      symbol: "TD.TO",
+      rawSymbol: "TD",
+      assetType: "cs",
+      exchange: "TSX",
+      currency: "CAD",
+      units: 50,
+      price: 81.6,
+      avgCost: 76.8,
+    },
   ].map((p) => {
     const marketValueNative = p.units * p.price;
     const costNative = p.units * p.avgCost;
@@ -495,7 +669,7 @@ export async function seedMockupDemo() {
       costNative,
       costCad,
       pnlCad,
-      pnlPct
+      pnlPct,
     };
   });
 
@@ -504,11 +678,39 @@ export async function seedMockupDemo() {
 
   await prisma.snapTradeCashBalance.createMany({
     data: [
-      { tenantId: tenant.id, accountId: tfsaAcc.id, currency: "CAD", cash: 3796, cashCad: 3796, buyingPower: 3796 },
-      { tenantId: tenant.id, accountId: rrspAcc.id, currency: "CAD", cash: 4000, cashCad: 4000, buyingPower: 4000 },
-      { tenantId: tenant.id, accountId: nonregAcc.id, currency: "CAD", cash: 1850, cashCad: 1850, buyingPower: 1850 },
-      { tenantId: tenant.id, accountId: nonregAcc.id, currency: "USD", cash: 1200, cashCad: 1656, buyingPower: 2400 }
-    ]
+      {
+        tenantId: tenant.id,
+        accountId: tfsaAcc.id,
+        currency: "CAD",
+        cash: 3796,
+        cashCad: 3796,
+        buyingPower: 3796,
+      },
+      {
+        tenantId: tenant.id,
+        accountId: rrspAcc.id,
+        currency: "CAD",
+        cash: 4000,
+        cashCad: 4000,
+        buyingPower: 4000,
+      },
+      {
+        tenantId: tenant.id,
+        accountId: nonregAcc.id,
+        currency: "CAD",
+        cash: 1850,
+        cashCad: 1850,
+        buyingPower: 1850,
+      },
+      {
+        tenantId: tenant.id,
+        accountId: nonregAcc.id,
+        currency: "USD",
+        cash: 1200,
+        cashCad: 1656,
+        buyingPower: 2400,
+      },
+    ],
   });
 
   await prisma.snapTradeFxRate.upsert({
@@ -518,12 +720,12 @@ export async function seedMockupDemo() {
       sourceCurrency: "USD",
       targetCurrency: "CAD",
       rate: usdToCAD,
-      fetchedAt: new Date()
+      fetchedAt: new Date(),
     },
     update: {
       rate: usdToCAD,
-      fetchedAt: new Date()
-    }
+      fetchedAt: new Date(),
+    },
   });
 
   const cycles: Parameters<typeof prisma.payCycle.createMany>[0]["data"] = [];
@@ -539,7 +741,7 @@ export async function seedMockupDemo() {
       incomeReceived: 4650,
       fixedSavingsPull: 2000,
       sweptAmount: 0,
-      carryover: 0
+      carryover: 0,
     });
   }
   await prisma.payCycle.createMany({ data: cycles });
@@ -547,26 +749,59 @@ export async function seedMockupDemo() {
 
   await prisma.recurringExpense.createMany({
     data: [
-      { tenantId: tenant.id, name: "Rent", merchantPattern: "FIDELITY REALTY", amount: 2500, frequency: "monthly", anchorDate: 1, accrualPerCycle: 2500 },
-      { tenantId: tenant.id, name: "Questrade Transfer", merchantPattern: "QUESTRADE", amount: 2000, frequency: "monthly", anchorDate: 15, accrualPerCycle: 2000 },
-      { tenantId: tenant.id, name: "Bell Canada", merchantPattern: "BELL CANADA", amount: 120, frequency: "monthly", anchorDate: 10, accrualPerCycle: 120 }
-    ]
+      {
+        tenantId: tenant.id,
+        name: "Rent",
+        merchantPattern: "FIDELITY REALTY",
+        amount: 2500,
+        frequency: "monthly",
+        anchorDate: 1,
+        accrualPerCycle: 2500,
+      },
+      {
+        tenantId: tenant.id,
+        name: "Questrade Transfer",
+        merchantPattern: "QUESTRADE",
+        amount: 2000,
+        frequency: "monthly",
+        anchorDate: 15,
+        accrualPerCycle: 2000,
+      },
+      {
+        tenantId: tenant.id,
+        name: "Bell Canada",
+        merchantPattern: "BELL CANADA",
+        amount: 120,
+        frequency: "monthly",
+        anchorDate: 10,
+        accrualPerCycle: 120,
+      },
+    ],
   });
 
   await prisma.savingsDestination.createMany({
-    data: [{ tenantId: tenant.id, accountName: "Questrade", matchPattern: "QUESTRADE", label: "investing" }]
+    data: [
+      {
+        tenantId: tenant.id,
+        accountName: "Questrade",
+        matchPattern: "QUESTRADE",
+        label: "investing",
+      },
+    ],
   });
 
   await prisma.settlementPattern.createMany({
     data: [
       { tenantId: tenant.id, label: "TD Visa payment", matchPattern: "TD VISA PAYMENT" },
       { tenantId: tenant.id, label: "Credit card payment", matchPattern: "CREDIT CARD PAYMENT" },
-      { tenantId: tenant.id, label: "Remboursement (FR)", matchPattern: "REMBOURSEMENT" }
-    ]
+      { tenantId: tenant.id, label: "Remboursement (FR)", matchPattern: "REMBOURSEMENT" },
+    ],
   });
 
   console.log("\n✅ Demo data seeded successfully!");
   console.log(`   Tenant: ${tenant.slug}`);
-  console.log(`   Plaid: 3 accounts, ${transactions.length} transactions, ${snapshots.length} balance snapshots`);
+  console.log(
+    `   Plaid: 3 accounts, ${transactions.length} transactions, ${snapshots.length} balance snapshots`
+  );
   console.log(`   SnapTrade: 3 accounts, ${positions.length} positions`);
 }

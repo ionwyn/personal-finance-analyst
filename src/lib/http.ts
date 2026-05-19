@@ -26,11 +26,11 @@ export async function requireOwnedPlaidItem(itemId: string) {
   const item = await prisma.plaidItem.findFirst({
     where: {
       id: itemId,
-      tenantId: auth.tenant.id
+      tenantId: auth.tenant.id,
     },
     include: {
-      tenant: true
-    }
+      tenant: true,
+    },
   });
 
   if (!item) {
@@ -47,12 +47,14 @@ export async function requireOwnedSnapTradeConnection(connectionId: string) {
   const connection = await prisma.snapTradeConnection.findFirst({
     where: {
       id: connectionId,
-      tenantId: auth.tenant.id
-    }
+      tenantId: auth.tenant.id,
+    },
   });
 
   if (!connection) {
-    return { error: NextResponse.json({ error: "SnapTrade connection not found" }, { status: 404 }) };
+    return {
+      error: NextResponse.json({ error: "SnapTrade connection not found" }, { status: 404 }),
+    };
   }
 
   return { ...auth, connection };
@@ -65,9 +67,9 @@ export async function requireOwnedSnapTradeLogo(logoId: string) {
   const position = await prisma.snapTradePosition.findFirst({
     where: {
       tenantId: auth.tenant.id,
-      logoId
+      logoId,
     },
-    select: { id: true }
+    select: { id: true },
   });
 
   if (!position) {

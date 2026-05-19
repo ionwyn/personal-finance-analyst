@@ -10,7 +10,7 @@ const ROUTE_LABELS: Record<string, [string, string]> = {
   "/app/transactions": ["Workspace", "Transactions"],
   "/app/investments": ["Workspace", "Investments"],
   "/app/settings": ["Workspace", "Settings"],
-  "/demo": ["Public", "Demo (read-only)"]
+  "/demo": ["Public", "Demo (read-only)"],
 };
 
 function labelsFor(pathname: string): [string, string] {
@@ -21,13 +21,7 @@ function labelsFor(pathname: string): [string, string] {
   return ["Workspace", "Dashboard"];
 }
 
-export function Topbar({
-  mode,
-  dbSize
-}: {
-  mode: "private" | "demo";
-  dbSize?: string;
-}) {
+export function Topbar({ mode, dbSize }: { mode: "private" | "demo"; dbSize?: string }) {
   const pathname = usePathname() ?? "/";
   const [time, setTime] = useState<string>("");
 
@@ -68,8 +62,7 @@ export function Topbar({
         {time ? <span>{time}</span> : null}
       </div>
       <button className="topbar-btn" type="button" aria-label="Command palette">
-        <Command size={11} />
-        K
+        <Command size={11} />K
       </button>
     </header>
   );

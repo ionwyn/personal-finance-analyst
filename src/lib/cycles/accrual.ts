@@ -4,7 +4,10 @@ import type { Frequency } from "@/lib/cycles/types";
 
 const CYCLES_PER_YEAR = 26;
 
-export function computeAccrualPerCycle(amount: Prisma.Decimal | number, frequency: Frequency): Prisma.Decimal {
+export function computeAccrualPerCycle(
+  amount: Prisma.Decimal | number,
+  frequency: Frequency
+): Prisma.Decimal {
   const decimal = typeof amount === "number" ? new Prisma.Decimal(amount) : amount;
   switch (frequency) {
     case "monthly":

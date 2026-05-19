@@ -29,8 +29,8 @@ export async function reconcileSweeps(
       source: TX_SOURCE_MANUAL_SWEEP,
       removed: false,
       supersededById: null,
-      cycleId: { in: cycleIds }
-    }
+      cycleId: { in: cycleIds },
+    },
   });
 
   if (!manualRows.length) return 0;
@@ -50,9 +50,9 @@ export async function reconcileSweeps(
         txnType: "savings",
         amount: manual.amount,
         date: { gte: windowStart, lte: windowEnd },
-        id: { notIn: Array.from(claimedReplacementIds) }
+        id: { notIn: Array.from(claimedReplacementIds) },
       },
-      orderBy: { date: "asc" }
+      orderBy: { date: "asc" },
     });
 
     if (candidates.length !== 1) continue;
@@ -61,7 +61,7 @@ export async function reconcileSweeps(
 
     await client.plaidTransaction.update({
       where: { id: manual.id },
-      data: { supersededById: replacement.id }
+      data: { supersededById: replacement.id },
     });
     reconciled += 1;
   }

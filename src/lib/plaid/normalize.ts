@@ -27,7 +27,7 @@ export function normalizeAccount(account: AccountBase) {
     unofficialCurrencyCode: account.balances.unofficial_currency_code,
     availableBalance: toDecimal(account.balances.available),
     currentBalance: toDecimal(account.balances.current),
-    limit: toDecimal(account.balances.limit)
+    limit: toDecimal(account.balances.limit),
   };
 }
 
@@ -52,7 +52,7 @@ export function normalizeTransaction(transaction: Transaction) {
     categoryDetailed: pfc?.detailed ?? null,
     categoryConfidence: pfc?.confidence_level ?? null,
     pending: transaction.pending,
-    raw: transaction as unknown as Prisma.InputJsonValue
+    raw: transaction as unknown as Prisma.InputJsonValue,
   };
 }
 
@@ -64,6 +64,6 @@ export function summarizeTransactionChanges(input: {
   return {
     addedCount: input.added.length,
     modifiedCount: input.modified.length,
-    removedCount: input.removed.length
+    removedCount: input.removed.length,
   };
 }

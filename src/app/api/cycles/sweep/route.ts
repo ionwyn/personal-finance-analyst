@@ -11,11 +11,11 @@ import { TX_SOURCE_MANUAL_SWEEP } from "@/lib/cycles/types";
 
 const sweepSchema = z.object({
   amount: z.number().positive(),
-  note: z.string().max(500).optional()
+  note: z.string().max(500).optional(),
 });
 
 const skipSchema = z.object({
-  note: z.string().max(500).optional()
+  note: z.string().max(500).optional(),
 });
 
 export async function POST(request: Request) {
@@ -37,7 +37,7 @@ export async function POST(request: Request) {
 
   const depositoryAccount = await prisma.plaidAccount.findFirst({
     where: { tenantId: auth.tenant.id, type: "depository" },
-    orderBy: { createdAt: "asc" }
+    orderBy: { createdAt: "asc" },
   });
 
   if (!depositoryAccount) {
@@ -67,8 +67,8 @@ export async function POST(request: Request) {
         raw: { source: "manual_sweep", note: body.note ?? null },
         cycleId: cycle.id,
         txnType: "savings",
-        source: TX_SOURCE_MANUAL_SWEEP
-      }
+        source: TX_SOURCE_MANUAL_SWEEP,
+      },
     });
 
     const prior = cycle.sweptAmount ?? new Prisma.Decimal(0);
@@ -76,8 +76,8 @@ export async function POST(request: Request) {
       where: { id: cycle.id },
       data: {
         sweptAmount: prior.add(body.amount),
-        notes: body.note ? appendNote(cycle.notes, body.note) : cycle.notes
-      }
+        notes: body.note ? appendNote(cycle.notes, body.note) : cycle.notes,
+      },
     });
 
     return { manualTx, updatedCycle };
@@ -105,8 +105,8 @@ export async function PATCH(request: Request) {
     where: { id: cycle.id },
     data: {
       sweptAmount: new Prisma.Decimal(0),
-      notes: body.note ? appendNote(cycle.notes, `Skipped sweep: ${body.note}`) : cycle.notes
-    }
+      notes: body.note ? appendNote(cycle.notes, `Skipped sweep: ${body.note}`) : cycle.notes,
+    },
   });
 
   return NextResponse.json({ ok: true });

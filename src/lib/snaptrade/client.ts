@@ -22,7 +22,7 @@ function requireFirstEnv(names: string[]) {
 export function getSnapTradeClient() {
   return new Snaptrade({
     clientId: requireFirstEnv(["SNAPTRADE_CLIENT_ID", "client_id"]),
-    consumerKey: requireFirstEnv(["SNAPTRADE_CONSUMER_KEY", "consumer_key"])
+    consumerKey: requireFirstEnv(["SNAPTRADE_CONSUMER_KEY", "consumer_key"]),
   });
 }
 
@@ -32,7 +32,7 @@ export function getSnapTradeCredentials() {
     userId: requireFirstEnv(["SNAPTRADE_USER_ID", "userid", "user_id"]),
     userSecret: userSecretEncrypted
       ? decryptToken(userSecretEncrypted)
-      : requireFirstEnv(["SNAPTRADE_USER_SECRET", "usersecret", "user_secret"])
+      : requireFirstEnv(["SNAPTRADE_USER_SECRET", "usersecret", "user_secret"]),
   };
 }
 
@@ -47,16 +47,18 @@ export async function createSnapTradeConnectionPortal(input: {
     connectionType: "read",
     connectionPortalVersion: "v4",
     showCloseButton: true,
-    customRedirect: `${getBaseUrl()}/app/accounts`
+    customRedirect: `${getBaseUrl()}/app/accounts`,
   });
 
   const data = response.data;
   if ("redirectURI" in data && data.redirectURI) {
     return {
       redirectURI: data.redirectURI,
-      sessionId: data.sessionId ?? null
+      sessionId: data.sessionId ?? null,
     };
   }
 
-  throw new Error("SnapTrade returned an encrypted login response; SSH-encrypted connection portal responses are not supported.");
+  throw new Error(
+    "SnapTrade returned an encrypted login response; SSH-encrypted connection portal responses are not supported."
+  );
 }

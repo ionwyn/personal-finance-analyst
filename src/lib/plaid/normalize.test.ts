@@ -27,8 +27,8 @@ describe("Plaid normalization", () => {
       personal_finance_category: {
         primary: "FOOD_AND_DRINK",
         detailed: "FOOD_AND_DRINK_COFFEE",
-        confidence_level: "VERY_HIGH"
-      }
+        confidence_level: "VERY_HIGH",
+      },
     } as Transaction);
 
     expect(normalized.plaidTransactionId).toBe("txn_1");
@@ -42,12 +42,12 @@ describe("Plaid normalization", () => {
       summarizeTransactionChanges({
         added: [1, 2],
         modified: [3],
-        removed: [4, 5, 6]
+        removed: [4, 5, 6],
       })
     ).toEqual({
       addedCount: 2,
       modifiedCount: 1,
-      removedCount: 3
+      removedCount: 3,
     });
   });
 });

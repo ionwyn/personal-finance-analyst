@@ -15,12 +15,12 @@ export async function exchangeAndStorePlaidItem(input: {
   source?: SyncSource;
 }) {
   const response = await getPlaidClient().itemPublicTokenExchange({
-    public_token: input.publicToken
+    public_token: input.publicToken,
   });
 
   const item = await prisma.plaidItem.upsert({
     where: {
-      plaidItemId: response.data.item_id
+      plaidItemId: response.data.item_id,
     },
     update: {
       tenantId: input.tenantId,
@@ -29,7 +29,7 @@ export async function exchangeAndStorePlaidItem(input: {
       institutionId: input.institutionId,
       institutionName: input.institutionName,
       errorCode: null,
-      errorMessage: null
+      errorMessage: null,
     },
     create: {
       tenantId: input.tenantId,
@@ -37,8 +37,8 @@ export async function exchangeAndStorePlaidItem(input: {
       plaidItemId: response.data.item_id,
       accessTokenEncrypted: encryptToken(response.data.access_token),
       institutionId: input.institutionId,
-      institutionName: input.institutionName
-    }
+      institutionName: input.institutionName,
+    },
   });
 
   await refreshAccountsForItem(item.id);

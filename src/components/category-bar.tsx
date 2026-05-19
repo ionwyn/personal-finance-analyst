@@ -29,7 +29,7 @@ export function CategoryBar({
   expandable = false,
   expanded = false,
   onToggle,
-  size = "md"
+  size = "md",
 }: CategoryBarProps) {
   const labelFontSize = size === "sm" ? 11 : 12;
   const trackHeight = size === "sm" ? 3 : 4;
@@ -43,7 +43,7 @@ export function CategoryBar({
         justifyContent: "space-between",
         alignItems: "center",
         fontSize: labelFontSize,
-        marginBottom: 3
+        marginBottom: 3,
       }}
     >
       <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
@@ -53,7 +53,7 @@ export function CategoryBar({
             style={{
               transform: expanded ? "rotate(90deg)" : "rotate(0deg)",
               transition: "transform 120ms ease",
-              color: "var(--text-3)"
+              color: "var(--text-3)",
             }}
           />
         ) : null}
@@ -62,7 +62,7 @@ export function CategoryBar({
             width: 8,
             height: 8,
             borderRadius: "50%",
-            background: color
+            background: color,
           }}
         />
         {label}
@@ -78,7 +78,7 @@ export function CategoryBar({
               fontSize: 10,
               color: delta > 0 ? "var(--neg)" : "var(--pos)",
               width: 56,
-              textAlign: "right"
+              textAlign: "right",
             }}
           >
             {delta > 0 ? "+" : ""}
@@ -98,7 +98,7 @@ export function CategoryBar({
         height: trackHeight,
         background: "var(--surface-2)",
         borderRadius: 2,
-        overflow: "hidden"
+        overflow: "hidden",
       }}
     >
       {showShadow ? (
@@ -108,7 +108,7 @@ export function CategoryBar({
             inset: 0,
             width: `${Math.max(0, Math.min(100, prevPct ?? 0))}%`,
             background: color,
-            opacity: 0.25
+            opacity: 0.25,
           }}
         />
       ) : null}
@@ -117,7 +117,7 @@ export function CategoryBar({
           position: "relative",
           width: `${Math.max(0, Math.min(100, pct))}%`,
           height: "100%",
-          background: color
+          background: color,
         }}
       />
     </div>
@@ -133,7 +133,7 @@ export function CategoryBar({
           all: "unset",
           display: "block",
           width: "100%",
-          cursor: "pointer"
+          cursor: "pointer",
         }}
       >
         {Header}

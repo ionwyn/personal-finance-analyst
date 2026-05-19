@@ -18,7 +18,7 @@ function StatusBadge({ status }: { status: CommittedItem["status"] }) {
   const config = {
     debited: { label: "Debited", Icon: CheckCircle2, color: "var(--pos)" },
     accrued: { label: "Accrued", Icon: Hourglass, color: "var(--text-3)" },
-    upcoming: { label: "Upcoming", Icon: Clock, color: "var(--info)" }
+    upcoming: { label: "Upcoming", Icon: Clock, color: "var(--info)" },
   } as const;
   const { label, Icon, color } = config[status];
   return (
@@ -29,7 +29,7 @@ function StatusBadge({ status }: { status: CommittedItem["status"] }) {
         gap: 4,
         fontSize: 11,
         color,
-        fontFamily: "var(--font-mono)"
+        fontFamily: "var(--font-mono)",
       }}
     >
       <Icon size={11} />
@@ -40,7 +40,7 @@ function StatusBadge({ status }: { status: CommittedItem["status"] }) {
 
 export function CycleView({
   data,
-  discoveryCandidates
+  discoveryCandidates,
 }: {
   data: CurrentCycleData;
   discoveryCandidates: DiscoveryCandidate[];
@@ -58,7 +58,7 @@ export function CycleView({
     sweepBuffer,
     safeToSweep,
     settingsConfigured,
-    breakdown
+    breakdown,
   } = data;
 
   const cycleLabel = `${formatUtcDate(cycle.startDate)} – ${formatUtcDate(cycle.endDate)}`;
@@ -73,8 +73,7 @@ export function CycleView({
   const buffer = toNumber(sweepBuffer);
   const sweepSpace = toNumber(safeToSweep.rawAmount);
   const sweepSuggestion = toNumber(safeToSweep.amount);
-  const dailySpendBudget =
-    daysRemaining > 0 ? Math.max(0, sweepSpace) / daysRemaining : 0;
+  const dailySpendBudget = daysRemaining > 0 ? Math.max(0, sweepSpace) / daysRemaining : 0;
 
   return (
     <>
@@ -82,8 +81,8 @@ export function CycleView({
         <div>
           <div className="page-title">Current cycle</div>
           <div className="page-sub">
-            {cycleLabel.toUpperCase()} · {daysRemaining}{" "}
-            {daysRemaining === 1 ? "DAY" : "DAYS"} REMAINING
+            {cycleLabel.toUpperCase()} · {daysRemaining} {daysRemaining === 1 ? "DAY" : "DAYS"}{" "}
+            REMAINING
           </div>
         </div>
         <div className="page-actions">
@@ -97,25 +96,19 @@ export function CycleView({
       </div>
 
       {!settingsConfigured ? (
-        <section
-          className="panel"
-          style={{ marginBottom: 16, borderColor: "var(--accent-dim)" }}
-        >
+        <section className="panel" style={{ marginBottom: 16, borderColor: "var(--accent-dim)" }}>
           <div className="panel-body" style={{ fontSize: 13, lineHeight: 1.6 }}>
-            <strong style={{ color: "var(--accent)" }}>Set up your paycheck anchor.</strong>{" "}
-            Open <Link href={"/app/settings" as never}>Settings → Pay cycle</Link> and set your{" "}
-            <em>Last paycheck date</em> + <em>Employer merchant pattern</em>. We&apos;ll
-            generate cycles forward from there and start populating income / Stage&nbsp;1
-            savings automatically.
+            <strong style={{ color: "var(--accent)" }}>Set up your paycheck anchor.</strong> Open{" "}
+            <Link href={"/app/settings" as never}>Settings → Pay cycle</Link> and set your{" "}
+            <em>Last paycheck date</em> + <em>Employer merchant pattern</em>. We&apos;ll generate
+            cycles forward from there and start populating income / Stage&nbsp;1 savings
+            automatically.
           </div>
         </section>
       ) : null}
 
       {settingsConfigured && daysRemaining <= 1 ? (
-        <SweepPrompt
-          suggestedAmount={sweepSuggestion}
-          alreadySwept={toNumber(cycle.sweptAmount)}
-        />
+        <SweepPrompt suggestedAmount={sweepSuggestion} alreadySwept={toNumber(cycle.sweptAmount)} />
       ) : null}
 
       {safeToSweep.overCommitted ? (
@@ -124,8 +117,8 @@ export function CycleView({
           style={{ marginBottom: 16, borderColor: "var(--neg)", background: "var(--neg-bg)" }}
         >
           <div className="panel-body" style={{ fontSize: 12, color: "var(--neg)" }}>
-            <strong>Over-committed.</strong> Pending charges + accruals exceed available cash.
-            Sweep suggestions are clamped to zero.
+            <strong>Over-committed.</strong> Pending charges + accruals exceed available cash. Sweep
+            suggestions are clamped to zero.
           </div>
         </section>
       ) : null}
@@ -146,7 +139,10 @@ export function CycleView({
           <div className="kpi-meta">
             <span>Buffer {formatMoney(buffer)}</span>
             <span>·</span>
-            <span>{carry >= 0 ? "carry +" : "carry "}{formatMoney(carry, { sign: true })}</span>
+            <span>
+              {carry >= 0 ? "carry +" : "carry "}
+              {formatMoney(carry, { sign: true })}
+            </span>
           </div>
         </div>
 
@@ -266,7 +262,7 @@ export function CycleView({
                   paddingTop: 8,
                   display: "flex",
                   alignItems: "center",
-                  justifyContent: "space-between"
+                  justifyContent: "space-between",
                 }}
               >
                 <span
@@ -274,15 +270,12 @@ export function CycleView({
                     fontSize: 11,
                     textTransform: "uppercase",
                     letterSpacing: "0.08em",
-                    color: "var(--text-3)"
+                    color: "var(--text-3)",
                   }}
                 >
                   Sweep Space
                 </span>
-                <span
-                  className="mono"
-                  style={{ fontSize: 14, fontVariantNumeric: "tabular-nums" }}
-                >
+                <span className="mono" style={{ fontSize: 14, fontVariantNumeric: "tabular-nums" }}>
                   {formatMoney(sweepSpace)}
                 </span>
               </div>
@@ -305,7 +298,7 @@ export function CycleView({
               <Row
                 label="Net cash flow this cycle"
                 value={formatMoney(incomeReceived - fixedSavingsPull - sweptAmount - spent, {
-                  sign: true
+                  sign: true,
                 })}
                 accent
               />
@@ -322,7 +315,9 @@ export function CycleView({
               <Row label="Credit card outstanding" value={formatMoney(ccBalance)} />
               <Row
                 label="CC due this cycle"
-                value={cycle.creditCardPaymentDate ? formatUtcDate(cycle.creditCardPaymentDate) : "—"}
+                value={
+                  cycle.creditCardPaymentDate ? formatUtcDate(cycle.creditCardPaymentDate) : "—"
+                }
               />
               <Row label="Sweep buffer setting" value={formatMoney(buffer)} />
             </div>
@@ -336,7 +331,8 @@ export function CycleView({
             <div className="panel-body" style={{ textAlign: "center" }}>
               <BigNumber value={dailySpendBudget} />
               <div style={{ fontSize: 12, color: "var(--text-3)", marginTop: 6 }}>
-                {formatMoney(Math.max(0, sweepSpace))} ÷ {daysRemaining} {daysRemaining === 1 ? "day" : "days"} remaining
+                {formatMoney(Math.max(0, sweepSpace))} ÷ {daysRemaining}{" "}
+                {daysRemaining === 1 ? "day" : "days"} remaining
               </div>
             </div>
           </div>
@@ -360,7 +356,12 @@ export function CycleView({
               </span>
             </span>
             <span style={{ minWidth: 56 }}>
-              <span className="mono" style={{ color: breakdown.total > breakdown.previousTotal ? "var(--neg)" : "var(--pos)" }}>
+              <span
+                className="mono"
+                style={{
+                  color: breakdown.total > breakdown.previousTotal ? "var(--neg)" : "var(--pos)",
+                }}
+              >
                 {formatMoney(breakdown.total - breakdown.previousTotal, { sign: true })}
               </span>
             </span>
@@ -368,9 +369,7 @@ export function CycleView({
         </div>
         <div className="panel-body">
           {breakdown.rows.length === 0 ? (
-            <div style={{ color: "var(--text-3)", fontSize: 12 }}>
-              No expenses this cycle yet.
-            </div>
+            <div style={{ color: "var(--text-3)", fontSize: 12 }}>No expenses this cycle yet.</div>
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
               {breakdown.rows.map((r) => (
@@ -401,7 +400,7 @@ function Row({ label, value, accent }: { label: string; value: string; accent?: 
         justifyContent: "space-between",
         alignItems: "center",
         padding: "4px 0",
-        fontSize: 12
+        fontSize: 12,
       }}
     >
       <span style={{ color: "var(--text-3)" }}>{label}</span>
@@ -410,7 +409,7 @@ function Row({ label, value, accent }: { label: string; value: string; accent?: 
         style={{
           fontVariantNumeric: "tabular-nums",
           color: accent ? "var(--accent)" : "var(--text)",
-          fontWeight: accent ? 600 : 400
+          fontWeight: accent ? 600 : 400,
         }}
       >
         {value}
@@ -419,15 +418,7 @@ function Row({ label, value, accent }: { label: string; value: string; accent?: 
   );
 }
 
-function BreakdownRow({
-  label,
-  value,
-  sign
-}: {
-  label: string;
-  value: number;
-  sign: "+" | "−";
-}) {
+function BreakdownRow({ label, value, sign }: { label: string; value: number; sign: "+" | "−" }) {
   return (
     <div
       style={{
@@ -435,7 +426,7 @@ function BreakdownRow({
         justifyContent: "space-between",
         alignItems: "center",
         padding: "3px 0",
-        fontSize: 12
+        fontSize: 12,
       }}
     >
       <span style={{ color: "var(--text-3)" }}>{label}</span>
@@ -443,7 +434,7 @@ function BreakdownRow({
         className="mono"
         style={{
           fontVariantNumeric: "tabular-nums",
-          color: sign === "+" ? "var(--pos)" : "var(--neg)"
+          color: sign === "+" ? "var(--pos)" : "var(--neg)",
         }}
       >
         {sign}

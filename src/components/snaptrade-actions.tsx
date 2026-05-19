@@ -96,14 +96,29 @@ export function SnapTradeConnectionActions({ connectionId }: { connectionId: str
 
   return (
     <>
-      <button className="btn btn-sm" type="button" onClick={() => run("sync")} disabled={Boolean(busyAction)}>
+      <button
+        className="btn btn-sm"
+        type="button"
+        onClick={() => run("sync")}
+        disabled={Boolean(busyAction)}
+      >
         <RefreshCw size={11} className={busyAction === "sync" ? "spin" : undefined} />
         Sync
       </button>
-      <button className="btn btn-sm" type="button" onClick={() => run("refresh")} disabled={Boolean(busyAction)}>
+      <button
+        className="btn btn-sm"
+        type="button"
+        onClick={() => run("refresh")}
+        disabled={Boolean(busyAction)}
+      >
         Refresh
       </button>
-      <button className="btn btn-sm btn-danger" type="button" onClick={() => run("unlink")} disabled={Boolean(busyAction)}>
+      <button
+        className="btn btn-sm btn-danger"
+        type="button"
+        onClick={() => run("unlink")}
+        disabled={Boolean(busyAction)}
+      >
         <Unlink size={11} />
         Unlink
       </button>

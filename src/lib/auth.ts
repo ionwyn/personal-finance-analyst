@@ -23,8 +23,8 @@ async function getAllowedGithubEmail(input: {
   const response = await fetch("https://api.github.com/user/emails", {
     headers: {
       Authorization: `Bearer ${input.accessToken}`,
-      Accept: "application/vnd.github+json"
-    }
+      Accept: "application/vnd.github+json",
+    },
   });
 
   if (!response.ok) return null;
@@ -38,9 +38,7 @@ async function getAllowedGithubEmail(input: {
   return (
     emails.find(
       (entry) =>
-        entry.email &&
-        entry.verified &&
-        input.allowedEmails.includes(entry.email.toLowerCase())
+        entry.email && entry.verified && input.allowedEmails.includes(entry.email.toLowerCase())
     )?.email ?? null
   );
 }
@@ -48,7 +46,7 @@ async function getAllowedGithubEmail(input: {
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),
   session: {
-    strategy: "database"
+    strategy: "database",
   },
   providers:
     githubClientId && githubClientSecret
@@ -58,10 +56,10 @@ export const authOptions: NextAuthOptions = {
             clientSecret: githubClientSecret,
             authorization: {
               params: {
-                scope: "read:user user:email"
-              }
-            }
-          })
+                scope: "read:user user:email",
+              },
+            },
+          }),
         ]
       : [],
   callbacks: {
@@ -72,7 +70,7 @@ export const authOptions: NextAuthOptions = {
       const allowedEmail = await getAllowedGithubEmail({
         profileEmail: user.email,
         accessToken: account?.access_token,
-        allowedEmails
+        allowedEmails,
       });
 
       if (allowedEmail) {
@@ -91,14 +89,14 @@ export const authOptions: NextAuthOptions = {
       }
 
       return session;
-    }
+    },
   },
   events: {
     async createUser({ user }) {
       await ensurePersonalTenantForUser(user.id);
-    }
+    },
   },
   pages: {
-    signIn: "/signin"
-  }
+    signIn: "/signin",
+  },
 };

@@ -10,10 +10,9 @@ import {
   LayoutGrid,
   LogOut,
   PieChart,
-  PlayCircle,
   Settings,
   TrendingUp,
-  Wallet
+  Wallet,
 } from "lucide-react";
 
 export type SidebarUser = {
@@ -33,43 +32,112 @@ type NavItem = {
 
 const ICON_SIZE = 14;
 
-export function Sidebar({
-  mode,
-  user
-}: {
-  mode: "private" | "demo";
-  user?: SidebarUser;
-}) {
+export function Sidebar({ mode, user }: { mode: "private" | "demo"; user?: SidebarUser }) {
   const pathname = usePathname() ?? "/";
   const router = useRouter();
 
   const primary: NavItem[] =
     mode === "private"
       ? [
-          { key: "dashboard", label: "Dashboard", href: "/app", icon: <LayoutGrid size={ICON_SIZE} />, kbd: "⌘1" },
-          { key: "accounts", label: "Accounts", href: "/app/accounts", icon: <Wallet size={ICON_SIZE} />, kbd: "⌘2" },
-          { key: "transactions", label: "Transactions", href: "/app/transactions", icon: <ArrowLeftRight size={ICON_SIZE} />, kbd: "⌘3" },
-          { key: "spending-insight", label: "Spending Insight", href: "/app/spending-insight", icon: <PieChart size={ICON_SIZE} />, kbd: "⌘4" },
-          { key: "investments", label: "Investments", href: "/app/investments", icon: <TrendingUp size={ICON_SIZE} />, kbd: "⌘5" },
-          { key: "cycles", label: "Pay cycles", href: "/app/cycles", icon: <CalendarClock size={ICON_SIZE} />, kbd: "⌘6" }
+          {
+            key: "dashboard",
+            label: "Dashboard",
+            href: "/app",
+            icon: <LayoutGrid size={ICON_SIZE} />,
+            kbd: "⌘1",
+          },
+          {
+            key: "accounts",
+            label: "Accounts",
+            href: "/app/accounts",
+            icon: <Wallet size={ICON_SIZE} />,
+            kbd: "⌘2",
+          },
+          {
+            key: "transactions",
+            label: "Transactions",
+            href: "/app/transactions",
+            icon: <ArrowLeftRight size={ICON_SIZE} />,
+            kbd: "⌘3",
+          },
+          {
+            key: "spending-insight",
+            label: "Spending Insight",
+            href: "/app/spending-insight",
+            icon: <PieChart size={ICON_SIZE} />,
+            kbd: "⌘4",
+          },
+          {
+            key: "investments",
+            label: "Investments",
+            href: "/app/investments",
+            icon: <TrendingUp size={ICON_SIZE} />,
+            kbd: "⌘5",
+          },
+          {
+            key: "cycles",
+            label: "Pay cycles",
+            href: "/app/cycles",
+            icon: <CalendarClock size={ICON_SIZE} />,
+            kbd: "⌘6",
+          },
         ]
       : [
-          { key: "dashboard", label: "Dashboard", href: "/app", icon: <LayoutGrid size={ICON_SIZE} />, kbd: "⌘1" },
-          { key: "accounts", label: "Accounts", href: "/app/accounts", icon: <Wallet size={ICON_SIZE} />, kbd: "⌘2" },
-          { key: "transactions", label: "Transactions", href: "/app/transactions", icon: <ArrowLeftRight size={ICON_SIZE} />, kbd: "⌘3" },
-          { key: "spending-insight", label: "Spending Insight", href: "/app/spending-insight", icon: <PieChart size={ICON_SIZE} />, kbd: "⌘4" },
-          { key: "investments", label: "Investments", href: "/app/investments", icon: <TrendingUp size={ICON_SIZE} />, kbd: "⌘5" },
-          { key: "cycles", label: "Pay cycles", href: "/app/cycles", icon: <CalendarClock size={ICON_SIZE} />, kbd: "⌘6" }
+          {
+            key: "dashboard",
+            label: "Dashboard",
+            href: "/app",
+            icon: <LayoutGrid size={ICON_SIZE} />,
+            kbd: "⌘1",
+          },
+          {
+            key: "accounts",
+            label: "Accounts",
+            href: "/app/accounts",
+            icon: <Wallet size={ICON_SIZE} />,
+            kbd: "⌘2",
+          },
+          {
+            key: "transactions",
+            label: "Transactions",
+            href: "/app/transactions",
+            icon: <ArrowLeftRight size={ICON_SIZE} />,
+            kbd: "⌘3",
+          },
+          {
+            key: "spending-insight",
+            label: "Spending Insight",
+            href: "/app/spending-insight",
+            icon: <PieChart size={ICON_SIZE} />,
+            kbd: "⌘4",
+          },
+          {
+            key: "investments",
+            label: "Investments",
+            href: "/app/investments",
+            icon: <TrendingUp size={ICON_SIZE} />,
+            kbd: "⌘5",
+          },
+          {
+            key: "cycles",
+            label: "Pay cycles",
+            href: "/app/cycles",
+            icon: <CalendarClock size={ICON_SIZE} />,
+            kbd: "⌘6",
+          },
         ];
 
   const secondary: NavItem[] =
     mode === "private"
       ? [
-          { key: "settings", label: "Settings", href: "/app/settings", icon: <Settings size={ICON_SIZE} /> }
+          {
+            key: "settings",
+            label: "Settings",
+            href: "/app/settings",
+            icon: <Settings size={ICON_SIZE} />,
+          },
         ]
-      : [
-          { key: "signin", label: "Sign in", href: "/signin", icon: <LogOut size={ICON_SIZE} /> }
-        ];
+      : [{ key: "signin", label: "Sign in", href: "/signin", icon: <LogOut size={ICON_SIZE} /> }];
 
   useEffect(() => {
     const map: Record<string, string> = {
@@ -78,7 +146,7 @@ export function Sidebar({
       "3": "/app/transactions",
       "4": "/app/spending-insight",
       "5": "/app/investments",
-      "6": "/app/cycles"
+      "6": "/app/cycles",
     };
     const onKey = (e: KeyboardEvent) => {
       if (!(e.metaKey || e.ctrlKey)) return;
@@ -109,9 +177,7 @@ export function Sidebar({
     <aside className="sidebar">
       <div className="brand">
         <div className="brand-mark">WYN</div>
-        <div className="brand-name">
-          WYN Financial Ltd.
-        </div>
+        <div className="brand-name">WYN Financial Ltd.</div>
       </div>
 
       <nav className="nav">

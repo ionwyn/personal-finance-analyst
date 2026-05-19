@@ -21,13 +21,17 @@ describe("cycle math", () => {
   it("steps forward exactly one stride after 14 days", () => {
     const anchor = utcDate("2026-05-01");
     const target = utcDate("2026-05-15");
-    expect(cycleStartForDate(anchor, target).toISOString()).toBe(utcDate("2026-05-15").toISOString());
+    expect(cycleStartForDate(anchor, target).toISOString()).toBe(
+      utcDate("2026-05-15").toISOString()
+    );
   });
 
   it("steps backward for dates before the anchor", () => {
     const anchor = utcDate("2026-05-01");
     const target = utcDate("2026-04-25");
-    expect(cycleStartForDate(anchor, target).toISOString()).toBe(utcDate("2026-04-17").toISOString());
+    expect(cycleStartForDate(anchor, target).toISOString()).toBe(
+      utcDate("2026-04-17").toISOString()
+    );
   });
 
   it("end date is 13 days after start", () => {

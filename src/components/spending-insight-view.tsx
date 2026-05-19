@@ -7,7 +7,7 @@ import type {
   CategoryRow,
   DetailedRow,
   Period,
-  SpendingInsightData
+  SpendingInsightData,
 } from "@/lib/spending/getSpendingInsight";
 
 type SortKey = "amount" | "pct" | "delta";
@@ -32,7 +32,16 @@ function cleanSubName(parent: string, sub: string): string {
 
 function ChevR() {
   return (
-    <svg width={11} height={11} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+    <svg
+      width={11}
+      height={11}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
       <path d="m9 18 6-6-6-6" />
     </svg>
   );
@@ -44,7 +53,7 @@ function BarStack({
   scale,
   color,
   showShadow,
-  small
+  small,
 }: {
   cur: number;
   prev: number;
@@ -75,7 +84,7 @@ function BarStack({
 
 export function SpendingInsightView({
   mtd,
-  ytd
+  ytd,
 }: {
   mtd: SpendingInsightData;
   ytd: SpendingInsightData;
@@ -176,8 +185,7 @@ export function SpendingInsightView({
 
         <div className="kpi">
           <div className="kpi-label">
-            <span className="dot" style={{ background: "var(--accent)" }} />
-            % of income
+            <span className="dot" style={{ background: "var(--accent)" }} />% of income
           </div>
           <span className="kpi-value">
             {pctOfIncome.toFixed(1)}
@@ -225,8 +233,7 @@ export function SpendingInsightView({
           {topThree.length > 0 ? (
             <div className="spend-summary-stat-row">
               {topThree.map((c) => {
-                const pct =
-                  data.totalSpending > 0 ? (c.amount / data.totalSpending) * 100 : 0;
+                const pct = data.totalSpending > 0 ? (c.amount / data.totalSpending) * 100 : 0;
                 return (
                   <div className="spend-summary-stat" key={c.primaryRaw || c.primary}>
                     <div className="spend-summary-stat-pct">
@@ -261,8 +268,7 @@ export function SpendingInsightView({
         {visibleSegs.length > 0 ? (
           <div className="spend-summary-legend">
             {visibleSegs.map((c) => {
-              const pct =
-                data.totalSpending > 0 ? (c.amount / data.totalSpending) * 100 : 0;
+              const pct = data.totalSpending > 0 ? (c.amount / data.totalSpending) * 100 : 0;
               return (
                 <div className="spend-summary-leg" key={c.primaryRaw || c.primary}>
                   <span className="dot" style={{ background: c.color }} />
@@ -347,8 +353,8 @@ export function SpendingInsightView({
       </div>
 
       <div className="si-caveat">
-        Internal transfers, credit-card payments, and savings/investment moves are excluded
-        from spending totals.
+        Internal transfers, credit-card payments, and savings/investment moves are excluded from
+        spending totals.
       </div>
     </>
   );
@@ -360,7 +366,7 @@ function CategoryRowItem({
   scale,
   showShadow,
   expanded,
-  onToggle
+  onToggle,
 }: {
   cat: CategoryRow;
   income: number;
@@ -439,7 +445,7 @@ function SubcatRow({
   detail,
   income,
   scale,
-  showShadow
+  showShadow,
 }: {
   parent: string;
   color: string;
@@ -470,13 +476,7 @@ function SubcatRow({
   );
 }
 
-function PeriodToggle({
-  period,
-  onChange
-}: {
-  period: Period;
-  onChange: (p: Period) => void;
-}) {
+function PeriodToggle({ period, onChange }: { period: Period; onChange: (p: Period) => void }) {
   return (
     <div className="period-toggle" role="tablist">
       {(["MTD", "YTD"] as Period[]).map((p) => (
@@ -500,7 +500,7 @@ function buildMtdSubtitle(data: SpendingInsightData): { main: string } {
   const day = end.getDate();
   const daysInMonth = new Date(end.getFullYear(), end.getMonth() + 1, 0).getDate();
   return {
-    main: `${data.periodLabel.toUpperCase()} · MTD · DAY ${day} OF ${daysInMonth} · `
+    main: `${data.periodLabel.toUpperCase()} · MTD · DAY ${day} OF ${daysInMonth} · `,
   };
 }
 

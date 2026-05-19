@@ -44,7 +44,8 @@ function matchesPattern(haystack: string, pattern: string) {
 function withinPaycheckWindow(date: Date, expectedDates: Date[]) {
   if (!expectedDates.length) return true;
   return expectedDates.some(
-    (expected) => Math.abs(date.getTime() - expected.getTime()) <= INCOME_DATE_TOLERANCE_DAYS * DAY_MS
+    (expected) =>
+      Math.abs(date.getTime() - expected.getTime()) <= INCOME_DATE_TOLERANCE_DAYS * DAY_MS
   );
 }
 
@@ -72,7 +73,11 @@ export function classifyTransaction(input: ClassifyInput, ctx: ClassifyContext):
     }
   }
 
-  if (isCredit && ctx.employerMerchantPattern && matchesPattern(merchant, ctx.employerMerchantPattern)) {
+  if (
+    isCredit &&
+    ctx.employerMerchantPattern &&
+    matchesPattern(merchant, ctx.employerMerchantPattern)
+  ) {
     if (withinPaycheckWindow(input.date, ctx.expectedPaycheckDates ?? [])) {
       return { txnType: "income", reason: "income:employer" };
     }

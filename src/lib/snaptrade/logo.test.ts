@@ -8,9 +8,9 @@ describe("SnapTrade logo handling", () => {
         snapTradeSecurityLogo: {
           upsert: vi.fn(),
           findUnique: vi.fn(),
-          update: vi.fn()
-        }
-      }
+          update: vi.fn(),
+        },
+      },
     }));
   });
 

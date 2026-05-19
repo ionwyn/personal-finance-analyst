@@ -22,12 +22,12 @@ const TRANSFER_PRIMARIES = new Set(["TRANSFER_IN", "TRANSFER_OUT"]);
 const SETTLEMENT_DETAILED = new Set([
   "LOAN_PAYMENTS_CREDIT_CARD_PAYMENT",
   "TRANSFER_OUT_ACCOUNT_TRANSFER",
-  "TRANSFER_IN_ACCOUNT_TRANSFER"
+  "TRANSFER_IN_ACCOUNT_TRANSFER",
 ]);
 
 const SAVINGS_DETAILED = new Set([
   "TRANSFER_OUT_SAVINGS",
-  "TRANSFER_OUT_INVESTMENT_AND_RETIREMENT_FUNDS"
+  "TRANSFER_OUT_INVESTMENT_AND_RETIREMENT_FUNDS",
 ]);
 
 export function categorizeForSpending(t: ClassifiableTxn): SpendingBucket {
@@ -49,11 +49,9 @@ export function categorizeForSpending(t: ClassifiableTxn): SpendingBucket {
   return "spending";
 }
 
-export const isRealSpending = (t: ClassifiableTxn) =>
-  categorizeForSpending(t) === "spending";
+export const isRealSpending = (t: ClassifiableTxn) => categorizeForSpending(t) === "spending";
 
-export const isRealIncome = (t: ClassifiableTxn) =>
-  categorizeForSpending(t) === "income";
+export const isRealIncome = (t: ClassifiableTxn) => categorizeForSpending(t) === "income";
 
 /**
  * Composable Prisma where-partial that narrows to "real spending" — txnType
@@ -71,11 +69,11 @@ export const SPENDING_FILTER: Prisma.PlaidTransactionWhereInput = {
       { categoryPrimary: "LOAN_PAYMENTS" },
       {
         categoryDetailed: {
-          in: [...SETTLEMENT_DETAILED, ...SAVINGS_DETAILED]
-        }
-      }
-    ]
-  }
+          in: [...SETTLEMENT_DETAILED, ...SAVINGS_DETAILED],
+        },
+      },
+    ],
+  },
 };
 
 /**
@@ -87,11 +85,8 @@ export const INCOME_FILTER: Prisma.PlaidTransactionWhereInput = {
   supersededById: null,
   amount: { lt: 0 },
   NOT: {
-    OR: [
-      { categoryPrimary: "TRANSFER_IN" },
-      { categoryDetailed: "TRANSFER_IN_ACCOUNT_TRANSFER" }
-    ]
-  }
+    OR: [{ categoryPrimary: "TRANSFER_IN" }, { categoryDetailed: "TRANSFER_IN_ACCOUNT_TRANSFER" }],
+  },
 };
 
 export function spendingWhere(

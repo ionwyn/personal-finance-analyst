@@ -3,7 +3,7 @@ import type {
   Balance,
   BrokerageAuthorization,
   Position,
-  UniversalSymbol
+  UniversalSymbol,
 } from "snaptrade-typescript-sdk";
 
 import { normalizeSnapTradeLogoUrl } from "@/lib/snaptrade/logo";
@@ -60,7 +60,10 @@ export type NormalizedPosition = {
 };
 
 export function isClosedSnapTradeAccountStatus(status: string | null | undefined) {
-  const normalized = status?.trim().toLowerCase().replace(/[\s-]+/g, "_");
+  const normalized = status
+    ?.trim()
+    .toLowerCase()
+    .replace(/[\s-]+/g, "_");
   return normalized === "closed" || normalized === "account_closed";
 }
 
@@ -121,7 +124,9 @@ function positionLogoUrl(...sources: Array<LogoBearing | null | undefined>) {
   return null;
 }
 
-export function normalizeConnection(authorization: BrokerageAuthorization): NormalizedConnection | null {
+export function normalizeConnection(
+  authorization: BrokerageAuthorization
+): NormalizedConnection | null {
   if (!authorization.id) return null;
   return {
     snapTradeAuthorizationId: authorization.id,
@@ -130,7 +135,7 @@ export function normalizeConnection(authorization: BrokerageAuthorization): Norm
     brokerageName: authorization.brokerage?.display_name ?? authorization.brokerage?.name ?? null,
     brokerageSlug: authorization.brokerage?.slug ?? null,
     disabled: Boolean(authorization.disabled),
-    disabledAt: dateOrNull(authorization.disabled_date)
+    disabledAt: dateOrNull(authorization.disabled_date),
   };
 }
 
@@ -149,7 +154,7 @@ export function normalizeAccount(account: Account): NormalizedAccount {
     status: account.status ?? null,
     isPaper: Boolean(account.is_paper),
     lastHoldingsSyncAt: dateOrNull(holdingsStatus?.last_successful_sync),
-    holdingsInitialSyncComplete: Boolean(holdingsStatus?.initial_sync_completed)
+    holdingsInitialSyncComplete: Boolean(holdingsStatus?.initial_sync_completed),
   };
 }
 
@@ -159,7 +164,7 @@ export function normalizeBalance(balance: Balance): NormalizedBalance | null {
   return {
     currency,
     cash: numberOrNull(balance.cash) ?? 0,
-    buyingPower: numberOrNull(balance.buying_power)
+    buyingPower: numberOrNull(balance.buying_power),
   };
 }
 
@@ -195,6 +200,6 @@ export function normalizePosition(position: Position, index = 0): NormalizedPosi
     pnlNative,
     pnlPct,
     cashEquivalent: Boolean(position.cash_equivalent),
-    logoUrl: positionLogoUrl(symbol, positionSymbol, positionWithLogo)
+    logoUrl: positionLogoUrl(symbol, positionSymbol, positionWithLogo),
   };
 }

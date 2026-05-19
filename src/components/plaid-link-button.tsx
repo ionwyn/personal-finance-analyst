@@ -9,7 +9,7 @@ import {
   useMemo,
   useRef,
   useState,
-  type ReactNode
+  type ReactNode,
 } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, Plus } from "lucide-react";
@@ -50,8 +50,8 @@ export function PlaidLinkProvider({ children }: { children: ReactNode }) {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             public_token: publicToken,
-            institution: (metadata as PlaidMetadata).institution
-          })
+            institution: (metadata as PlaidMetadata).institution,
+          }),
         });
 
         if (!response.ok) throw new Error("Plaid Item exchange failed.");
@@ -61,7 +61,7 @@ export function PlaidLinkProvider({ children }: { children: ReactNode }) {
       } finally {
         setLoading(false);
       }
-    }
+    },
   });
 
   useEffect(() => {
@@ -71,26 +71,23 @@ export function PlaidLinkProvider({ children }: { children: ReactNode }) {
     }
   }, [open, ready]);
 
-  const startLink = useCallback(
-    async (buttonId: string) => {
-      setLoading(true);
-      setError(null);
-      setActiveButtonId(buttonId);
-      try {
-        const response = await fetch("/api/plaid/link-token", { method: "POST" });
-        if (!response.ok) throw new Error("Could not create a Plaid Link token.");
-        const body = (await response.json()) as { link_token: string };
-        pendingOpenRef.current = true;
-        setToken(body.link_token);
-      } catch (linkError) {
-        pendingOpenRef.current = false;
-        setError(linkError instanceof Error ? linkError.message : "Plaid Link failed.");
-      } finally {
-        setLoading(false);
-      }
-    },
-    []
-  );
+  const startLink = useCallback(async (buttonId: string) => {
+    setLoading(true);
+    setError(null);
+    setActiveButtonId(buttonId);
+    try {
+      const response = await fetch("/api/plaid/link-token", { method: "POST" });
+      if (!response.ok) throw new Error("Could not create a Plaid Link token.");
+      const body = (await response.json()) as { link_token: string };
+      pendingOpenRef.current = true;
+      setToken(body.link_token);
+    } catch (linkError) {
+      pendingOpenRef.current = false;
+      setError(linkError instanceof Error ? linkError.message : "Plaid Link failed.");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   const value = useMemo(
     () => ({ activeButtonId, error, loading, startLink }),

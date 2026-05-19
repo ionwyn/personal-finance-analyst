@@ -13,7 +13,7 @@ const bodySchema = z.object({
   frequency: z.enum(FREQUENCIES),
   anchorDate: z.number().int().min(1).max(31).nullable().optional(),
   confirmed: z.boolean().optional(),
-  active: z.boolean().optional()
+  active: z.boolean().optional(),
 });
 
 export async function POST(request: Request) {
@@ -42,8 +42,8 @@ export async function POST(request: Request) {
       anchorDate: body.anchorDate ?? null,
       accrualPerCycle,
       confirmed: body.confirmed ?? true,
-      active: body.active ?? true
-    }
+      active: body.active ?? true,
+    },
   });
 
   return NextResponse.json({ expense });

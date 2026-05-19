@@ -10,10 +10,10 @@ async function firstCreditTransactionDate(tenantId: string) {
       tenantId,
       removed: false,
       supersededById: null,
-      account: { type: "credit" }
+      account: { type: "credit" },
     },
     orderBy: { date: "asc" },
-    select: { date: true }
+    select: { date: true },
   });
   return first?.date ?? null;
 }
@@ -21,7 +21,7 @@ async function firstCreditTransactionDate(tenantId: string) {
 async function carryoverBaselineDate(tenantId: string) {
   const tenant = await prisma.tenant.findUnique({
     where: { id: tenantId },
-    select: { createdAt: true }
+    select: { createdAt: true },
   });
   return tenant?.createdAt ?? null;
 }
@@ -49,7 +49,7 @@ export async function closeOverdueCycles(tenantId: string, now: Date = new Date(
   const overdueIds = await prisma.payCycle.findMany({
     where: { tenantId, endDate: { lt: now } },
     orderBy: { startDate: "asc" },
-    select: { id: true }
+    select: { id: true },
   });
 
   if (!overdueIds.length) return 0;
@@ -69,8 +69,8 @@ export async function closeOverdueCycles(tenantId: string, now: Date = new Date(
       fixedSavingsPull: true,
       sweptAmount: true,
       carryover: true,
-      closedAt: true
-    }
+      closedAt: true,
+    },
   });
 
   let closed = 0;
@@ -84,7 +84,7 @@ export async function closeOverdueCycles(tenantId: string, now: Date = new Date(
       if (!cycle.carryover.equals(0) || !cycle.closedAt) {
         await prisma.payCycle.update({
           where: { id: cycle.id },
-          data: { carryover: new Prisma.Decimal(0), closedAt: cycle.closedAt ?? now }
+          data: { carryover: new Prisma.Decimal(0), closedAt: cycle.closedAt ?? now },
         });
       }
       if (!cycle.closedAt) closed += 1;
@@ -98,19 +98,19 @@ export async function closeOverdueCycles(tenantId: string, now: Date = new Date(
           tenantId,
           endDate: {
             lt: cycle.startDate,
-            ...(baselineDate ? { gte: baselineDate } : {})
+            ...(baselineDate ? { gte: baselineDate } : {}),
           },
-          closedAt: { not: null }
+          closedAt: { not: null },
         },
         orderBy: { startDate: "desc" },
-        select: { carryover: true }
+        select: { carryover: true },
       });
       previousCarryover = prev?.carryover ?? new Prisma.Decimal(0);
     }
 
     const expenseAgg = await prisma.plaidTransaction.aggregate({
       where: { ...SPENDING_FILTER, tenantId, cycleId: cycle.id },
-      _sum: { amount: true }
+      _sum: { amount: true },
     });
 
     const shouldCountSettlements = !creditHistoryStart || cycle.endDate < creditHistoryStart;
@@ -121,9 +121,9 @@ export async function closeOverdueCycles(tenantId: string, now: Date = new Date(
             cycleId: cycle.id,
             removed: false,
             supersededById: null,
-            txnType: "settlement"
+            txnType: "settlement",
           },
-          _sum: { amount: true }
+          _sum: { amount: true },
         })
       : null;
 
@@ -143,7 +143,7 @@ export async function closeOverdueCycles(tenantId: string, now: Date = new Date(
     if (!cycle.carryover.equals(newCarryover) || !cycle.closedAt) {
       await prisma.payCycle.update({
         where: { id: cycle.id },
-        data: { carryover: newCarryover, closedAt: cycle.closedAt ?? now }
+        data: { carryover: newCarryover, closedAt: cycle.closedAt ?? now },
       });
     }
 
@@ -165,12 +165,12 @@ export async function getActiveCarryover(tenantId: string, activeCycleStart: Dat
       tenantId,
       endDate: {
         lt: activeCycleStart,
-        ...(baselineDate ? { gte: baselineDate } : {})
+        ...(baselineDate ? { gte: baselineDate } : {}),
       },
-      closedAt: { not: null }
+      closedAt: { not: null },
     },
     orderBy: { startDate: "desc" },
-    select: { carryover: true }
+    select: { carryover: true },
   });
   return prev?.carryover ?? new Prisma.Decimal(0);
 }

@@ -14,7 +14,7 @@ const CATEGORY_COLORS = [
   "var(--cat-5)",
   "var(--cat-6)",
   "var(--cat-7)",
-  "var(--cat-8)"
+  "var(--cat-8)",
 ];
 
 function numberValue(value: Prisma.Decimal | number | null | undefined) {
@@ -65,7 +65,7 @@ const SUBSCRIPTION_HINTS = [
   "audible",
   "kindle",
   "new york times",
-  "wsj"
+  "wsj",
 ];
 
 function isLikelySubscription(name: string, category: string | null) {
@@ -89,19 +89,19 @@ function emptyDashboardData(slug: string, investments: InvestmentDashboardData) 
       totalLiabilities: 0,
       monthlySpend: 0,
       monthlyIncome: 0,
-      netCashflow: 0
+      netCashflow: 0,
     },
     deltas: {
       balance: null as number | null,
       income: null as number | null,
       spend: null as number | null,
-      cashflow: null as number | null
+      cashflow: null as number | null,
     },
     sparks: {
       balance: [] as number[],
       income: [] as number[],
       spend: [] as number[],
-      cashflow: [] as number[]
+      cashflow: [] as number[],
     },
     insights: {
       avgDailySpend: 0,
@@ -112,7 +112,7 @@ function emptyDashboardData(slug: string, investments: InvestmentDashboardData) 
       daysRemaining: 0,
       monthExpenseCount: 0,
       daysElapsed: 0,
-      daysInMonth: 30
+      daysInMonth: 30,
     },
     institutions: [] as InstitutionSummary[],
     accounts: [] as AccountSummary[],
@@ -127,7 +127,7 @@ function emptyDashboardData(slug: string, investments: InvestmentDashboardData) 
     balanceHistory: [] as BalancePoint[],
     investments,
     currentMonthLabel: format(new Date(), "MMM"),
-    previousMonthLabel: format(subMonths(new Date(), 1), "MMM")
+    previousMonthLabel: format(subMonths(new Date(), 1), "MMM"),
   };
 }
 
@@ -188,17 +188,17 @@ export async function getDashboardData(tenantSlug: string) {
     where: { slug: tenantSlug },
     include: {
       plaidAccounts: {
-        orderBy: [{ type: "asc" }, { name: "asc" }]
+        orderBy: [{ type: "asc" }, { name: "asc" }],
       },
       plaidItems: {
         orderBy: { createdAt: "desc" },
         include: {
           accounts: {
-            orderBy: [{ type: "asc" }, { name: "asc" }]
-          }
-        }
-      }
-    }
+            orderBy: [{ type: "asc" }, { name: "asc" }],
+          },
+        },
+      },
+    },
   });
 
   const investments = await getInvestmentDashboardData(tenant?.id);
@@ -218,10 +218,10 @@ export async function getDashboardData(tenantSlug: string) {
     where: {
       tenantId: tenant.id,
       removed: false,
-      date: { gte: sixMonthsAgo }
+      date: { gte: sixMonthsAgo },
     },
     orderBy: { date: "desc" },
-    include: { account: true }
+    include: { account: true },
   });
 
   const recentTransactions: TransactionSummary[] = transactions.slice(0, 10).map((t) => {
@@ -235,7 +235,7 @@ export async function getDashboardData(tenantSlug: string) {
       category: cat,
       categoryColor: colorForCategory(cat, Math.abs(hash(cat)) % CATEGORY_COLORS.length),
       account: t.account.name,
-      pending: t.pending
+      pending: t.pending,
     };
   });
 
@@ -291,7 +291,7 @@ export async function getDashboardData(tenantSlug: string) {
             category: t.categoryPrimary ?? "Uncategorized",
             categoryColor: "var(--cat-1)",
             account: t.account.name,
-            pending: t.pending
+            pending: t.pending,
           };
         }
 
@@ -330,7 +330,7 @@ export async function getDashboardData(tenantSlug: string) {
   const balanceSnapshots = await prisma.balanceSnapshot.findMany({
     where: { tenantId: tenant.id, capturedAt: { gte: sixMonthsAgo } },
     include: { account: true },
-    orderBy: { capturedAt: "asc" }
+    orderBy: { capturedAt: "asc" },
   });
 
   const balanceByDay = new Map<string, { date: Date; balance: number }>();
@@ -343,12 +343,12 @@ export async function getDashboardData(tenantSlug: string) {
     const existing = balanceByDay.get(key);
     balanceByDay.set(key, {
       date: existing?.date ?? snapshot.capturedAt,
-      balance: (existing?.balance ?? 0) + signed
+      balance: (existing?.balance ?? 0) + signed,
     });
   }
   const balanceHistory: BalancePoint[] = [...balanceByDay.entries()].map(([date, info]) => ({
     date,
-    balance: info.balance
+    balance: info.balance,
   }));
 
   const totalAssets = tenant.plaidAccounts
@@ -391,7 +391,7 @@ export async function getDashboardData(tenantSlug: string) {
       .map((c, i) => ({
         ...c,
         pct: total ? (c.amount / total) * 100 : 0,
-        color: colorForCategory(c.category, i)
+        color: colorForCategory(c.category, i),
       }));
   }
 
@@ -416,7 +416,7 @@ export async function getDashboardData(tenantSlug: string) {
     availableBalance: numberValue(a.availableBalance),
     currentBalance: numberValue(a.currentBalance),
     isoCurrencyCode: a.isoCurrencyCode ?? "USD",
-    lastBalanceAt: a.lastBalanceAt?.toISOString() ?? null
+    lastBalanceAt: a.lastBalanceAt?.toISOString() ?? null,
   }));
 
   const plaidItems: PlaidItemSummary[] = tenant.plaidItems.map((item) => ({
@@ -427,7 +427,7 @@ export async function getDashboardData(tenantSlug: string) {
     lastSyncAt: item.lastSyncAt?.toISOString() ?? null,
     lastBalanceRefreshAt: item.lastBalanceRefreshAt?.toISOString() ?? null,
     errorCode: item.errorCode,
-    errorMessage: item.errorMessage
+    errorMessage: item.errorMessage,
   }));
 
   const institutions: InstitutionSummary[] = tenant.plaidItems.map((item) => {
@@ -442,7 +442,7 @@ export async function getDashboardData(tenantSlug: string) {
       availableBalance: numberValue(a.availableBalance),
       currentBalance: numberValue(a.currentBalance),
       isoCurrencyCode: a.isoCurrencyCode ?? "USD",
-      lastBalanceAt: a.lastBalanceAt?.toISOString() ?? null
+      lastBalanceAt: a.lastBalanceAt?.toISOString() ?? null,
     }));
     const total = itemAccounts.reduce((s, a) => {
       const sign = isLiabilityType(a.type) ? -1 : 1;
@@ -458,7 +458,7 @@ export async function getDashboardData(tenantSlug: string) {
       errorCode: item.errorCode,
       errorMessage: item.errorMessage,
       total,
-      accounts: itemAccounts
+      accounts: itemAccounts,
     };
   });
 
@@ -469,7 +469,8 @@ export async function getDashboardData(tenantSlug: string) {
   const avgDailySpend = dayOfMonth ? monthlySpend / dayOfMonth : 0;
   const subscriptionsTotal = [...subscriptionMerchants.values()].reduce((s, v) => s + v, 0);
   const subscriptionsCount = subscriptionMerchants.size;
-  const savingsRate = monthlyIncome > 0 ? ((monthlyIncome - monthlySpend) / monthlyIncome) * 100 : null;
+  const savingsRate =
+    monthlyIncome > 0 ? ((monthlyIncome - monthlySpend) / monthlyIncome) * 100 : null;
 
   const cashBalance = currentBalance;
   const investmentBalance = investments.summary.portfolioCAD;
@@ -488,19 +489,19 @@ export async function getDashboardData(tenantSlug: string) {
       totalLiabilities,
       monthlySpend,
       monthlyIncome,
-      netCashflow: monthlyIncome - monthlySpend
+      netCashflow: monthlyIncome - monthlySpend,
     },
     deltas: {
       balance: balanceDelta,
       income: delta(monthlyIncome, prevMonthIncome),
       spend: delta(monthlySpend, prevMonthSpend),
-      cashflow: delta(monthlyIncome - monthlySpend, prevMonthIncome - prevMonthSpend)
+      cashflow: delta(monthlyIncome - monthlySpend, prevMonthIncome - prevMonthSpend),
     },
     sparks: {
       balance: balanceSparkSeries,
       income: incomeSpark,
       spend: spendSpark,
-      cashflow: cashflowSpark
+      cashflow: cashflowSpark,
     },
     insights: {
       avgDailySpend,
@@ -513,7 +514,7 @@ export async function getDashboardData(tenantSlug: string) {
       daysRemaining,
       monthExpenseCount,
       daysElapsed: dayOfMonth,
-      daysInMonth
+      daysInMonth,
     },
     institutions,
     accounts,
@@ -528,7 +529,7 @@ export async function getDashboardData(tenantSlug: string) {
     balanceHistory,
     investments,
     currentMonthLabel: format(now, "MMM"),
-    previousMonthLabel: format(subMonths(now, 1), "MMM")
+    previousMonthLabel: format(subMonths(now, 1), "MMM"),
   };
 }
 
@@ -556,21 +557,21 @@ export async function getTransactionsForTenant(input: {
 
   const where: Prisma.PlaidTransactionWhereInput = {
     tenantId: tenant.id,
-    removed: false
+    removed: false,
   };
 
   if (input.q) {
     where.OR = [
       { name: { contains: input.q, mode: "insensitive" } },
       { merchantName: { contains: input.q, mode: "insensitive" } },
-      { categoryPrimary: { contains: input.q, mode: "insensitive" } }
+      { categoryPrimary: { contains: input.q, mode: "insensitive" } },
     ];
   }
 
   if (input.from || input.to) {
     where.date = {
       gte: input.from ? new Date(`${input.from}T00:00:00.000Z`) : undefined,
-      lte: input.to ? new Date(`${input.to}T23:59:59.999Z`) : undefined
+      lte: input.to ? new Date(`${input.to}T23:59:59.999Z`) : undefined,
     };
   }
 
@@ -583,9 +584,9 @@ export async function getTransactionsForTenant(input: {
       where,
       orderBy: { date: "desc" },
       include: { account: true },
-      take: 500
+      take: 500,
     }),
-    prisma.plaidTransaction.count({ where })
+    prisma.plaidTransaction.count({ where }),
   ]);
 
   const rows = transactions.map((t) => {
@@ -603,7 +604,7 @@ export async function getTransactionsForTenant(input: {
       categoryColor: colorForCategory(cat, Math.abs(hash(cat)) % CATEGORY_COLORS.length),
       detailedCategory: t.categoryDetailed,
       pending: t.pending,
-      bucket: categorizeForSpending(t)
+      bucket: categorizeForSpending(t),
     };
   });
 

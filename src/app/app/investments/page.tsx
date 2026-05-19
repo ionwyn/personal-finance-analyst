@@ -23,7 +23,7 @@ export default async function InvestmentsPage() {
               name: session?.user?.name,
               email: session?.user?.email,
               image: session?.user?.image,
-              handle: session?.user?.email ?? undefined
+              handle: session?.user?.email ?? undefined,
             }
       }
     >

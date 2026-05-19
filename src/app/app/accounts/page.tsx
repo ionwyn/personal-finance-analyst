@@ -1,10 +1,5 @@
 import { getServerSession } from "next-auth";
-import {
-  CreditCard,
-  Landmark,
-  MoreHorizontal,
-  TrendingUp
-} from "lucide-react";
+import { CreditCard, Landmark, MoreHorizontal, TrendingUp } from "lucide-react";
 
 import { AppShell } from "@/components/app-shell";
 import { ItemActions } from "@/components/item-actions";
@@ -12,7 +7,7 @@ import { PlaidLinkButton } from "@/components/plaid-link-button";
 import {
   SnapTradeConnectionActions,
   SnapTradeLinkButton,
-  SnapTradeSyncButton
+  SnapTradeSyncButton,
 } from "@/components/snaptrade-actions";
 import { SyncAllButton } from "@/components/sync-all-button";
 import { formatMoney } from "@/components/big-number";
@@ -38,7 +33,7 @@ export default async function AccountsPage() {
   const subLine = [
     `${institutions.length} INSTITUTIONS`,
     `${accountCount} ACCOUNTS`,
-    lastSyncAt ? `LAST SYNC ${formatRelative(lastSyncAt)}` : null
+    lastSyncAt ? `LAST SYNC ${formatRelative(lastSyncAt)}` : null,
   ]
     .filter(Boolean)
     .join(" · ");
@@ -53,7 +48,7 @@ export default async function AccountsPage() {
               name: session?.user?.name,
               email: session?.user?.email,
               image: session?.user?.image,
-              handle: session?.user?.email ?? undefined
+              handle: session?.user?.email ?? undefined,
             }
       }
     >
@@ -63,7 +58,9 @@ export default async function AccountsPage() {
           <div className="page-sub">{subLine}</div>
         </div>
         <div className="page-actions">
-          {!isDemo && <SyncAllButton items={institutions.map((i) => ({ id: i.id, status: i.status }))} />}
+          {!isDemo && (
+            <SyncAllButton items={institutions.map((i) => ({ id: i.id, status: i.status }))} />
+          )}
           {!isDemo && <PlaidLinkButton />}
         </div>
       </div>
@@ -93,10 +90,12 @@ export default async function AccountsPage() {
                 height: 8,
                 borderRadius: "50%",
                 background: "var(--pos)",
-                boxShadow: "0 0 0 3px rgba(74,222,128,0.15)"
+                boxShadow: "0 0 0 3px rgba(74,222,128,0.15)",
               }}
             />
-            <span style={{ fontFamily: "var(--font-sans)", fontWeight: 400, color: "var(--text-2)" }}>
+            <span
+              style={{ fontFamily: "var(--font-sans)", fontWeight: 400, color: "var(--text-2)" }}
+            >
               Connected · {process.env.PLAID_ENV ?? "sandbox"}
             </span>
           </div>
@@ -133,7 +132,7 @@ export default async function AccountsPage() {
 
 function InvestmentsSection({
   data,
-  isDemo
+  isDemo,
 }: {
   data: Awaited<ReturnType<typeof getDashboardData>>["investments"];
   isDemo: boolean;
@@ -157,10 +156,7 @@ function InvestmentsSection({
       {accounts.length > 0 ? (
         <div className="inst-card">
           <div className="inst-head">
-            <div
-              className="inst-logo"
-              style={{ background: summary.institutionLogoBg }}
-            >
+            <div className="inst-logo" style={{ background: summary.institutionLogoBg }}>
               {summary.institutionLogoText}
             </div>
             <div className="inst-meta">
@@ -200,10 +196,7 @@ function InvestmentsSection({
                 ) : null}
               </div>
               {summary.errorMessage ? (
-                <div
-                  className="inst-sub"
-                  style={{ color: "var(--neg)", marginTop: 4 }}
-                >
+                <div className="inst-sub" style={{ color: "var(--neg)", marginTop: 4 }}>
                   {summary.errorMessage}
                 </div>
               ) : null}
@@ -271,7 +264,7 @@ function InvestmentsSection({
             gap: 10,
             color: "var(--text-3)",
             fontSize: 13,
-            cursor: "default"
+            cursor: "default",
           }}
         >
           <SnapTradeLinkButton />
@@ -314,9 +307,7 @@ function InstitutionCard({ institution, isDemo }: { institution: Institution; is
               {inst.accounts.length} {inst.accounts.length === 1 ? "account" : "accounts"}
             </span>
             <span className="sep">·</span>
-            <span>
-              Last sync {inst.lastSyncAt ? formatRelative(inst.lastSyncAt) : "never"}
-            </span>
+            <span>Last sync {inst.lastSyncAt ? formatRelative(inst.lastSyncAt) : "never"}</span>
             {inst.errorCode ? (
               <>
                 <span className="sep">·</span>
@@ -342,7 +333,8 @@ function InstitutionCard({ institution, isDemo }: { institution: Institution; is
       <div className="acct-list">
         {inst.accounts.map((account) => {
           const kind = accountKind(account.type, account.subtype);
-          const Icon = kind === "credit" ? CreditCard : kind === "investment" ? TrendingUp : Landmark;
+          const Icon =
+            kind === "credit" ? CreditCard : kind === "investment" ? TrendingUp : Landmark;
           return (
             <div className="acct-row" key={account.id}>
               <div className="acct-icon" style={{ width: 28, height: 28 }}>
@@ -418,7 +410,7 @@ const LOGO_PALETTE = [
   "#dc2626",
   "#0891b2",
   "#f59e0b",
-  "#7c3aed"
+  "#7c3aed",
 ];
 function pickLogoBg(name: string) {
   let h = 0;

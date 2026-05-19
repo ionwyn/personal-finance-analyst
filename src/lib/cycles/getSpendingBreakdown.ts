@@ -42,7 +42,7 @@ async function spendByCategory(tenantId: string, cycleId: string) {
   const rows = await prisma.plaidTransaction.groupBy({
     by: ["categoryPrimary"],
     where: { ...SPENDING_FILTER, tenantId, cycleId },
-    _sum: { amount: true }
+    _sum: { amount: true },
   });
   const map = new Map<string | null, number>();
   for (const r of rows) {
@@ -59,7 +59,9 @@ export async function getSpendingBreakdown(
 ): Promise<SpendingBreakdownData> {
   const [currentMap, previousMap] = await Promise.all([
     spendByCategory(tenantId, cycleId),
-    previousCycleId ? spendByCategory(tenantId, previousCycleId) : Promise.resolve(new Map<string | null, number>())
+    previousCycleId
+      ? spendByCategory(tenantId, previousCycleId)
+      : Promise.resolve(new Map<string | null, number>()),
   ]);
 
   const total = [...currentMap.values()].reduce((s, v) => s + v, 0);
@@ -78,7 +80,7 @@ export async function getSpendingBreakdown(
       pct: total > 0 ? (amount / total) * 100 : 0,
       delta: previousAmount > 0 ? amount - previousAmount : null,
       prevAmount: previousAmount,
-      prevPct: previousTotal > 0 ? (previousAmount / previousTotal) * 100 : 0
+      prevPct: previousTotal > 0 ? (previousAmount / previousTotal) * 100 : 0,
     });
   }
 
@@ -93,16 +95,18 @@ export async function getSpendingBreakdown(
     previousTotal,
     discretionarySpent,
     discretionaryBudget,
-    discretionaryRemaining
+    discretionaryRemaining,
   };
 }
 
-export async function findPreviousCycleId(tenantId: string, currentStartDate: Date): Promise<string | null> {
+export async function findPreviousCycleId(
+  tenantId: string,
+  currentStartDate: Date
+): Promise<string | null> {
   const prev = await prisma.payCycle.findFirst({
     where: { tenantId, endDate: { lt: currentStartDate } },
     orderBy: { startDate: "desc" },
-    select: { id: true }
+    select: { id: true },
   });
   return prev?.id ?? null;
 }
-

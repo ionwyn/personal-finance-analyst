@@ -28,8 +28,8 @@ export async function reclassifyTenant(tenantId: string) {
       categoryDetailed: true,
       date: true,
       txnType: true,
-      cycleId: true
-    }
+      cycleId: true,
+    },
   });
 
   const affectedCycleIds = new Set<string>();
@@ -44,7 +44,7 @@ export async function reclassifyTenant(tenantId: string) {
         categoryPrimary: tx.categoryPrimary,
         categoryDetailed: tx.categoryDetailed,
         date: tx.date,
-        existingTxnType: tx.txnType
+        existingTxnType: tx.txnType,
       },
       context
     );
@@ -64,8 +64,8 @@ export async function reclassifyTenant(tenantId: string) {
       where: { id: tx.id },
       data: {
         txnType: result.txnType,
-        cycleId: nextCycleId
-      }
+        cycleId: nextCycleId,
+      },
     });
 
     if (nextCycleId) affectedCycleIds.add(nextCycleId);

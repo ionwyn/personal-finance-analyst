@@ -24,7 +24,7 @@ export default async function SpendingInsightPage() {
 
   const [mtd, ytd] = await Promise.all([
     getSpendingInsight(tenantId, "MTD"),
-    getSpendingInsight(tenantId, "YTD")
+    getSpendingInsight(tenantId, "YTD"),
   ]);
 
   return (
@@ -37,7 +37,7 @@ export default async function SpendingInsightPage() {
               name: session?.user?.name,
               email: session?.user?.email,
               image: session?.user?.image,
-              handle: session?.user?.email ?? undefined
+              handle: session?.user?.email ?? undefined,
             }
       }
     >

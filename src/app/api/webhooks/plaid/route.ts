@@ -30,7 +30,7 @@ export async function POST(request: Request) {
     body.item_id
   ) {
     const item = await prisma.plaidItem.findUnique({
-      where: { plaidItemId: body.item_id }
+      where: { plaidItemId: body.item_id },
     });
 
     if (item) {
