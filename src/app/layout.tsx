@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Figtree, Manrope } from "next/font/google";
 
 import { Providers } from "@/components/providers";
-import "@/app/globals.css";
+import "@/app/globals.scss";
 
 const geistSans = Figtree({
   subsets: ["latin"],
