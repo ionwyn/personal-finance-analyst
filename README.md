@@ -38,6 +38,9 @@ The app syncs read-only banking data through Plaid and brokerage data through Sn
 
 ## Getting Started
 
+Pre-requisite:
+For Compliance, Safety, and Security Reasons, this app is currently usable under local circumstances only. You must obtain and generate your own secrets through affiliated third party integrators: Plaid, SnapTrade, TwelveData, and GitHub.
+
 Install dependencies:
 
 ```bash
