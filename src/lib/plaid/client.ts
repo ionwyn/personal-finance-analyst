@@ -25,7 +25,7 @@ export async function createTransactionsLinkToken(clientUserId: string) {
 
     try {
       const response = await getPlaidClient().linkTokenCreate({
-        client_name: "TD Finance Analytics",
+        client_name: requireEnv("PLAID_CLIENT_NAME"),
         country_codes: [CountryCode.Ca],
         language: "en",
         products: [Products.Transactions],

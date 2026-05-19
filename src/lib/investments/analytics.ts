@@ -61,7 +61,7 @@ export async function getInvestmentDashboardData(
   }, null);
 
   const summary = {
-    institution: accounts[0]?.institution ?? "Wealthsimple",
+    institution: accounts[0]?.institution ?? "Unknown Institution",
     institutionLogoBg: accounts[0]?.institutionLogoBg ?? "#000000",
     institutionLogoText: accounts[0]?.institutionLogoText ?? "WS",
     accountCount: accounts.length,

@@ -87,7 +87,7 @@ export function SweepPrompt({
       </div>
       <div className="panel-body" style={{ fontSize: 13 }}>
         <p style={{ marginTop: 0, color: "var(--text-2)" }}>
-          Cycle closes today. Recommended sweep to Wealthsimple:{" "}
+          Cycle closes today. Recommended sweep:{" "}
           <strong className="mono">{formatMoney(suggestedAmount)}</strong>.
         </p>
         {error ? (
