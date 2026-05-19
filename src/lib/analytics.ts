@@ -2,39 +2,19 @@ import { endOfMonth, format, startOfMonth, subDays, subMonths } from "date-fns";
 import { Prisma } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
+import {
+  CATEGORY_COLORS,
+  colorForCategory,
+  delta,
+  hash,
+  isLiabilityType,
+  monthKey,
+  monthLabel,
+  numberValue,
+} from "@/lib/analytics/dashboard-helpers";
 import { getInvestmentDashboardData } from "@/lib/investments/analytics";
 import type { InvestmentDashboardData } from "@/lib/investments/types";
 import { categorizeForSpending } from "@/lib/spending/classify";
-
-const CATEGORY_COLORS = [
-  "var(--cat-1)",
-  "var(--cat-2)",
-  "var(--cat-3)",
-  "var(--cat-4)",
-  "var(--cat-5)",
-  "var(--cat-6)",
-  "var(--cat-7)",
-  "var(--cat-8)",
-];
-
-function numberValue(value: Prisma.Decimal | number | null | undefined) {
-  if (value == null) return 0;
-  return typeof value === "number" ? value : value.toNumber();
-}
-
-function monthKey(date: Date) {
-  return format(startOfMonth(date), "yyyy-MM");
-}
-
-function monthLabel(key: string) {
-  const [year, month] = key.split("-").map(Number);
-  return format(new Date(year, month - 1, 1), "MMM");
-}
-
-function delta(curr: number, prev: number) {
-  if (!prev) return null;
-  return ((curr - prev) / Math.abs(prev)) * 100;
-}
 
 const SUBSCRIPTION_HINTS = [
   "netflix",
@@ -177,11 +157,6 @@ export type MonthlyCashflow = { month: string; income: number; spending: number;
 export type CategorySpend = { category: string; amount: number; pct: number; color: string };
 export type MerchantSpend = { merchant: string; amount: number };
 export type BalancePoint = { date: string; balance: number };
-
-function colorForCategory(category: string, index: number) {
-  if (category === "Income" || /income/i.test(category)) return "var(--pos)";
-  return CATEGORY_COLORS[index % CATEGORY_COLORS.length];
-}
 
 export async function getDashboardData(tenantSlug: string) {
   const tenant = await prisma.tenant.findUnique({
@@ -531,17 +506,6 @@ export async function getDashboardData(tenantSlug: string) {
     currentMonthLabel: format(now, "MMM"),
     previousMonthLabel: format(subMonths(now, 1), "MMM"),
   };
-}
-
-function isLiabilityType(type: string) {
-  const lower = type.toLowerCase();
-  return lower.includes("credit") || lower.includes("loan");
-}
-
-function hash(s: string) {
-  let h = 0;
-  for (let i = 0; i < s.length; i += 1) h = (h * 31 + s.charCodeAt(i)) | 0;
-  return h;
 }
 
 export async function getTransactionsForTenant(input: {

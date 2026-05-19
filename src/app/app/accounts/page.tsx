@@ -11,8 +11,10 @@ import {
 } from "@/components/snaptrade-actions";
 import { SyncAllButton } from "@/components/sync-all-button";
 import { formatMoney } from "@/components/big-number";
+import { PageHeader, StatusPill } from "@/components/ui";
 import { getDashboardData } from "@/lib/analytics";
 import { authOptions } from "@/lib/auth";
+import { formatRelativeTime, formatYearMonth } from "@/lib/format";
 import { resolveSessionTenant } from "@/lib/tenant";
 
 export const dynamic = "force-dynamic";
@@ -33,7 +35,7 @@ export default async function AccountsPage() {
   const subLine = [
     `${institutions.length} INSTITUTIONS`,
     `${accountCount} ACCOUNTS`,
-    lastSyncAt ? `LAST SYNC ${formatRelative(lastSyncAt)}` : null,
+    lastSyncAt ? `LAST SYNC ${formatRelativeTime(lastSyncAt)}` : null,
   ]
     .filter(Boolean)
     .join(" · ");
@@ -52,18 +54,18 @@ export default async function AccountsPage() {
             }
       }
     >
-      <div className="page-header">
-        <div>
-          <div className="page-title">Accounts</div>
-          <div className="page-sub">{subLine}</div>
-        </div>
-        <div className="page-actions">
-          {!isDemo && (
-            <SyncAllButton items={institutions.map((i) => ({ id: i.id, status: i.status }))} />
-          )}
-          {!isDemo && <PlaidLinkButton />}
-        </div>
-      </div>
+      <PageHeader
+        title="Accounts"
+        subtitle={subLine}
+        actions={
+          <>
+            {!isDemo && (
+              <SyncAllButton items={institutions.map((i) => ({ id: i.id, status: i.status }))} />
+            )}
+            {!isDemo && <PlaidLinkButton />}
+          </>
+        }
+      />
 
       <div className="summary-bar">
         <div className="cell">
@@ -175,7 +177,7 @@ function InvestmentsSection({
                 </span>
                 <span className="sep">·</span>
                 <span>
-                  Last sync {summary.lastSync ? formatRelative(summary.lastSync) : "never"}
+                  Last sync {summary.lastSync ? formatRelativeTime(summary.lastSync) : "never"}
                 </span>
                 <span className="sep">·</span>
                 <span style={{ color: "var(--invest)" }}>
@@ -232,7 +234,7 @@ function InvestmentsSection({
                   </div>
                   <div className="acct-type">
                     {a.registration} · {a.currency}
-                    {a.openedAt ? ` · OPENED ${formatOpenedYear(a.openedAt)}` : ""}
+                    {a.openedAt ? ` · OPENED ${formatYearMonth(a.openedAt)}` : ""}
                   </div>
                 </div>
                 <div className="acct-bal">{formatMoney(a.totalValue)}</div>
@@ -274,11 +276,6 @@ function InvestmentsSection({
   );
 }
 
-function formatOpenedYear(iso: string) {
-  const d = new Date(iso);
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-}
-
 type Institution = Awaited<ReturnType<typeof getDashboardData>>["institutions"][number];
 
 function InstitutionCard({ institution, isDemo }: { institution: Institution; isDemo: boolean }) {
@@ -307,7 +304,7 @@ function InstitutionCard({ institution, isDemo }: { institution: Institution; is
               {inst.accounts.length} {inst.accounts.length === 1 ? "account" : "accounts"}
             </span>
             <span className="sep">·</span>
-            <span>Last sync {inst.lastSyncAt ? formatRelative(inst.lastSyncAt) : "never"}</span>
+            <span>Last sync {inst.lastSyncAt ? formatRelativeTime(inst.lastSyncAt) : "never"}</span>
             {inst.errorCode ? (
               <>
                 <span className="sep">·</span>
@@ -372,34 +369,12 @@ function InstitutionCard({ institution, isDemo }: { institution: Institution; is
   );
 }
 
-function StatusPill({ status }: { status: string }) {
-  const cls = status === "SYNCING" ? "syncing" : status === "ERROR" ? "error" : "idle";
-  return (
-    <span className={`status ${cls}`}>
-      <i className="pulse" />
-      {status}
-    </span>
-  );
-}
-
 function accountKind(type: string, subtype: string | null) {
   const t = (type + " " + (subtype ?? "")).toLowerCase();
   if (t.includes("credit") || t.includes("loan")) return "credit";
   if (t.includes("investment") || t.includes("retirement") || t.includes("brokerage"))
     return "investment";
   return "depository";
-}
-
-function formatRelative(iso: string) {
-  const ms = Date.now() - new Date(iso).getTime();
-  if (ms < 0) return "just now";
-  const minutes = Math.floor(ms / 60_000);
-  if (minutes < 1) return "just now";
-  if (minutes < 60) return `${minutes} min ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours} hr ago`;
-  const days = Math.floor(hours / 24);
-  return `${days}d ago`;
 }
 
 const LOGO_PALETTE = [

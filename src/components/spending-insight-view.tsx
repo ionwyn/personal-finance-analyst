@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { ChevronRight } from "lucide-react";
 
 import { BigNumber, formatMoney } from "@/components/big-number";
 import type {
@@ -28,23 +29,6 @@ function cleanSubName(parent: string, sub: string): string {
     return sub.slice(ps.length).trim() || sub;
   }
   return sub;
-}
-
-function ChevR() {
-  return (
-    <svg
-      width={11}
-      height={11}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={2}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="m9 18 6-6-6-6" />
-    </svg>
-  );
 }
 
 function BarStack({
@@ -405,7 +389,7 @@ function CategoryRowItem({
         }}
       >
         <span className="chev">
-          <ChevR />
+          <ChevronRight size={11} />
         </span>
         <i className="dot" style={{ background: cat.color }} />
         <span className="nm">{cat.primary}</span>

@@ -5,6 +5,8 @@ import { Search } from "lucide-react";
 
 import { SnapTradeLinkButton, SnapTradeSyncButton } from "@/components/snaptrade-actions";
 import { SymLogo } from "@/components/sym-logo";
+import { PageHeader } from "@/components/ui";
+import { formatRelativeTime, formatYearMonth } from "@/lib/format";
 import type { InvestmentDashboardData, InvestmentPosition } from "@/lib/investments/types";
 
 type SortKey = "symbol" | "units" | "avgCost" | "price" | "mvCAD" | "plCAD" | "plPct";
@@ -13,25 +15,6 @@ type SortDir = "asc" | "desc";
 
 const fmt2 = (v: number) =>
   v.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-
-function formatRelative(iso: string | null) {
-  if (!iso) return "never";
-  const ms = Date.now() - new Date(iso).getTime();
-  if (ms < 0) return "just now";
-  const minutes = Math.floor(ms / 60_000);
-  if (minutes < 1) return "just now";
-  if (minutes < 60) return `${minutes} min ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours} hr ago`;
-  const days = Math.floor(hours / 24);
-  return `${days}d ago`;
-}
-
-function formatOpened(iso: string | null) {
-  if (!iso) return "—";
-  const d = new Date(iso);
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-}
 
 export function InvestmentsView({ data }: { data: InvestmentDashboardData }) {
   const { summary, accounts, holdings, allocByType, allocByCcy } = data;
@@ -71,20 +54,22 @@ export function InvestmentsView({ data }: { data: InvestmentDashboardData }) {
 
   return (
     <>
-      <div className="page-header">
-        <div>
-          <div className="page-title">Investments</div>
-          <div className="page-sub">
+      <PageHeader
+        title="Investments"
+        subtitle={
+          <>
             {summary.accountCount} {summary.accountCount === 1 ? "ACCOUNT" : "ACCOUNTS"} ·{" "}
             {summary.positionCount} POSITIONS · LAST SYNC{" "}
-            {formatRelative(summary.lastSync).toUpperCase()} · SNAPTRADE · OK
-          </div>
-        </div>
-        <div className="page-actions">
-          <SnapTradeSyncButton />
-          <SnapTradeLinkButton compact />
-        </div>
-      </div>
+            {formatRelativeTime(summary.lastSync).toUpperCase()} · SNAPTRADE · OK
+          </>
+        }
+        actions={
+          <>
+            <SnapTradeSyncButton />
+            <SnapTradeLinkButton compact />
+          </>
+        }
+      />
 
       <div className="summary-bar">
         <div className="cell">
@@ -210,7 +195,9 @@ export function InvestmentsView({ data }: { data: InvestmentDashboardData }) {
                   {a.registration}
                 </span>
                 <span className="meta">{a.currency}</span>
-                <span className="opened">opened {formatOpened(a.openedAt)}</span>
+                <span className="opened">
+                  opened {a.openedAt ? formatYearMonth(a.openedAt) : "—"}
+                </span>
                 <span className="val">${fmt2(a.totalValue)}</span>
               </div>
             ))}
@@ -404,7 +391,7 @@ export function InvestmentsView({ data }: { data: InvestmentDashboardData }) {
       </div>
 
       <div className="foot-note">
-        <span>SnapTrade positions cached {formatRelative(summary.lastSync)}</span>
+        <span>SnapTrade positions cached {formatRelativeTime(summary.lastSync)}</span>
         <span>
           Click column headers to sort · NATIVE/CAD toggle preserves listing currency
           {summary.omittedPositionCount > 0

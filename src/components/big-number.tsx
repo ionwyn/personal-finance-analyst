@@ -21,10 +21,4 @@ export function BigNumber({
   );
 }
 
-export function formatMoney(n: number, opts: { sign?: boolean; ccy?: boolean } = {}) {
-  const { sign = false, ccy = true } = opts;
-  const abs = Math.abs(n);
-  const str = abs.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  const prefix = sign ? (n > 0 ? "+" : n < 0 ? "−" : "") : n < 0 ? "−" : "";
-  return `${ccy ? "$" : ""}${prefix}${str}`;
-}
+export { formatMoney } from "@/lib/format";

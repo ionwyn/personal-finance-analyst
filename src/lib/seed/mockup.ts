@@ -1,11 +1,27 @@
-import { SyncSource, TenantKind, SyncRunStatus, SnapTradeConnectionStatus } from "@prisma/client";
+import {
+  Prisma,
+  SyncSource,
+  TenantKind,
+  SyncRunStatus,
+  SnapTradeConnectionStatus,
+} from "@prisma/client";
 import { prisma } from "../prisma";
 import { encryptToken } from "../security/token-crypto";
 
-const DEMO_ENCRYPTION_KEY = process.env.TOKEN_ENCRYPTION_KEY || "0123456789abcdef0123456789abcdef";
+type SeedPosition = {
+  snapTradeAccountId: string;
+  symbol: string;
+  rawSymbol: string;
+  assetType: string;
+  exchange: string;
+  currency: string;
+  units: number;
+  price: number;
+  avgCost: number;
+};
 
 function encrypt(token: string): string {
-  return encryptToken(token, DEMO_ENCRYPTION_KEY);
+  return encryptToken(token);
 }
 
 function getLastFriday(daysBack: number): Date {
@@ -136,7 +152,7 @@ export async function seedMockupDemo() {
   const [chequing, savings, visa] = accounts;
   console.log(`  ✓ Created 3 PlaidAccounts`);
 
-  const transactions: Parameters<typeof prisma.plaidTransaction.createMany>[0]["data"] = [];
+  const transactions: Prisma.PlaidTransactionCreateManyInput[] = [];
   let txnId = 0;
 
   for (let i = 0; i < 13; i++) {
@@ -364,14 +380,14 @@ export async function seedMockupDemo() {
   await prisma.plaidTransaction.createMany({ data: transactions });
   console.log(`  ✓ Created ${transactions.length} PlaidTransactions`);
 
-  const snapshots: Parameters<typeof prisma.balanceSnapshot.createMany>[0]["data"] = [];
+  const snapshots: Prisma.BalanceSnapshotCreateManyInput[] = [];
   const accountTxnsByDay: Record<string, Record<string, number>> = {};
 
   for (const txn of transactions) {
-    const dayKey = txn.date.toISOString().split("T")[0];
+    const dayKey = new Date(txn.date).toISOString().split("T")[0];
     accountTxnsByDay[dayKey] ??= {};
-    accountTxnsByDay[dayKey][txn.plaidAccountId] ??= 0;
-    accountTxnsByDay[dayKey][txn.plaidAccountId] += txn.amount;
+    accountTxnsByDay[dayKey][txn.accountId] ??= 0;
+    accountTxnsByDay[dayKey][txn.accountId] += Number(txn.amount);
   }
 
   const accountBalances: Record<string, number> = {
@@ -478,7 +494,7 @@ export async function seedMockupDemo() {
 
   const usdToCAD = 1.38;
 
-  const positions: Parameters<typeof prisma.snapTradePosition.createMany>[0]["data"] = [
+  const seedPositions: SeedPosition[] = [
     {
       snapTradeAccountId: tfsaAcc.id,
       symbol: "QQQ",
@@ -644,7 +660,9 @@ export async function seedMockupDemo() {
       price: 81.6,
       avgCost: 76.8,
     },
-  ].map((p) => {
+  ];
+
+  const positions: Prisma.SnapTradePositionCreateManyInput[] = seedPositions.map((p) => {
     const marketValueNative = p.units * p.price;
     const costNative = p.units * p.avgCost;
     const multiplier = p.currency === "USD" ? usdToCAD : 1;
@@ -728,7 +746,7 @@ export async function seedMockupDemo() {
     },
   });
 
-  const cycles: Parameters<typeof prisma.payCycle.createMany>[0]["data"] = [];
+  const cycles: Prisma.PayCycleCreateManyInput[] = [];
   for (let i = 0; i < 13; i++) {
     const endDate = getLastFriday(i * 14);
     const startDate = new Date(endDate);

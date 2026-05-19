@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Trash2 } from "lucide-react";
 
+import { Panel } from "@/components/ui";
 import type { SettingsData } from "@/lib/cycles/getSettings";
 import { FREQUENCIES } from "@/lib/cycles/types";
 
@@ -77,26 +78,6 @@ export function SettingsView({ data }: { data: SettingsData }) {
       <RecurringExpensesSection expenses={data.recurringExpenses} />
       <SavingsDestinationsSection destinations={data.savingsDestinations} />
       <SettlementPatternsSection patterns={data.settlementPatterns} />
-    </div>
-  );
-}
-
-function Panel({
-  title,
-  meta,
-  children,
-}: {
-  title: string;
-  meta?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="panel">
-      <div className="panel-head">
-        <div className="panel-title">{title}</div>
-        {meta ? <div className="panel-meta">{meta}</div> : null}
-      </div>
-      <div className="panel-body">{children}</div>
     </div>
   );
 }

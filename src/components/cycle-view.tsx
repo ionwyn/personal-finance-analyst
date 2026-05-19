@@ -5,6 +5,7 @@ import { BigNumber, formatMoney } from "@/components/big-number";
 import { CategoryBar } from "@/components/category-bar";
 import { DiscoveryPanel } from "@/components/discovery-panel";
 import { SweepPrompt } from "@/components/sweep-prompt";
+import { PageHeader } from "@/components/ui";
 import { formatUtcDate } from "@/lib/format";
 import type { CommittedItem, CurrentCycleData } from "@/lib/cycles/getCurrentCycle";
 import type { DiscoveryCandidate } from "@/lib/cycles/discovery";
@@ -77,23 +78,25 @@ export function CycleView({
 
   return (
     <>
-      <div className="page-header">
-        <div>
-          <div className="page-title">Current cycle</div>
-          <div className="page-sub">
+      <PageHeader
+        title="Current cycle"
+        subtitle={
+          <>
             {cycleLabel.toUpperCase()} · {daysRemaining} {daysRemaining === 1 ? "DAY" : "DAYS"}{" "}
             REMAINING
-          </div>
-        </div>
-        <div className="page-actions">
-          <Link className="btn btn-sm" href={"/app/cycles/history" as never}>
-            History
-          </Link>
-          <Link className="btn btn-sm" href={"/app/settings" as never}>
-            Settings
-          </Link>
-        </div>
-      </div>
+          </>
+        }
+        actions={
+          <>
+            <Link className="btn btn-sm" href={"/app/cycles/history" as never}>
+              History
+            </Link>
+            <Link className="btn btn-sm" href={"/app/settings" as never}>
+              Settings
+            </Link>
+          </>
+        }
+      />
 
       {!settingsConfigured ? (
         <section className="panel" style={{ marginBottom: 16, borderColor: "var(--accent-dim)" }}>
