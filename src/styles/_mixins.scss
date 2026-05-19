@@ -1,0 +1,21 @@
+// Shared style patterns. Reference design tokens via `var(--*)` (defined in _tokens).
+
+// Monospace, tabular figures — for numeric/financial values.
+@mixin mono-num {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+// Small uppercase label / eyebrow text.
+@mixin eyebrow {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+// Standard raised surface (panels, cards).
+@mixin surface-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+}

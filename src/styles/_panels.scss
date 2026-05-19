@@ -1,0 +1,35 @@
+// Cards / panels.
+
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.panel-head {
+  padding: 12px 14px 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--border-subtle);
+  gap: 12px;
+}
+.panel-title {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-3);
+  font-weight: 500;
+}
+.panel-meta {
+  font-size: 11px;
+  color: var(--text-4);
+  font-family: var(--font-mono);
+}
+.panel-body {
+  padding: 14px;
+}
+.panel-body.flush {
+  padding: 0;
+}

@@ -1,0 +1,54 @@
+// Shared responsive overrides. Loaded after the layout partials so these win.
+@use "breakpoints" as *;
+
+@include respond-to("lg") {
+  .dash-grid {
+    grid-template-columns: 1fr;
+  }
+  .kpi-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .kpi:nth-child(2) {
+    border-right: none;
+  }
+  .kpi:nth-child(1),
+  .kpi:nth-child(2) {
+    border-bottom: 1px solid var(--border-subtle);
+  }
+}
+
+@include respond-to("md") {
+  :root {
+    --sidebar-w: 0px;
+  }
+  .sidebar {
+    display: none;
+  }
+  .summary-bar {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .summary-bar .cell:nth-child(2) {
+    border-right: none;
+  }
+  .summary-bar .cell:nth-child(1),
+  .summary-bar .cell:nth-child(2) {
+    border-bottom: 1px solid var(--border-subtle);
+  }
+  .kpi-grid {
+    grid-template-columns: 1fr;
+  }
+  .kpi {
+    border-right: none;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+  .kpi:last-child {
+    border-bottom: none;
+  }
+  .inst-head {
+    flex-wrap: wrap;
+  }
+  .inst-actions {
+    margin-left: 0;
+    width: 100%;
+  }
+}

@@ -1,0 +1,17 @@
+// Responsive breakpoints — use via `@include respond-to('md') { ... }`.
+@use "sass:map";
+
+$breakpoints: (
+  "lg": 1100px,
+  "md": 860px,
+  "sm": 760px,
+);
+
+@mixin respond-to($bp) {
+  @if not map.has-key($breakpoints, $bp) {
+    @error "Unknown breakpoint `#{$bp}` — expected one of #{map.keys($breakpoints)}.";
+  }
+  @media (max-width: map.get($breakpoints, $bp)) {
+    @content;
+  }
+}

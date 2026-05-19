@@ -1,0 +1,71 @@
+// Status pills (idle / syncing / error / success / brokerage / reg).
+
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  border-radius: 3px;
+  border: 1px solid;
+  font-weight: 500;
+}
+.status.idle {
+  color: var(--text-2);
+  border-color: var(--border-strong);
+  background: var(--surface-2);
+}
+.status.syncing {
+  color: var(--info);
+  border-color: rgba(96, 165, 250, 0.25);
+  background: rgba(96, 165, 250, 0.08);
+}
+.status.error {
+  color: var(--neg);
+  border-color: rgba(248, 113, 113, 0.25);
+  background: var(--neg-bg);
+}
+.status.success {
+  color: var(--pos);
+  border-color: rgba(74, 222, 128, 0.25);
+  background: var(--pos-bg);
+}
+.status.brokerage {
+  color: var(--invest);
+  border-color: rgba(94, 234, 212, 0.22);
+  background: var(--invest-bg);
+}
+.status.brokerage .pulse {
+  display: none;
+}
+.status.reg {
+  color: var(--text-2);
+  border-color: var(--border-strong);
+  background: var(--surface-2);
+}
+.status.reg .pulse {
+  display: none;
+}
+.status .pulse {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.status.syncing .pulse {
+  animation: pulse 1.4s ease-in-out infinite;
+}
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.4;
+    transform: scale(0.7);
+  }
+}
