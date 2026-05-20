@@ -2,9 +2,12 @@
 
 import { useRef, useState, useTransition } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { ChevronRight, Download, Filter, Search } from "lucide-react";
+import { ChevronDown, ChevronUp, Download, Search } from "lucide-react";
 
 import { Button, DateRangePicker, FilterSelect } from "@/components/ui";
+
+const BUCKET_OPTIONS = ["spending", "income", "transfer", "savings", "settlement"];
+const PENDING_OPTIONS = ["pending", "posted"];
 
 export function TransactionsToolbar({
   initialQuery,
@@ -12,6 +15,8 @@ export function TransactionsToolbar({
   initialTo,
   initialCategory,
   initialAccount,
+  initialBucket,
+  initialPending,
   categoryOptions,
   accountOptions,
   categoryColors,
@@ -21,6 +26,8 @@ export function TransactionsToolbar({
   initialTo?: string;
   initialCategory?: string;
   initialAccount?: string;
+  initialBucket?: string;
+  initialPending?: string;
   categoryOptions: string[];
   accountOptions: string[];
   categoryColors: Record<string, string>;
@@ -35,6 +42,11 @@ export function TransactionsToolbar({
   const [to, setTo] = useState(initialTo ?? "");
   const [category, setCategory] = useState<string | null>(initialCategory ?? null);
   const [account, setAccount] = useState<string | null>(initialAccount ?? null);
+  const [bucket, setBucket] = useState<string | null>(initialBucket ?? null);
+  const [pending, setPending] = useState<string | null>(
+    initialPending === "true" ? "pending" : initialPending === "false" ? "posted" : null
+  );
+  const [showMore, setShowMore] = useState(Boolean(initialBucket || initialPending));
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -55,6 +67,8 @@ export function TransactionsToolbar({
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => pushParams({ q: value || null }), 250);
   }
+
+  const extraFilterCount = [bucket, pending].filter(Boolean).length;
 
   return (
     <div className="tx-toolbar">
@@ -102,13 +116,63 @@ export function TransactionsToolbar({
       <Button
         variant="ghost"
         size="sm"
-        disabled
-        icon={<Filter size={12} />}
-        style={{ color: "var(--text-3)" }}
+        icon={showMore ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+        style={{
+          color: extraFilterCount > 0 ? "var(--accent)" : "var(--text-3)",
+          fontWeight: extraFilterCount > 0 ? 600 : undefined,
+        }}
+        onClick={() => setShowMore((v) => !v)}
       >
         More filters
-        <ChevronRight size={12} style={{ opacity: 0.5 }} />
+        {extraFilterCount > 0 ? (
+          <span
+            style={{
+              marginLeft: 4,
+              fontSize: 10,
+              fontFamily: "var(--font-mono)",
+              background: "var(--accent)",
+              color: "#fff",
+              borderRadius: 9,
+              padding: "1px 5px",
+              lineHeight: 1.4,
+            }}
+          >
+            {extraFilterCount}
+          </span>
+        ) : null}
       </Button>
+
+      {showMore && (
+        <div
+          style={{
+            width: "100%",
+            display: "flex",
+            gap: 8,
+            paddingTop: 8,
+            borderTop: "1px solid var(--border)",
+            marginTop: 4,
+          }}
+        >
+          <FilterSelect
+            label="Type"
+            value={bucket}
+            options={BUCKET_OPTIONS}
+            onChange={(v) => {
+              setBucket(v);
+              pushParams({ bucket: v });
+            }}
+          />
+          <FilterSelect
+            label="Status"
+            value={pending}
+            options={PENDING_OPTIONS}
+            onChange={(v) => {
+              setPending(v);
+              pushParams({ pending: v === "pending" ? "true" : v === "posted" ? "false" : null });
+            }}
+          />
+        </div>
+      )}
     </div>
   );
 }

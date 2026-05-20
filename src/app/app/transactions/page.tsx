@@ -17,6 +17,8 @@ type Props = {
     to?: string;
     category?: string;
     account?: string;
+    bucket?: string;
+    pending?: string;
   }>;
 };
 
@@ -25,13 +27,24 @@ export default async function TransactionsPage({ searchParams }: Props) {
   const { tenantSlug: slug, isDemo } = await resolveSessionTenant(session);
   const params = await searchParams;
 
+  const today = new Date();
+  const defaultTo = today.toISOString().split("T")[0];
+  const thirtyDaysAgo = new Date(today);
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 29);
+  const defaultFrom = thirtyDaysAgo.toISOString().split("T")[0];
+
+  const from = params.from ?? defaultFrom;
+  const to = params.to ?? defaultTo;
+
   const { rows: transactions, total: totalCount } = await getTransactionsForTenant({
     tenantSlug: slug,
     q: params.q,
-    from: params.from,
-    to: params.to,
+    from,
+    to,
     category: params.category,
     account: params.account,
+    bucket: params.bucket,
+    pending: params.pending,
   });
 
   const income = transactions
@@ -55,7 +68,7 @@ export default async function TransactionsPage({ searchParams }: Props) {
   const subLine = [
     `${transactions.length} OF ${totalCount} ROWS`,
     transfersCount > 0 ? `${transfersCount} EXCLUDED` : null,
-    rangeLabel(params.from, params.to),
+    rangeLabel(from, to),
   ]
     .filter(Boolean)
     .join(" · ");
@@ -108,10 +121,12 @@ export default async function TransactionsPage({ searchParams }: Props) {
 
       <TransactionsToolbar
         initialQuery={params.q}
-        initialFrom={params.from}
-        initialTo={params.to}
+        initialFrom={from}
+        initialTo={to}
         initialCategory={params.category}
         initialAccount={params.account}
+        initialBucket={params.bucket}
+        initialPending={params.pending}
         categoryOptions={categoryOptions}
         accountOptions={accountOptions}
         categoryColors={categoryColors}

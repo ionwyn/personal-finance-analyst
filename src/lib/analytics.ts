@@ -516,6 +516,8 @@ export async function getTransactionsForTenant(input: {
   to?: string;
   category?: string;
   account?: string;
+  bucket?: string;
+  pending?: string;
 }) {
   const tenant = await prisma.tenant.findUnique({ where: { slug: input.tenantSlug } });
   if (!tenant) return { rows: [], total: 0 };
@@ -543,6 +545,9 @@ export async function getTransactionsForTenant(input: {
   if (input.category) where.categoryPrimary = input.category;
 
   if (input.account) where.account = { is: { name: input.account } };
+
+  if (input.pending === "true") where.pending = true;
+  if (input.pending === "false") where.pending = false;
 
   const [transactions, total] = await Promise.all([
     prisma.plaidTransaction.findMany({
@@ -573,5 +578,7 @@ export async function getTransactionsForTenant(input: {
     };
   });
 
-  return { rows, total };
+  const filtered = input.bucket ? rows.filter((r) => r.bucket === input.bucket) : rows;
+
+  return { rows: filtered, total };
 }
