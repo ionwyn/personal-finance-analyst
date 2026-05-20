@@ -3,8 +3,8 @@
 import { useMemo, useState } from "react";
 import { Search } from "lucide-react";
 
-import { SnapTradeLinkButton, SnapTradeSyncButton } from "@/components/snaptrade-actions";
-import { SymLogo } from "@/components/sym-logo";
+import { SnapTradeLinkButton, SnapTradeSyncButton } from "@/components/actions/snaptrade-actions";
+import { SymLogo } from "@/components/shared/sym-logo";
 import { PageHeader, SegmentedControl } from "@/components/ui";
 import { formatRelativeTime, formatYearMonth } from "@/lib/format";
 import type { InvestmentDashboardData, InvestmentPosition } from "@/lib/investments/types";

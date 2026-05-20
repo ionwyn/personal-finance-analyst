@@ -2,12 +2,12 @@
 
 import { useState } from "react";
 
-import { CategoryDonut } from "@/components/charts";
-import { formatMoney } from "@/components/big-number";
+import { CategoryDonut } from "@/components/shared/charts";
+import { formatMoney } from "@/lib/format";
 import { SegmentedControl } from "@/components/ui";
 import type { CategorySpend } from "@/lib/analytics";
 
-import chartStyles from "./charts.module.scss";
+import chartStyles from "@/components/shared/charts.module.scss";
 
 type Period = "7d" | "30d" | "mtd";
 

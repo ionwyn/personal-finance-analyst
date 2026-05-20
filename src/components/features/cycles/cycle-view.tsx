@@ -1,12 +1,12 @@
 import Link from "next/link";
 import { CheckCircle2, Clock, Hourglass } from "lucide-react";
 
-import { BigNumber, formatMoney } from "@/components/big-number";
-import { CategoryBar } from "@/components/category-bar";
-import { DiscoveryPanel } from "@/components/discovery-panel";
-import { SweepPrompt } from "@/components/sweep-prompt";
+import { BigNumber } from "@/components/shared/big-number";
+import { CategoryBar } from "@/components/features/cycles/category-bar";
+import { DiscoveryPanel } from "@/components/features/cycles/discovery-panel";
+import { SweepPrompt } from "@/components/features/cycles/sweep-prompt";
 import { PageHeader } from "@/components/ui";
-import { formatUtcDate } from "@/lib/format";
+import { formatMoney, formatUtcDate } from "@/lib/format";
 import type { CommittedItem, CurrentCycleData } from "@/lib/cycles/getCurrentCycle";
 import type { DiscoveryCandidate } from "@/lib/cycles/discovery";
 

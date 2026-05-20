@@ -1,11 +1,13 @@
 import { getServerSession } from "next-auth";
 
-import { AppShell } from "@/components/app-shell";
-import { formatMoney } from "@/components/big-number";
-import { ExportCsvButton, TransactionsToolbar } from "@/components/transactions-toolbar";
+import { AppShell } from "@/components/layout/app-shell";
+import {
+  ExportCsvButton,
+  TransactionsToolbar,
+} from "@/components/features/transactions/transactions-toolbar";
 import { getTransactionsForTenant } from "@/lib/analytics";
 import { authOptions } from "@/lib/auth";
-import { formatPlaidDate } from "@/lib/format";
+import { formatMoney, formatPlaidDate } from "@/lib/format";
 import { resolveSessionTenant } from "@/lib/tenant";
 
 export const dynamic = "force-dynamic";

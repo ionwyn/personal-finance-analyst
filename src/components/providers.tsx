@@ -2,7 +2,7 @@
 
 import { SessionProvider } from "next-auth/react";
 
-import { PlaidLinkProvider } from "@/components/plaid-link-button";
+import { PlaidLinkProvider } from "@/components/actions/plaid-link-button";
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (

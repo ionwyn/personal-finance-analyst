@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Check, Sparkles, X } from "lucide-react";
 
-import { formatMoney } from "@/components/big-number";
+import { formatMoney } from "@/lib/format";
 import { Button, IconButton } from "@/components/ui";
 import type { DiscoveryCandidate } from "@/lib/cycles/discovery";
 

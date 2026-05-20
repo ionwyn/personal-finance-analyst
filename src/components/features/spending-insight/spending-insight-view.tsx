@@ -3,7 +3,8 @@
 import { useMemo, useState } from "react";
 import { ChevronRight } from "lucide-react";
 
-import { BigNumber, formatMoney } from "@/components/big-number";
+import { BigNumber } from "@/components/shared/big-number";
+import { formatMoney } from "@/lib/format";
 import { SegmentedControl, Switch } from "@/components/ui";
 import type {
   CategoryRow,

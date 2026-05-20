@@ -1,7 +1,7 @@
 import { getServerSession } from "next-auth";
 
-import { AppShell } from "@/components/app-shell";
-import { InvestmentsView } from "@/components/investments-view";
+import { AppShell } from "@/components/layout/app-shell";
+import { InvestmentsView } from "@/components/features/investments/investments-view";
 import { getInvestmentDashboardData } from "@/lib/investments/analytics";
 import { authOptions } from "@/lib/auth";
 import { resolveSessionTenant } from "@/lib/tenant";

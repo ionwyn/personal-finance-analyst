@@ -15,7 +15,7 @@ import {
   YAxis,
 } from "recharts";
 
-import { formatMoney } from "@/components/big-number";
+import { formatMoney } from "@/lib/format";
 
 import styles from "./charts.module.scss";
 

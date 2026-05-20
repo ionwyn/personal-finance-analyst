@@ -1,21 +1,20 @@
 import { getServerSession } from "next-auth";
 import { CreditCard, Landmark, TrendingUp } from "lucide-react";
 
-import { AccountRowMenu } from "@/components/account-row-menu";
-import { AppShell } from "@/components/app-shell";
-import { ItemActions } from "@/components/item-actions";
-import { PlaidLinkButton } from "@/components/plaid-link-button";
+import { AccountRowMenu } from "@/components/actions/account-row-menu";
+import { AppShell } from "@/components/layout/app-shell";
+import { ItemActions } from "@/components/actions/item-actions";
+import { PlaidLinkButton } from "@/components/actions/plaid-link-button";
 import {
   SnapTradeConnectionActions,
   SnapTradeLinkButton,
   SnapTradeSyncButton,
-} from "@/components/snaptrade-actions";
-import { SyncAllButton } from "@/components/sync-all-button";
-import { formatMoney } from "@/components/big-number";
+} from "@/components/actions/snaptrade-actions";
+import { SyncAllButton } from "@/components/actions/sync-all-button";
 import { PageHeader, StatusPill } from "@/components/ui";
 import { getDashboardData } from "@/lib/analytics";
 import { authOptions } from "@/lib/auth";
-import { formatRelativeTime, formatYearMonth } from "@/lib/format";
+import { formatMoney, formatRelativeTime, formatYearMonth } from "@/lib/format";
 import { resolveSessionTenant } from "@/lib/tenant";
 
 import styles from "./accounts.module.scss";

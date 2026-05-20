@@ -1,8 +1,8 @@
-import { BalanceChart, CashflowChart } from "@/components/charts";
+import { BalanceChart, CashflowChart } from "@/components/shared/charts";
 import { EmptyPanelMessage } from "@/components/ui";
 import { formatMoney, formatMonthDay } from "@/lib/format";
 
-import chartStyles from "../charts.module.scss";
+import chartStyles from "@/components/shared/charts.module.scss";
 import type { DashboardData } from "./types";
 
 export function CashflowPanel({ data }: { data: DashboardData }) {

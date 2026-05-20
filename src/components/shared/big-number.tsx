@@ -20,5 +20,3 @@ export function BigNumber({
     </span>
   );
 }
-
-export { formatMoney } from "@/lib/format";

@@ -2,7 +2,7 @@
 
 import { ChevronRight } from "lucide-react";
 
-import { formatMoney } from "@/components/big-number";
+import { formatMoney } from "@/lib/format";
 
 export type CategoryBarProps = {
   label: string;

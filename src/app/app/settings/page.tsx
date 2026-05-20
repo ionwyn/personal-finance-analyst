@@ -1,8 +1,8 @@
 import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
 
-import { AppShell } from "@/components/app-shell";
-import { SettingsView } from "@/components/settings-view";
+import { AppShell } from "@/components/layout/app-shell";
+import { SettingsView } from "@/components/features/settings/settings-view";
 import { authOptions } from "@/lib/auth";
 import { getSettingsData } from "@/lib/cycles/getSettings";
 import { getUserTenant } from "@/lib/tenant";

@@ -1,8 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { ArrowLeftRight } from "lucide-react";
-import { MoreHorizontal } from "lucide-react";
+import { ArrowLeftRight, MoreHorizontal } from "lucide-react";
 
 import { DropdownMenu } from "@/components/ui";
 
@@ -18,9 +17,7 @@ export function AccountRowMenu({ accountName }: { accountName: string }) {
           label: "View transactions",
           icon: <ArrowLeftRight size={12} />,
           onAction: () =>
-            router.push(
-              `/app/transactions?account=${encodeURIComponent(accountName)}` as never
-            ),
+            router.push(`/app/transactions?account=${encodeURIComponent(accountName)}` as never),
         },
       ]}
     >

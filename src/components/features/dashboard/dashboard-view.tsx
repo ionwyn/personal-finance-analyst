@@ -1,17 +1,17 @@
 import { Download } from "lucide-react";
 
-import { CategorySpendPanel } from "@/components/category-spend-panel";
+import { CategorySpendPanel } from "@/components/features/dashboard/category-spend-panel";
 import styles from "./dashboard-view.module.scss";
-import { CashflowPanel, NetWorthPanel } from "@/components/dashboard/chart-panels";
-import { InsightsPanel } from "@/components/dashboard/insights-panel";
-import { DashboardKpiStrip } from "@/components/dashboard/kpi-strip";
-import { LinkedItemsPanel } from "@/components/dashboard/linked-items-panel";
-import { RecentTransactionsPanel } from "@/components/dashboard/recent-transactions-panel";
-import type { DashboardData, DashboardMode } from "@/components/dashboard/types";
-import { InvestmentsCard } from "@/components/investments-card";
-import { PlaidLinkButton } from "@/components/plaid-link-button";
+import { CashflowPanel, NetWorthPanel } from "@/components/features/dashboard/chart-panels";
+import { InsightsPanel } from "@/components/features/dashboard/insights-panel";
+import { DashboardKpiStrip } from "@/components/features/dashboard/kpi-strip";
+import { LinkedItemsPanel } from "@/components/features/dashboard/linked-items-panel";
+import { RecentTransactionsPanel } from "@/components/features/dashboard/recent-transactions-panel";
+import type { DashboardData, DashboardMode } from "@/components/features/dashboard/types";
+import { InvestmentsCard } from "@/components/features/dashboard/investments-card";
+import { PlaidLinkButton } from "@/components/actions/plaid-link-button";
 import { Button, PageHeader } from "@/components/ui";
-import { SyncAllButton } from "@/components/sync-all-button";
+import { SyncAllButton } from "@/components/actions/sync-all-button";
 import { formatRelativeTime } from "@/lib/format";
 
 export function DashboardView({ data, mode }: { data: DashboardData; mode: DashboardMode }) {

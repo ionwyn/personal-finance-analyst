@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 
-import { SymLogo } from "@/components/sym-logo";
+import { SymLogo } from "@/components/shared/sym-logo";
 import type { InvestmentDashboardData } from "@/lib/investments/types";
 
 export function InvestmentsCard({ data }: { data: InvestmentDashboardData }) {

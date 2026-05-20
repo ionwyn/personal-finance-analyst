@@ -37,12 +37,63 @@ src/
     demo/page.tsx           # Public sandbox demo (no login)
     signin/page.tsx
   components/
-    dashboard-view.tsx      # Main dashboard layout
-    charts.tsx              # Recharts: cashflow bar, category pie, balance line
-    plaid-link-button.tsx
-    item-actions.tsx
-    auth-button.tsx
-    site-header.tsx
+    auth-button.tsx         # Sign-in button used by /signin
+    providers.tsx           # Client providers mounted from app/layout.tsx
+    actions/                # Client-side action controls and menus
+      account-row-menu.tsx
+      item-actions.tsx
+      plaid-link-button.tsx # Plaid Link provider/button
+      snaptrade-actions.tsx
+      sync-all-button.tsx
+    layout/                 # App chrome shared by protected pages
+      app-shell.tsx
+      sidebar.tsx
+      topbar.tsx
+    shared/                 # Reusable visual primitives/helpers
+      big-number.tsx
+      charts.tsx            # Recharts: cashflow, category donut, balance line
+      sparkline.tsx
+      sym-logo.tsx
+    features/               # Route/domain-specific component groups
+      dashboard/
+        dashboard-view.tsx
+        chart-panels.tsx
+        kpi-strip.tsx
+        linked-items-panel.tsx
+        recent-transactions-panel.tsx
+        insights-panel.tsx
+        category-spend-panel.tsx
+        investments-card.tsx
+        types.ts
+      cycles/
+        cycle-view.tsx
+        category-bar.tsx
+        discovery-panel.tsx
+        sweep-prompt.tsx
+      investments/
+        investments-view.tsx
+      settings/
+        settings-view.tsx
+        pay-cycle-section.tsx
+        recurring-expenses-section.tsx
+        savings-destinations-section.tsx
+        settlement-patterns-section.tsx
+        settings-form.tsx
+      spending-insight/
+        spending-insight-view.tsx
+      transactions/
+        transactions-toolbar.tsx
+    ui/                     # Generic UI controls exported via ui/index.ts
+      button.tsx
+      date-range-picker.tsx
+      input.tsx
+      menu.tsx
+      page-header.tsx
+      panel.tsx
+      segmented-control.tsx
+      select.tsx
+      status-pill.tsx
+      switch.tsx
   lib/
     analytics.ts            # getDashboardData(), getTransactionsForTenant()
     auth.ts                 # NextAuth config
@@ -74,22 +125,24 @@ scripts/
 
 ## Database Models
 
-| Model | Purpose |
-|---|---|
-| `Tenant` | PERSONAL or DEMO; all data is tenant-scoped |
-| `User` | NextAuth user; belongs to one Tenant |
-| `PlaidItem` | A linked bank connection (encrypted access token, sync cursor) |
-| `PlaidAccount` | An individual account under a PlaidItem |
-| `PlaidTransaction` | Transaction record; soft-deleted via `removed=true` |
-| `BalanceSnapshot` | Point-in-time balance capture (immutable) |
-| `SyncRun` | Audit log: source, status, counts, errors |
+| Model              | Purpose                                                        |
+| ------------------ | -------------------------------------------------------------- |
+| `Tenant`           | PERSONAL or DEMO; all data is tenant-scoped                    |
+| `User`             | NextAuth user; belongs to one Tenant                           |
+| `PlaidItem`        | A linked bank connection (encrypted access token, sync cursor) |
+| `PlaidAccount`     | An individual account under a PlaidItem                        |
+| `PlaidTransaction` | Transaction record; soft-deleted via `removed=true`            |
+| `BalanceSnapshot`  | Point-in-time balance capture (immutable)                      |
+| `SyncRun`          | Audit log: source, status, counts, errors                      |
 
 ## Key Behaviours
 
 ### Amount Sign Convention
+
 Positive = expense/debit. Negative = income/credit deposit. This is the Plaid convention.
 
 ### Transaction Sync (syncPlaidItem)
+
 1. Check 15-minute sync lock → skip if locked
 2. Create `SyncRun` (RUNNING)
 3. Decrypt access token
@@ -100,11 +153,13 @@ Positive = expense/debit. Negative = income/credit deposit. This is the Plaid co
 8. Update `SyncRun` (SUCCESS), update `PlaidItem` (cursor, lastSyncAt)
 
 ### Sync Triggers
+
 - **Manual**: user clicks "Sync" on `/app/accounts`
 - **Scheduled**: Vercel cron → `POST /api/jobs/plaid-sync` every 6 hours
 - **Webhook**: Plaid `SYNC_UPDATES_AVAILABLE` → `/api/webhooks/plaid`
 
 ### Dashboard Analytics (getDashboardData)
+
 - 6-month transaction window
 - Current balance = sum of `currentBalance` across all accounts
 - Monthly income/spend from current calendar month
@@ -113,6 +168,7 @@ Positive = expense/debit. Negative = income/credit deposit. This is the Plaid co
 - Balance history = daily snapshots aggregated by day label
 
 ### Security
+
 - Plaid access tokens: AES-256-GCM with random IV, stored as encrypted string
 - Plaid webhooks: verified via ES256 JWT against Plaid's public keys
 - Cron endpoint: `Authorization: Bearer $CRON_SECRET` or `x-cron-secret: $CRON_SECRET`

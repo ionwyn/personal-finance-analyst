@@ -1,7 +1,7 @@
 import { getServerSession } from "next-auth";
 
-import { AppShell } from "@/components/app-shell";
-import { SpendingInsightView } from "@/components/spending-insight-view";
+import { AppShell } from "@/components/layout/app-shell";
+import { SpendingInsightView } from "@/components/features/spending-insight/spending-insight-view";
 import { authOptions } from "@/lib/auth";
 import { getSpendingInsight } from "@/lib/spending/getSpendingInsight";
 import { resolveSessionTenant } from "@/lib/tenant";

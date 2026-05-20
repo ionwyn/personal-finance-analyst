@@ -1,12 +1,11 @@
 import Link from "next/link";
 import { getServerSession } from "next-auth";
 
-import { AppShell } from "@/components/app-shell";
-import { formatMoney } from "@/components/big-number";
+import { AppShell } from "@/components/layout/app-shell";
 import { authOptions } from "@/lib/auth";
 import { closeOverdueCycles } from "@/lib/cycles/close";
 import { getCycleHistory } from "@/lib/cycles/getCycleHistory";
-import { formatUtcDate } from "@/lib/format";
+import { formatMoney, formatUtcDate } from "@/lib/format";
 import { resolveSessionTenant } from "@/lib/tenant";
 
 export const dynamic = "force-dynamic";

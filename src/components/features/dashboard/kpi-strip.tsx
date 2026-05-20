@@ -1,8 +1,8 @@
 import { ArrowDown, ArrowUp } from "lucide-react";
 import type { ReactNode } from "react";
 
-import { BigNumber } from "@/components/big-number";
-import { Sparkline } from "@/components/sparkline";
+import { BigNumber } from "@/components/shared/big-number";
+import { Sparkline } from "@/components/shared/sparkline";
 import { formatCompactMoney } from "@/lib/format";
 
 import type { DashboardData } from "./types";

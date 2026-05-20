@@ -1,5 +1,5 @@
-import { Sidebar, type SidebarUser } from "@/components/sidebar";
-import { Topbar } from "@/components/topbar";
+import { Sidebar, type SidebarUser } from "@/components/layout/sidebar";
+import { Topbar } from "@/components/layout/topbar";
 
 import styles from "./app-shell.module.scss";
 

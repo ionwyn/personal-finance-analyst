@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Wallet } from "lucide-react";
 
-import { formatMoney } from "@/components/big-number";
+import { formatMoney } from "@/lib/format";
 import { Button, Input } from "@/components/ui";
 
 export function SweepPrompt({

@@ -1,7 +1,7 @@
 import { getServerSession } from "next-auth";
 
-import { AppShell } from "@/components/app-shell";
-import { CycleView } from "@/components/cycle-view";
+import { AppShell } from "@/components/layout/app-shell";
+import { CycleView } from "@/components/features/cycles/cycle-view";
 import { authOptions } from "@/lib/auth";
 import { getCurrentCycleData } from "@/lib/cycles/getCurrentCycle";
 import { discoverRecurringCandidates } from "@/lib/cycles/discovery";
