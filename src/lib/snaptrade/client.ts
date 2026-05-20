@@ -28,12 +28,9 @@ export function getSnapTradeClient() {
 }
 
 export function getSnapTradeCredentials() {
-  const userSecretEncrypted = firstEnv(["SNAPTRADE_USER_SECRET_ENCRYPTED"]);
   return {
     userId: requireFirstEnv(["SNAPTRADE_USER_ID", "userid", "user_id"]),
-    userSecret: userSecretEncrypted
-      ? decryptToken(userSecretEncrypted)
-      : requireFirstEnv(["SNAPTRADE_USER_SECRET", "usersecret", "user_secret"]),
+    userSecret: decryptToken(requireFirstEnv(["SNAPTRADE_USER_SECRET_ENCRYPTED"])),
   };
 }
 
