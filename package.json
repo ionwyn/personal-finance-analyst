@@ -71,6 +71,11 @@
     "typescript": "^6.0.3",
     "vitest": "^4.1.6"
   },
+  "overrides": {
+    "snaptrade-typescript-sdk": {
+      "axios": "1.16.1"
+    }
+  },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
   }
