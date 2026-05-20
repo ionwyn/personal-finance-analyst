@@ -2,11 +2,9 @@
 
 import { useRef, useState, useTransition } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Calendar, ChevronRight, Download, Filter, Search } from "lucide-react";
+import { ChevronRight, Download, Filter, Search } from "lucide-react";
 
-import { Button, FilterSelect } from "@/components/ui";
-
-import styles from "./transactions-toolbar.module.scss";
+import { Button, DateRangePicker, FilterSelect } from "@/components/ui";
 
 export function TransactionsToolbar({
   initialQuery,
@@ -70,26 +68,15 @@ export function TransactionsToolbar({
         <span className="kbd">⌘F</span>
       </div>
 
-      <label className={styles.daterange} aria-label="Date range">
-        <Calendar size={12} />
-        <input
-          type="date"
-          value={from}
-          onChange={(e) => {
-            setFrom(e.target.value);
-            pushParams({ from: e.target.value || null });
-          }}
-        />
-        <span className={styles.sep}>→</span>
-        <input
-          type="date"
-          value={to}
-          onChange={(e) => {
-            setTo(e.target.value);
-            pushParams({ to: e.target.value || null });
-          }}
-        />
-      </label>
+      <DateRangePicker
+        from={from}
+        to={to}
+        onChange={(f, t) => {
+          setFrom(f);
+          setTo(t);
+          pushParams({ from: f || null, to: t || null });
+        }}
+      />
 
       <FilterSelect
         label="Category"
