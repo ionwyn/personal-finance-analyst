@@ -2,7 +2,7 @@
 
 import { useRef, useState, useTransition } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { ChevronDown, ChevronUp, Download, Search } from "lucide-react";
+import { ChevronDown, ChevronUp, Download, Filter, Search } from "lucide-react";
 
 import { Button, DateRangePicker, FilterSelect } from "@/components/ui";
 
@@ -17,6 +17,8 @@ export function TransactionsToolbar({
   initialAccount,
   initialBucket,
   initialPending,
+  initialAmountMin,
+  initialAmountMax,
   categoryOptions,
   accountOptions,
   categoryColors,
@@ -28,6 +30,8 @@ export function TransactionsToolbar({
   initialAccount?: string;
   initialBucket?: string;
   initialPending?: string;
+  initialAmountMin?: string;
+  initialAmountMax?: string;
   categoryOptions: string[];
   accountOptions: string[];
   categoryColors: Record<string, string>;
@@ -46,9 +50,14 @@ export function TransactionsToolbar({
   const [pending, setPending] = useState<string | null>(
     initialPending === "true" ? "pending" : initialPending === "false" ? "posted" : null
   );
-  const [showMore, setShowMore] = useState(Boolean(initialBucket || initialPending));
+  const [amountMin, setAmountMin] = useState(initialAmountMin ?? "");
+  const [amountMax, setAmountMax] = useState(initialAmountMax ?? "");
+  const [showMore, setShowMore] = useState(
+    Boolean(initialBucket || initialPending || initialAmountMin || initialAmountMax)
+  );
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const amountDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   function pushParams(next: Record<string, string | null>) {
     const params = new URLSearchParams(searchParams?.toString() ?? "");
@@ -68,7 +77,22 @@ export function TransactionsToolbar({
     debounceRef.current = setTimeout(() => pushParams({ q: value || null }), 250);
   }
 
-  const extraFilterCount = [bucket, pending].filter(Boolean).length;
+  function onAmountChange(field: "amountMin" | "amountMax", value: string) {
+    if (field === "amountMin") setAmountMin(value);
+    else setAmountMax(value);
+    if (amountDebounceRef.current) clearTimeout(amountDebounceRef.current);
+    amountDebounceRef.current = setTimeout(
+      () =>
+        pushParams({
+          [field]: value || null,
+        }),
+      400
+    );
+  }
+
+  const extraFilterCount = [bucket, pending, amountMin || amountMax ? "amount" : null].filter(
+    Boolean
+  ).length;
 
   return (
     <div className="tx-toolbar">
@@ -116,7 +140,7 @@ export function TransactionsToolbar({
       <Button
         variant="ghost"
         size="sm"
-        icon={showMore ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+        icon={<Filter size={12} />}
         style={{
           color: extraFilterCount > 0 ? "var(--accent)" : "var(--text-3)",
           fontWeight: extraFilterCount > 0 ? 600 : undefined,
@@ -140,6 +164,11 @@ export function TransactionsToolbar({
             {extraFilterCount}
           </span>
         ) : null}
+        {showMore ? (
+          <ChevronUp size={12} style={{ marginLeft: 2, opacity: 0.6 }} />
+        ) : (
+          <ChevronDown size={12} style={{ marginLeft: 2, opacity: 0.6 }} />
+        )}
       </Button>
 
       {showMore && (
@@ -148,6 +177,7 @@ export function TransactionsToolbar({
             width: "100%",
             display: "flex",
             gap: 8,
+            alignItems: "center",
             paddingTop: 8,
             borderTop: "1px solid var(--border)",
             marginTop: 4,
@@ -171,6 +201,54 @@ export function TransactionsToolbar({
               pushParams({ pending: v === "pending" ? "true" : v === "posted" ? "false" : null });
             }}
           />
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 4,
+              border: "1px dashed var(--border)",
+              borderRadius: 6,
+              padding: "4px 10px",
+              fontSize: 12,
+              fontFamily: "var(--font-mono)",
+              color: amountMin || amountMax ? "var(--text-1)" : "var(--text-3)",
+            }}
+          >
+            <span style={{ marginRight: 2 }}>$</span>
+            <input
+              type="number"
+              min={0}
+              placeholder="Min"
+              value={amountMin}
+              onChange={(e) => onAmountChange("amountMin", e.target.value)}
+              style={{
+                width: 60,
+                background: "none",
+                border: "none",
+                outline: "none",
+                fontFamily: "inherit",
+                fontSize: "inherit",
+                color: "inherit",
+              }}
+            />
+            <span style={{ opacity: 0.4 }}>—</span>
+            <input
+              type="number"
+              min={0}
+              placeholder="Max"
+              value={amountMax}
+              onChange={(e) => onAmountChange("amountMax", e.target.value)}
+              style={{
+                width: 60,
+                background: "none",
+                border: "none",
+                outline: "none",
+                fontFamily: "inherit",
+                fontSize: "inherit",
+                color: "inherit",
+              }}
+            />
+          </div>
         </div>
       )}
     </div>

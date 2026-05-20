@@ -19,6 +19,8 @@ type Props = {
     account?: string;
     bucket?: string;
     pending?: string;
+    amountMin?: string;
+    amountMax?: string;
   }>;
 };
 
@@ -45,6 +47,8 @@ export default async function TransactionsPage({ searchParams }: Props) {
     account: params.account,
     bucket: params.bucket,
     pending: params.pending,
+    amountMin: params.amountMin,
+    amountMax: params.amountMax,
   });
 
   const income = transactions
@@ -127,6 +131,8 @@ export default async function TransactionsPage({ searchParams }: Props) {
         initialAccount={params.account}
         initialBucket={params.bucket}
         initialPending={params.pending}
+        initialAmountMin={params.amountMin}
+        initialAmountMax={params.amountMax}
         categoryOptions={categoryOptions}
         accountOptions={accountOptions}
         categoryColors={categoryColors}

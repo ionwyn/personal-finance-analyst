@@ -518,6 +518,8 @@ export async function getTransactionsForTenant(input: {
   account?: string;
   bucket?: string;
   pending?: string;
+  amountMin?: string;
+  amountMax?: string;
 }) {
   const tenant = await prisma.tenant.findUnique({ where: { slug: input.tenantSlug } });
   if (!tenant) return { rows: [], total: 0 };
@@ -578,7 +580,16 @@ export async function getTransactionsForTenant(input: {
     };
   });
 
-  const filtered = input.bucket ? rows.filter((r) => r.bucket === input.bucket) : rows;
+  const amountMin = input.amountMin ? parseFloat(input.amountMin) : null;
+  const amountMax = input.amountMax ? parseFloat(input.amountMax) : null;
+
+  const filtered = rows.filter((r) => {
+    if (input.bucket && r.bucket !== input.bucket) return false;
+    const abs = Math.abs(r.amount);
+    if (amountMin !== null && !isNaN(amountMin) && abs < amountMin) return false;
+    if (amountMax !== null && !isNaN(amountMax) && abs > amountMax) return false;
+    return true;
+  });
 
   return { rows: filtered, total };
 }
