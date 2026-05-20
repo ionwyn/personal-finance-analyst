@@ -3,12 +3,20 @@ import { NextResponse } from "next/server";
 import { requireUserTenant } from "@/lib/http";
 import { setLogContext, withRequestLogging } from "@/lib/logger";
 import { createTransactionsLinkToken } from "@/lib/plaid/client";
+import { rateLimitRequest } from "@/lib/rate-limit";
 
 export async function POST(request: Request) {
   return withRequestLogging(
     request,
     { route: "/api/plaid/link-token", provider: "plaid" },
     async () => {
+      const limited = rateLimitRequest(request, {
+        keyPrefix: "plaid:link-token",
+        limit: 10,
+        windowMs: 60_000,
+      });
+      if (limited) return limited;
+
       const auth = await requireUserTenant();
       if ("error" in auth) return auth.error;
 

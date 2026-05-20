@@ -4,6 +4,7 @@ import { z } from "zod";
 import { requireUserTenant } from "@/lib/http";
 import { setLogContext, withRequestLogging } from "@/lib/logger";
 import { exchangeAndStorePlaidItem } from "@/lib/plaid/items";
+import { rateLimitRequest } from "@/lib/rate-limit";
 
 const bodySchema = z.object({
   public_token: z.string().min(1),
@@ -21,6 +22,13 @@ export async function POST(request: Request) {
     request,
     { route: "/api/plaid/exchange-public-token", provider: "plaid", syncSource: "manual" },
     async () => {
+      const limited = rateLimitRequest(request, {
+        keyPrefix: "plaid:exchange-public-token",
+        limit: 10,
+        windowMs: 60_000,
+      });
+      if (limited) return limited;
+
       const auth = await requireUserTenant();
       if ("error" in auth) return auth.error;
 

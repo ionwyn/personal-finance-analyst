@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { requireOwnedSnapTradeLogo } from "@/lib/http";
 import { setLogContext, withRequestLogging } from "@/lib/logger";
+import { rateLimitRequest } from "@/lib/rate-limit";
 import { fetchAndCacheLogo } from "@/lib/snaptrade/logo";
 
 export async function GET(request: Request, context: { params: Promise<{ logoId: string }> }) {
@@ -9,6 +10,13 @@ export async function GET(request: Request, context: { params: Promise<{ logoId:
     request,
     { route: "/api/snaptrade/logos/[logoId]", provider: "twelvedata" },
     async () => {
+      const limited = rateLimitRequest(request, {
+        keyPrefix: "snaptrade:logos",
+        limit: 300,
+        windowMs: 60_000,
+      });
+      if (limited) return limited;
+
       const { logoId } = await context.params;
       const auth = await requireOwnedSnapTradeLogo(logoId);
       if (!("logoId" in auth)) return auth.error;

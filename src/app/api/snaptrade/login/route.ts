@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import { requireUserTenant } from "@/lib/http";
 import { setLogContext, withRequestLogging } from "@/lib/logger";
+import { rateLimitRequest } from "@/lib/rate-limit";
 import { createSnapTradeConnectionPortal } from "@/lib/snaptrade/client";
 
 const bodySchema = z
@@ -16,6 +17,13 @@ export async function POST(request: Request) {
     request,
     { route: "/api/snaptrade/login", provider: "snaptrade" },
     async () => {
+      const limited = rateLimitRequest(request, {
+        keyPrefix: "snaptrade:login",
+        limit: 10,
+        windowMs: 60_000,
+      });
+      if (limited) return limited;
+
       const auth = await requireUserTenant();
       if ("error" in auth) return auth.error;
 

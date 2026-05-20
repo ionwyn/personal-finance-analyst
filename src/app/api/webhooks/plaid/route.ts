@@ -6,6 +6,7 @@ import { logger, setLogContext, withRequestLogging } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
 import { syncPlaidItem } from "@/lib/plaid/sync";
 import { verifyPlaidWebhook } from "@/lib/plaid/webhook";
+import { rateLimitRequest } from "@/lib/rate-limit";
 
 type PlaidWebhookBody = {
   webhook_type?: string;
@@ -18,6 +19,13 @@ export async function POST(request: Request) {
     request,
     { route: "/api/webhooks/plaid", provider: "plaid", syncSource: "webhook" },
     async () => {
+      const limited = rateLimitRequest(request, {
+        keyPrefix: "webhooks:plaid",
+        limit: 120,
+        windowMs: 60_000,
+      });
+      if (limited) return limited;
+
       assertWebhookConfig();
 
       const rawBody = await request.text();

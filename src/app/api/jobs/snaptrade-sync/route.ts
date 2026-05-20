@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { isCronAuthorized } from "@/lib/cron";
 import { withRequestLogging } from "@/lib/logger";
 import { recordSyncJob, recordSyncRunStatuses } from "@/lib/metrics";
+import { rateLimitRequest } from "@/lib/rate-limit";
 import { syncAllSnapTradeTenants } from "@/lib/snaptrade/sync";
 
 export async function POST(request: Request) {
@@ -11,6 +12,13 @@ export async function POST(request: Request) {
     request,
     { route: "/api/jobs/snaptrade-sync", provider: "snaptrade", syncSource: "scheduled" },
     async () => {
+      const limited = rateLimitRequest(request, {
+        keyPrefix: "jobs:snaptrade-sync",
+        limit: 20,
+        windowMs: 60_000,
+      });
+      if (limited) return limited;
+
       if (!isCronAuthorized(request.headers, process.env.CRON_SECRET)) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
       }

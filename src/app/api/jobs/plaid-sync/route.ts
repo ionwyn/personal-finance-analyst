@@ -5,12 +5,20 @@ import { isCronAuthorized } from "@/lib/cron";
 import { withRequestLogging } from "@/lib/logger";
 import { recordSyncJob, recordSyncRunStatuses } from "@/lib/metrics";
 import { syncAllPlaidItems } from "@/lib/plaid/sync";
+import { rateLimitRequest } from "@/lib/rate-limit";
 
 export async function POST(request: Request) {
   return withRequestLogging(
     request,
     { route: "/api/jobs/plaid-sync", provider: "plaid", syncSource: "scheduled" },
     async () => {
+      const limited = rateLimitRequest(request, {
+        keyPrefix: "jobs:plaid-sync",
+        limit: 20,
+        windowMs: 60_000,
+      });
+      if (limited) return limited;
+
       if (!isCronAuthorized(request.headers, process.env.CRON_SECRET)) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
       }

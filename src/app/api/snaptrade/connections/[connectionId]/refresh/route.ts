@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { requireOwnedSnapTradeConnection } from "@/lib/http";
 import { setLogContext, withRequestLogging } from "@/lib/logger";
+import { rateLimitRequest } from "@/lib/rate-limit";
 import { refreshSnapTradeConnection } from "@/lib/snaptrade/sync";
 
 export async function POST(
@@ -16,6 +17,13 @@ export async function POST(
       syncSource: "manual",
     },
     async () => {
+      const limited = rateLimitRequest(request, {
+        keyPrefix: "snaptrade:connection-refresh",
+        limit: 10,
+        windowMs: 60_000,
+      });
+      if (limited) return limited;
+
       const { connectionId } = await context.params;
       const auth = await requireOwnedSnapTradeConnection(connectionId);
       if (!("connection" in auth)) return auth.error;
