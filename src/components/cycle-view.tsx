@@ -185,8 +185,8 @@ export function CycleView({
         </div>
       </div>
 
-      <div className="dash-grid">
-        <div className="col">
+      <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 16 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           <div className="panel">
             <div className="panel-head">
               <div className="panel-title">Committed this cycle</div>
@@ -286,7 +286,7 @@ export function CycleView({
           </div>
         </div>
 
-        <div className="col">
+        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           <div className="panel">
             <div className="panel-head">
               <div className="panel-title">Cycle summary</div>
