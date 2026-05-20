@@ -13,6 +13,7 @@ import {
   DateRangePicker as AriaDateRangePicker,
   DateSegment,
   Dialog,
+  Group,
   Heading,
   Popover,
   RangeCalendar,
@@ -43,10 +44,10 @@ export function DateRangePicker({ from, to, onChange }: DateRangePickerProps) {
       }}
       className={styles.picker}
     >
-      <Button className={styles.group}>
-        <span className={styles.calBtn} aria-hidden>
+      <Group className={styles.group}>
+        <Button className={styles.calBtn}>
           <CalIconSvg />
-        </span>
+        </Button>
         <DateInput slot="start" className={styles.dateInput}>
           {(seg) => <DateSegment segment={seg} className={styles.segment} />}
         </DateInput>
@@ -57,20 +58,27 @@ export function DateRangePicker({ from, to, onChange }: DateRangePickerProps) {
           {(seg) => <DateSegment segment={seg} className={styles.segment} />}
         </DateInput>
         {hasDates ? (
-          <button
-            type="button"
+          <span
+            role="button"
+            tabIndex={0}
             aria-label="Clear date range"
             className={styles.clearBtn}
             onClick={(e) => {
               e.stopPropagation();
               onChange("", "");
             }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.stopPropagation();
+                onChange("", "");
+              }
+            }}
           >
             <X size={11} />
-          </button>
+          </span>
         ) : null}
-      </Button>
-      <Popover className={styles.popover}>
+      </Group>
+      <Popover className={styles.popover} placement="bottom start">
         <Dialog className={styles.dialog}>
           <RangeCalendar className={styles.calendar}>
             <header className={styles.calHeader}>
@@ -84,9 +92,7 @@ export function DateRangePicker({ from, to, onChange }: DateRangePickerProps) {
             </header>
             <CalendarGrid className={styles.calGrid}>
               <CalendarGridHeader>
-                {(day) => (
-                  <CalendarHeaderCell className={styles.dayName}>{day}</CalendarHeaderCell>
-                )}
+                {(day) => <CalendarHeaderCell className={styles.dayName}>{day}</CalendarHeaderCell>}
               </CalendarGridHeader>
               <CalendarGridBody>
                 {(date) => <CalendarCell date={date} className={styles.cell} />}
