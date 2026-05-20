@@ -1,6 +1,8 @@
 import { Sidebar, type SidebarUser } from "@/components/sidebar";
 import { Topbar } from "@/components/topbar";
 
+import styles from "./app-shell.module.scss";
+
 export type AppShellMode = "private" | "demo";
 
 export function AppShell({
@@ -15,11 +17,11 @@ export function AppShell({
   topbarMeta?: { dbSize?: string };
 }) {
   return (
-    <div className="app">
+    <div className={styles.app}>
       <Sidebar mode={mode} user={user} />
-      <main className="main">
+      <main className={styles.main}>
         <Topbar mode={mode} dbSize={topbarMeta?.dbSize} />
-        <div className="content">{children}</div>
+        <div className={styles.content}>{children}</div>
       </main>
     </div>
   );

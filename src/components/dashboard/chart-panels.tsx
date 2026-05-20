@@ -2,6 +2,7 @@ import { BalanceChart, CashflowChart } from "@/components/charts";
 import { EmptyPanelMessage } from "@/components/ui";
 import { formatMoney, formatMonthDay } from "@/lib/format";
 
+import chartStyles from "../charts.module.scss";
 import type { DashboardData } from "./types";
 
 export function CashflowPanel({ data }: { data: DashboardData }) {
@@ -10,13 +11,13 @@ export function CashflowPanel({ data }: { data: DashboardData }) {
       <div className="panel-head">
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
           <div className="panel-title">Cashflow · 6M</div>
-          <div className="chart-legend">
-            <span className="lg-item">
-              <i className="sw" style={{ background: "var(--pos)" }} />
+          <div className={chartStyles.chartLegend}>
+            <span className={chartStyles.lgItem}>
+              <i className={chartStyles.lgSw} style={{ background: "var(--pos)" }} />
               Income
             </span>
-            <span className="lg-item">
-              <i className="sw" style={{ background: "var(--neg)" }} />
+            <span className={chartStyles.lgItem}>
+              <i className={chartStyles.lgSw} style={{ background: "var(--neg)" }} />
               Spending
             </span>
           </div>
@@ -37,8 +38,8 @@ export function NetWorthPanel({ data }: { data: DashboardData }) {
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
           <div className="panel-title">Net worth · 6M</div>
           {data.investments.summary.lastSync ? (
-            <span className="chart-anno">
-              <i className="dot" />
+            <span className={chartStyles.chartAnno}>
+              <i className={chartStyles.annoDot} />
               Investments added {formatMonthDay(data.investments.summary.lastSync)}
             </span>
           ) : null}

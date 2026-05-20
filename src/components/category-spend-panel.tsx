@@ -4,15 +4,12 @@ import { useState } from "react";
 
 import { CategoryDonut } from "@/components/charts";
 import { formatMoney } from "@/components/big-number";
+import { SegmentedControl } from "@/components/ui";
 import type { CategorySpend } from "@/lib/analytics";
 
-type Period = "7d" | "30d" | "mtd";
+import chartStyles from "./charts.module.scss";
 
-const PERIODS: { label: string; key: Period }[] = [
-  { label: "1W", key: "7d" },
-  { label: "30D", key: "30d" },
-  { label: "MTD", key: "mtd" },
-];
+type Period = "7d" | "30d" | "mtd";
 
 export function CategorySpendPanel({
   spend7d,
@@ -33,33 +30,22 @@ export function CategorySpendPanel({
       <div className="panel-head">
         <div className="panel-title">Spend by category</div>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <div style={{ display: "flex", gap: 2 }}>
-            {PERIODS.map((p) => (
-              <button
-                key={p.key}
-                type="button"
-                onClick={() => setPeriod(p.key)}
-                style={{
-                  padding: "2px 7px",
-                  fontSize: 11,
-                  fontFamily: "var(--font-mono)",
-                  border: "1px solid var(--border)",
-                  borderRadius: 4,
-                  cursor: "pointer",
-                  background: period === p.key ? "var(--text)" : "transparent",
-                  color: period === p.key ? "var(--bg)" : "var(--text-3)",
-                }}
-              >
-                {p.label}
-              </button>
-            ))}
-          </div>
+          <SegmentedControl
+            label="Spend period"
+            value={period}
+            onChange={setPeriod}
+            options={[
+              { value: "7d", label: "1W" },
+              { value: "30d", label: "30D" },
+              { value: "mtd", label: "MTD" },
+            ]}
+          />
           <div className="panel-meta">{formatMoney(total)}</div>
         </div>
       </div>
       {data.length ? (
         <>
-          <div className="pie-row">
+          <div className={chartStyles.pieRow}>
             <CategoryDonut data={data} total={total} />
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 11, color: "var(--text-3)", marginBottom: 6 }}>
@@ -80,13 +66,13 @@ export function CategorySpendPanel({
               </div>
             </div>
           </div>
-          <div className="cat-list">
+          <div className={chartStyles.catList}>
             {data.map((c) => (
-              <div className="cat-item" key={c.category}>
-                <i className="cat-sw" style={{ background: c.color }} />
-                <span className="cat-name">{c.category}</span>
-                <span className="cat-pct">{c.pct.toFixed(1)}%</span>
-                <span className="cat-amt">{formatMoney(c.amount)}</span>
+              <div className={chartStyles.catItem} key={c.category}>
+                <i className={chartStyles.catSw} style={{ background: c.color }} />
+                <span className={chartStyles.catName}>{c.category}</span>
+                <span className={chartStyles.catPct}>{c.pct.toFixed(1)}%</span>
+                <span className={chartStyles.catAmt}>{formatMoney(c.amount)}</span>
               </div>
             ))}
           </div>

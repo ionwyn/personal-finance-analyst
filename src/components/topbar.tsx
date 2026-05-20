@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { Command } from "lucide-react";
 
+import styles from "./app-shell.module.scss";
+
 const ROUTE_LABELS: Record<string, [string, string]> = {
   "/app": ["Workspace", "Dashboard"],
   "/app/accounts": ["Workspace", "Accounts"],
@@ -46,22 +48,22 @@ export function Topbar({ mode, dbSize }: { mode: "private" | "demo"; dbSize?: st
   const [section, page] = labelsFor(pathname);
 
   return (
-    <header className="topbar">
-      <div className="crumbs">
+    <header className={styles.topbar}>
+      <div className={styles.crumbs}>
         <span>{section}</span>
-        <span className="sep">/</span>
-        <span className="cur">{page}</span>
+        <span className={styles.crumbsSep}>/</span>
+        <span className={styles.crumbsCur}>{page}</span>
       </div>
-      <div className="topbar-spacer" />
-      <div className="topbar-status">
-        <span className="live">
-          <i className="dot" />
+      <div className={styles.topbarSpacer} />
+      <div className={styles.topbarStatus}>
+        <span className={styles.live}>
+          <i className={styles.liveDot} />
           API · {mode === "demo" ? "SANDBOX" : "OK"}
         </span>
         {dbSize ? <span>DB · {dbSize}</span> : null}
         {time ? <span>{time}</span> : null}
       </div>
-      <button className="topbar-btn" type="button" aria-label="Command palette">
+      <button className={styles.topbarBtn} type="button" aria-label="Command palette">
         <Command size={11} />K
       </button>
     </header>

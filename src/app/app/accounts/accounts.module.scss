@@ -1,0 +1,215 @@
+@use "breakpoints" as *;
+
+/* ── Institution cards ──────────────────────────────── */
+.instCard {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  margin-bottom: 12px;
+  overflow: hidden;
+}
+
+.instHead {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border-subtle);
+
+  @include respond-to("md") {
+    flex-wrap: wrap;
+  }
+}
+
+.instLogo {
+  width: 36px;
+  height: 36px;
+  border-radius: 7px;
+  display: grid;
+  place-items: center;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 13px;
+  color: #fff;
+  letter-spacing: -0.04em;
+  flex-shrink: 0;
+}
+
+.instMeta {
+  flex: 1;
+  min-width: 0;
+}
+
+.instName {
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.instSub {
+  font-size: 11px;
+  color: var(--text-3);
+  font-family: var(--font-mono);
+  margin-top: 2px;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.instSubSep {
+  color: var(--text-4);
+}
+
+.instBalance {
+  text-align: right;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.instBalanceV {
+  font-size: 16px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+}
+
+.instBalanceL {
+  font-size: 10px;
+  color: var(--text-4);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-family: var(--font-sans);
+}
+
+.instActions {
+  display: flex;
+  gap: 6px;
+  margin-left: 14px;
+  flex-wrap: wrap;
+
+  @include respond-to("md") {
+    margin-left: 0;
+    width: 100%;
+  }
+}
+
+/* ── Account rows ────────────────────────────────────── */
+.acctList {
+  // container only
+}
+
+.acctRow {
+  display: grid;
+  grid-template-columns: 32px 1fr auto auto;
+  gap: 14px;
+  align-items: center;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border-subtle);
+  font-size: 12px;
+
+  &:last-child {
+    border-bottom: none;
+  }
+
+  &:hover {
+    background: var(--surface-2);
+  }
+}
+
+.acctIcon {
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  background: var(--surface-3);
+  border: 1px solid var(--border);
+  display: grid;
+  place-items: center;
+  color: var(--text-3);
+}
+
+.acctName {
+  font-weight: 500;
+  color: var(--text);
+}
+
+.acctMask {
+  color: var(--text-4);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  margin-left: 6px;
+}
+
+.acctType {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-3);
+  margin-top: 2px;
+}
+
+.acctBal {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  text-align: right;
+  min-width: 110px;
+}
+
+/* ── Add institution card ────────────────────────────── */
+.addInstCard {
+  width: 100%;
+  background: transparent;
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  color: var(--text-3);
+  font-size: 13px;
+  cursor: pointer;
+  transition:
+    border-color 80ms ease,
+    color 80ms ease;
+
+  &:hover {
+    border-color: var(--text-4);
+    color: var(--text-2);
+  }
+}
+
+/* ── Section divider ─────────────────────────────────── */
+.sectionDivider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 22px 0 12px;
+}
+
+.sectionDividerLbl {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--text-3);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.sectionDividerLine {
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+.sectionDividerMeta {
+  font-size: 11px;
+  color: var(--text-4);
+  font-family: var(--font-mono);
+}

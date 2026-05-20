@@ -2,9 +2,6 @@
 @use "breakpoints" as *;
 
 @include respond-to("lg") {
-  .dash-grid {
-    grid-template-columns: 1fr;
-  }
   .kpi-grid {
     grid-template-columns: repeat(2, 1fr);
   }
@@ -20,9 +17,6 @@
 @include respond-to("md") {
   :root {
     --sidebar-w: 0px;
-  }
-  .sidebar {
-    display: none;
   }
   .summary-bar {
     grid-template-columns: repeat(2, 1fr);
@@ -43,12 +37,5 @@
   }
   .kpi:last-child {
     border-bottom: none;
-  }
-  .inst-head {
-    flex-wrap: wrap;
-  }
-  .inst-actions {
-    margin-left: 0;
-    width: 100%;
   }
 }

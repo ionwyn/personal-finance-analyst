@@ -1,6 +1,7 @@
 import { Download } from "lucide-react";
 
 import { CategorySpendPanel } from "@/components/category-spend-panel";
+import styles from "./dashboard-view.module.scss";
 import { CashflowPanel, NetWorthPanel } from "@/components/dashboard/chart-panels";
 import { InsightsPanel } from "@/components/dashboard/insights-panel";
 import { DashboardKpiStrip } from "@/components/dashboard/kpi-strip";
@@ -70,14 +71,14 @@ export function DashboardView({ data, mode }: { data: DashboardData; mode: Dashb
 
       <DashboardKpiStrip data={data} />
 
-      <div className="dash-grid">
-        <div className="col">
+      <div className={styles.dashGrid}>
+        <div className={styles.col}>
           <CashflowPanel data={data} />
           <NetWorthPanel data={data} />
           <RecentTransactionsPanel data={data} isDemo={isDemo} />
         </div>
 
-        <div className="col">
+        <div className={styles.col}>
           {data.investments.summary.positionCount > 0 ? (
             <InvestmentsCard data={data.investments} />
           ) : null}

@@ -17,6 +17,8 @@ import { authOptions } from "@/lib/auth";
 import { formatRelativeTime, formatYearMonth } from "@/lib/format";
 import { resolveSessionTenant } from "@/lib/tenant";
 
+import styles from "./accounts.module.scss";
+
 export const dynamic = "force-dynamic";
 
 export default async function AccountsPage() {
@@ -146,23 +148,23 @@ function InvestmentsSection({
 
   return (
     <>
-      <div className="section-divider">
-        <span className="lbl">Investment accounts</span>
-        <span className="line" />
-        <span className="meta">
+      <div className={styles.sectionDivider}>
+        <span className={styles.sectionDividerLbl}>Investment accounts</span>
+        <span className={styles.sectionDividerLine} />
+        <span className={styles.sectionDividerMeta}>
           {accounts.length} {accounts.length === 1 ? "account" : "accounts"} ·{" "}
           {summary.positionCount} positions · SnapTrade
         </span>
       </div>
 
       {accounts.length > 0 ? (
-        <div className="inst-card">
-          <div className="inst-head">
-            <div className="inst-logo" style={{ background: summary.institutionLogoBg }}>
+        <div className={styles.instCard}>
+          <div className={styles.instHead}>
+            <div className={styles.instLogo} style={{ background: summary.institutionLogoBg }}>
               {summary.institutionLogoText}
             </div>
-            <div className="inst-meta">
-              <div className="inst-name">
+            <div className={styles.instMeta}>
+              <div className={styles.instName}>
                 {summary.institution}
                 <span className="status brokerage">
                   <i className="pulse" />
@@ -170,16 +172,16 @@ function InvestmentsSection({
                 </span>
                 <StatusPill status={summary.status} />
               </div>
-              <div className="inst-sub">
+              <div className={styles.instSub}>
                 <span>
                   {accounts.length} {accounts.length === 1 ? "account" : "accounts"} ·{" "}
                   {summary.positionCount} positions
                 </span>
-                <span className="sep">·</span>
+                <span className={styles.instSubSep}>·</span>
                 <span>
                   Last sync {summary.lastSync ? formatRelativeTime(summary.lastSync) : "never"}
                 </span>
-                <span className="sep">·</span>
+                <span className={styles.instSubSep}>·</span>
                 <span style={{ color: "var(--invest)" }}>
                   P&amp;L {plPos ? "+" : "−"}
                   {formatMoney(Math.abs(summary.plCAD))} ({plPos ? "+" : "−"}
@@ -187,7 +189,7 @@ function InvestmentsSection({
                 </span>
                 {summary.errorCode || summary.errorMessage ? (
                   <>
-                    <span className="sep">·</span>
+                    <span className={styles.instSubSep}>·</span>
                     <span style={{ color: "var(--neg)" }}>
                       {summary.errorCode ?? "ERROR"}
                       {summary.failingConnectionCount > 1
@@ -198,17 +200,17 @@ function InvestmentsSection({
                 ) : null}
               </div>
               {summary.errorMessage ? (
-                <div className="inst-sub" style={{ color: "var(--neg)", marginTop: 4 }}>
+                <div className={styles.instSub} style={{ color: "var(--neg)", marginTop: 4 }}>
                   {summary.errorMessage}
                 </div>
               ) : null}
             </div>
-            <div className="inst-balance">
-              <div className="v">{formatMoney(summary.portfolioCAD)}</div>
-              <div className="l">Portfolio</div>
+            <div className={styles.instBalance}>
+              <div className={styles.instBalanceV}>{formatMoney(summary.portfolioCAD)}</div>
+              <div className={styles.instBalanceL}>Portfolio</div>
             </div>
             {!isDemo && (
-              <div className="inst-actions">
+              <div className={styles.instActions}>
                 {singleConnectionId ? (
                   <SnapTradeConnectionActions connectionId={singleConnectionId} />
                 ) : (
@@ -218,26 +220,26 @@ function InvestmentsSection({
             )}
           </div>
 
-          <div className="acct-list">
+          <div className={styles.acctList}>
             {accounts.map((a) => (
-              <div className="acct-row" key={a.id}>
+              <div className={styles.acctRow} key={a.id}>
                 <div
-                  className="acct-icon"
+                  className={styles.acctIcon}
                   style={{ width: 28, height: 28, color: "var(--invest)" }}
                 >
                   <TrendingUp size={14} />
                 </div>
                 <div>
                   <div>
-                    <span className="acct-name">{a.name}</span>
-                    <span className="acct-mask">··{a.registration}</span>
+                    <span className={styles.acctName}>{a.name}</span>
+                    <span className={styles.acctMask}>··{a.registration}</span>
                   </div>
-                  <div className="acct-type">
+                  <div className={styles.acctType}>
                     {a.registration} · {a.currency}
                     {a.openedAt ? ` · OPENED ${formatYearMonth(a.openedAt)}` : ""}
                   </div>
                 </div>
-                <div className="acct-bal">{formatMoney(a.totalValue)}</div>
+                <div className={styles.acctBal}>{formatMoney(a.totalValue)}</div>
                 <IconButton label="More actions">
                   <MoreHorizontal size={14} />
                 </IconButton>
@@ -248,22 +250,7 @@ function InvestmentsSection({
       ) : null}
 
       {!isDemo && (
-        <div
-          className="inst-card"
-          style={{
-            width: "100%",
-            background: "transparent",
-            border: "1px dashed var(--border-strong)",
-            padding: 20,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: 10,
-            color: "var(--text-3)",
-            fontSize: 13,
-            cursor: "default",
-          }}
-        >
+        <div className={styles.addInstCard}>
           <SnapTradeLinkButton />
         </div>
       )}
@@ -284,65 +271,70 @@ function InstitutionCard({ institution, isDemo }: { institution: Institution; is
     .join("");
 
   return (
-    <div className="inst-card">
-      <div className="inst-head">
-        <div className="inst-logo" style={{ background: logoBg }}>
+    <div className={styles.instCard}>
+      <div className={styles.instHead}>
+        <div className={styles.instLogo} style={{ background: logoBg }}>
           {logoText || "—"}
         </div>
-        <div className="inst-meta">
-          <div className="inst-name">
+        <div className={styles.instMeta}>
+          <div className={styles.instName}>
             {inst.institutionName}
             <StatusPill status={inst.status} />
           </div>
-          <div className="inst-sub">
+          <div className={styles.instSub}>
             <span>
               {inst.accounts.length} {inst.accounts.length === 1 ? "account" : "accounts"}
             </span>
-            <span className="sep">·</span>
+            <span className={styles.instSubSep}>·</span>
             <span>Last sync {inst.lastSyncAt ? formatRelativeTime(inst.lastSyncAt) : "never"}</span>
             {inst.errorCode ? (
               <>
-                <span className="sep">·</span>
+                <span className={styles.instSubSep}>·</span>
                 <span style={{ color: "var(--neg)" }}>{inst.errorCode}</span>
               </>
             ) : null}
           </div>
         </div>
-        <div className="inst-balance">
-          <div className="v" style={{ color: inst.total < 0 ? "var(--neg)" : "var(--text)" }}>
+        <div className={styles.instBalance}>
+          <div
+            className={styles.instBalanceV}
+            style={{ color: inst.total < 0 ? "var(--neg)" : "var(--text)" }}
+          >
             {inst.total < 0 ? "−" : ""}
             {formatMoney(Math.abs(inst.total))}
           </div>
-          <div className="l">Net</div>
+          <div className={styles.instBalanceL}>Net</div>
         </div>
         {!isDemo && (
-          <div className="inst-actions">
+          <div className={styles.instActions}>
             <ItemActions itemId={inst.id} status={inst.status} />
           </div>
         )}
       </div>
 
-      <div className="acct-list">
+      <div className={styles.acctList}>
         {inst.accounts.map((account) => {
           const kind = accountKind(account.type, account.subtype);
           const Icon =
             kind === "credit" ? CreditCard : kind === "investment" ? TrendingUp : Landmark;
           return (
-            <div className="acct-row" key={account.id}>
-              <div className="acct-icon" style={{ width: 28, height: 28 }}>
+            <div className={styles.acctRow} key={account.id}>
+              <div className={styles.acctIcon} style={{ width: 28, height: 28 }}>
                 <Icon size={14} />
               </div>
               <div>
                 <div>
-                  <span className="acct-name">{account.name}</span>
-                  {account.mask ? <span className="acct-mask">··{account.mask}</span> : null}
+                  <span className={styles.acctName}>{account.name}</span>
+                  {account.mask ? (
+                    <span className={styles.acctMask}>··{account.mask}</span>
+                  ) : null}
                 </div>
-                <div className="acct-type">
+                <div className={styles.acctType}>
                   {[account.type, account.subtype].filter(Boolean).join(" · ").toUpperCase()}
                 </div>
               </div>
               <div
-                className="acct-bal"
+                className={styles.acctBal}
                 style={{ color: account.currentBalance < 0 ? "var(--neg)" : "var(--text)" }}
               >
                 {account.currentBalance < 0 ? "−" : ""}

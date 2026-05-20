@@ -1,4 +1,5 @@
-// KPI cards and the dashboard two-column grid.
+// KPI cards — shared between dashboard and spending insight.
+// .dash-grid lives in dashboard-view.module.scss.
 
 .kpi-grid {
   display: grid;
@@ -85,17 +86,4 @@
   width: 64px;
   height: 22px;
   opacity: 0.85;
-}
-
-.dash-grid {
-  display: grid;
-  grid-template-columns: 2fr 1fr;
-  gap: 16px;
-  margin-top: 16px;
-}
-.dash-grid > .col {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  min-width: 0;
 }

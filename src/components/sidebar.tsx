@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { signOut } from "next-auth/react";
+import clsx from "clsx";
 import {
   ArrowLeftRight,
   CalendarClock,
@@ -14,6 +15,8 @@ import {
   TrendingUp,
   Wallet,
 } from "lucide-react";
+
+import styles from "./app-shell.module.scss";
 
 export type SidebarUser = {
   name?: string | null;
@@ -174,47 +177,47 @@ export function Sidebar({ mode, user }: { mode: "private" | "demo"; user?: Sideb
       .join("") || "—";
 
   return (
-    <aside className="sidebar">
-      <div className="brand">
-        <div className="brand-mark">WYN</div>
-        <div className="brand-name">WYN Financial Ltd.</div>
+    <aside className={styles.sidebar}>
+      <div className={styles.brand}>
+        <div className={styles.brandMark}>WYN</div>
+        <div className={styles.brandName}>WYN Financial Ltd.</div>
       </div>
 
-      <nav className="nav">
-        <div className="nav-section">Workspace</div>
+      <nav className={styles.nav}>
+        <div className={styles.navSection}>Workspace</div>
         {primary.map((item) => (
           <Link
             key={item.key}
-            className={`nav-item ${isActive(item.href) ? "active" : ""}`}
+            className={clsx(styles.navItem, isActive(item.href) && styles.active)}
             href={item.href as never}
           >
-            <span className="ic" style={{ width: ICON_SIZE, height: ICON_SIZE }}>
+            <span className={styles.navIcon} style={{ width: ICON_SIZE, height: ICON_SIZE }}>
               {item.icon}
             </span>
             {item.label}
-            {item.kbd ? <span className="kbd">{item.kbd}</span> : null}
+            {item.kbd ? <span className={styles.navKbd}>{item.kbd}</span> : null}
           </Link>
         ))}
 
-        <div className="nav-section">{mode === "private" ? "Other" : "Auth"}</div>
+        <div className={styles.navSection}>{mode === "private" ? "Other" : "Auth"}</div>
         {secondary.map((item) => (
           <Link
             key={item.key}
-            className={`nav-item ${isActive(item.href) ? "active" : ""}`}
+            className={clsx(styles.navItem, isActive(item.href) && styles.active)}
             href={item.href as never}
           >
-            <span className="ic" style={{ width: ICON_SIZE, height: ICON_SIZE }}>
+            <span className={styles.navIcon} style={{ width: ICON_SIZE, height: ICON_SIZE }}>
               {item.icon}
             </span>
             {item.label}
-            {item.kbd ? <span className="kbd">{item.kbd}</span> : null}
+            {item.kbd ? <span className={styles.navKbd}>{item.kbd}</span> : null}
           </Link>
         ))}
       </nav>
 
       {mode === "private" && user ? (
-        <div className="sidebar-footer">
-          <div className="avatar">
+        <div className={styles.sidebarFooter}>
+          <div className={styles.avatar}>
             {user.image ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={user.image} alt="" />
@@ -222,12 +225,12 @@ export function Sidebar({ mode, user }: { mode: "private" | "demo"; user?: Sideb
               initials
             )}
           </div>
-          <div className="user-meta">
-            <div className="user-name">{user.name ?? "User"}</div>
-            <div className="user-handle">{user.handle ?? user.email ?? ""}</div>
+          <div className={styles.userMeta}>
+            <div className={styles.userName}>{user.name ?? "User"}</div>
+            <div className={styles.userHandle}>{user.handle ?? user.email ?? ""}</div>
           </div>
           <button
-            className="signout"
+            className={styles.signout}
             onClick={() => signOut({ callbackUrl: "/signin" })}
             type="button"
             aria-label="Sign out"
@@ -237,11 +240,11 @@ export function Sidebar({ mode, user }: { mode: "private" | "demo"; user?: Sideb
           </button>
         </div>
       ) : (
-        <div className="sidebar-footer">
-          <div className="avatar">DM</div>
-          <div className="user-meta">
-            <div className="user-name">Demo viewer</div>
-            <div className="user-handle">read-only</div>
+        <div className={styles.sidebarFooter}>
+          <div className={styles.avatar}>DM</div>
+          <div className={styles.userMeta}>
+            <div className={styles.userName}>Demo viewer</div>
+            <div className={styles.userHandle}>read-only</div>
           </div>
         </div>
       )}

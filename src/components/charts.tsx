@@ -17,6 +17,8 @@ import {
 
 import { formatMoney } from "@/components/big-number";
 
+import styles from "./charts.module.scss";
+
 type CashflowDatum = { month: string; income: number; spending: number; net: number };
 type BalanceDatum = { date: string; balance: number };
 type CategoryDatum = { category: string; amount: number; pct: number; color: string };
@@ -33,25 +35,25 @@ function CashflowTooltip({ active, payload, label }: RechartsTooltipProps) {
   const sp = payload.find((p) => p.dataKey === "spending")?.value ?? 0;
   const net = inc - sp;
   return (
-    <div className="tt">
-      <div className="tt-label">{label}</div>
-      <div className="tt-row">
-        <span className="k">
-          <i className="tt-sw" style={{ background: "var(--pos)" }} />
+    <div className={styles.tt}>
+      <div className={styles.ttLabel}>{label}</div>
+      <div className={styles.ttRow}>
+        <span className={styles.ttKey}>
+          <i className={styles.ttSw} style={{ background: "var(--pos)" }} />
           Income
         </span>
-        <span className="v">{formatMoney(inc)}</span>
+        <span className={styles.ttVal}>{formatMoney(inc)}</span>
       </div>
-      <div className="tt-row">
-        <span className="k">
-          <i className="tt-sw" style={{ background: "var(--neg)" }} />
+      <div className={styles.ttRow}>
+        <span className={styles.ttKey}>
+          <i className={styles.ttSw} style={{ background: "var(--neg)" }} />
           Spending
         </span>
-        <span className="v">{formatMoney(sp)}</span>
+        <span className={styles.ttVal}>{formatMoney(sp)}</span>
       </div>
-      <div className="tt-row">
-        <span className="k">Net</span>
-        <span className="v" style={{ color: net >= 0 ? "var(--pos)" : "var(--neg)" }}>
+      <div className={styles.ttRow}>
+        <span className={styles.ttKey}>Net</span>
+        <span className={styles.ttVal} style={{ color: net >= 0 ? "var(--pos)" : "var(--neg)" }}>
           {formatMoney(net, { sign: true })}
         </span>
       </div>
@@ -62,11 +64,11 @@ function CashflowTooltip({ active, payload, label }: RechartsTooltipProps) {
 function BalanceTooltip({ active, payload, label }: RechartsTooltipProps) {
   if (!active || !payload?.length) return null;
   return (
-    <div className="tt">
-      <div className="tt-label">{label}</div>
-      <div className="tt-row">
-        <span className="k">Net worth</span>
-        <span className="v">{formatMoney(payload[0].value)}</span>
+    <div className={styles.tt}>
+      <div className={styles.ttLabel}>{label}</div>
+      <div className={styles.ttRow}>
+        <span className={styles.ttKey}>Net worth</span>
+        <span className={styles.ttVal}>{formatMoney(payload[0].value)}</span>
       </div>
     </div>
   );
