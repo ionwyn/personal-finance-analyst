@@ -1,0 +1,88 @@
+/* DropdownMenu — trigger, popover, items */
+
+.trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: var(--radius);
+  color: var(--text-3);
+  padding: 4px;
+  flex-shrink: 0;
+
+  &[data-hovered] {
+    background: var(--surface-2);
+    color: var(--text);
+  }
+
+  &[data-pressed] {
+    background: var(--surface-3);
+  }
+
+  &[data-focus-visible] {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+}
+
+.popover {
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-lg);
+  padding: 4px;
+  box-shadow:
+    0 4px 20px rgba(0, 0, 0, 0.4),
+    0 0 0 1px rgba(255, 255, 255, 0.04);
+  min-width: 160px;
+  z-index: 50;
+  outline: none;
+}
+
+.menu {
+  outline: none;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  border-radius: calc(var(--radius-lg) - 4px);
+  font-size: 12px;
+  color: var(--text-2);
+  cursor: pointer;
+  outline: none;
+  text-decoration: none;
+
+  &[data-hovered] {
+    background: var(--surface-2);
+    color: var(--text);
+  }
+
+  &[data-focused] {
+    background: var(--surface-2);
+    color: var(--text);
+  }
+
+  &[data-pressed] {
+    background: var(--surface-3);
+  }
+
+  &[data-disabled] {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+}
+
+.itemIcon {
+  color: var(--text-4);
+  display: inline-flex;
+  flex-shrink: 0;
+}
+
+.separator {
+  height: 1px;
+  background: var(--border-subtle);
+  margin: 4px 0;
+}

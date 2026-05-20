@@ -1,6 +1,7 @@
 import { getServerSession } from "next-auth";
-import { CreditCard, Landmark, MoreHorizontal, TrendingUp } from "lucide-react";
+import { CreditCard, Landmark, TrendingUp } from "lucide-react";
 
+import { AccountRowMenu } from "@/components/account-row-menu";
 import { AppShell } from "@/components/app-shell";
 import { ItemActions } from "@/components/item-actions";
 import { PlaidLinkButton } from "@/components/plaid-link-button";
@@ -11,7 +12,7 @@ import {
 } from "@/components/snaptrade-actions";
 import { SyncAllButton } from "@/components/sync-all-button";
 import { formatMoney } from "@/components/big-number";
-import { IconButton, PageHeader, StatusPill } from "@/components/ui";
+import { PageHeader, StatusPill } from "@/components/ui";
 import { getDashboardData } from "@/lib/analytics";
 import { authOptions } from "@/lib/auth";
 import { formatRelativeTime, formatYearMonth } from "@/lib/format";
@@ -240,9 +241,7 @@ function InvestmentsSection({
                   </div>
                 </div>
                 <div className={styles.acctBal}>{formatMoney(a.totalValue)}</div>
-                <IconButton label="More actions">
-                  <MoreHorizontal size={14} />
-                </IconButton>
+                <AccountRowMenu accountName={a.name} />
               </div>
             ))}
           </div>
@@ -340,9 +339,7 @@ function InstitutionCard({ institution, isDemo }: { institution: Institution; is
                 {account.currentBalance < 0 ? "−" : ""}
                 {formatMoney(Math.abs(account.currentBalance))}
               </div>
-              <IconButton label="More actions">
-                <MoreHorizontal size={14} />
-              </IconButton>
+              <AccountRowMenu accountName={account.name} />
             </div>
           );
         })}
