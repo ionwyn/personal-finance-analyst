@@ -14,6 +14,8 @@ type PlaidWebhookBody = {
   item_id?: string;
 };
 
+const MAX_WEBHOOK_BODY_BYTES = 256 * 1024;
+
 export async function POST(request: Request) {
   return withRequestLogging(
     request,
@@ -29,6 +31,10 @@ export async function POST(request: Request) {
       assertWebhookConfig();
 
       const rawBody = await request.text();
+      if (new TextEncoder().encode(rawBody).byteLength > MAX_WEBHOOK_BODY_BYTES) {
+        return NextResponse.json({ error: "Webhook body too large" }, { status: 413 });
+      }
+
       const signedJwt = request.headers.get("plaid-verification");
 
       const verified = await verifyPlaidWebhook(rawBody, signedJwt);
@@ -36,7 +42,13 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: "Invalid Plaid webhook signature" }, { status: 401 });
       }
 
-      const body = JSON.parse(rawBody) as PlaidWebhookBody;
+      let body: PlaidWebhookBody;
+      try {
+        body = JSON.parse(rawBody) as PlaidWebhookBody;
+      } catch {
+        return NextResponse.json({ error: "Invalid webhook JSON" }, { status: 400 });
+      }
+
       if (
         body.webhook_type === "TRANSACTIONS" &&
         body.webhook_code === "SYNC_UPDATES_AVAILABLE" &&
