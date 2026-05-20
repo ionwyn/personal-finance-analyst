@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import { requireUserTenant } from "@/lib/http";
 import { setLogContext, withRequestLogging } from "@/lib/logger";
+import { validateRequestOrigin } from "@/lib/origin";
 import { rateLimitRequest } from "@/lib/rate-limit";
 import { createSnapTradeConnectionPortal } from "@/lib/snaptrade/client";
 
@@ -23,6 +24,9 @@ export async function POST(request: Request) {
         windowMs: 60_000,
       });
       if (limited) return limited;
+
+      const invalidOrigin = validateRequestOrigin(request);
+      if (invalidOrigin) return invalidOrigin;
 
       const auth = await requireUserTenant();
       if ("error" in auth) return auth.error;

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { requireUserTenant } from "@/lib/http";
+import { validateRequestOrigin } from "@/lib/origin";
 import { prisma } from "@/lib/prisma";
 import { computeAccrualPerCycle } from "@/lib/cycles/accrual";
 import { FREQUENCIES } from "@/lib/cycles/types";
@@ -17,6 +18,9 @@ const bodySchema = z.object({
 });
 
 export async function POST(request: Request) {
+  const invalidOrigin = validateRequestOrigin(request);
+  if (invalidOrigin) return invalidOrigin;
+
   const auth = await requireUserTenant();
   if ("error" in auth) return auth.error;
 

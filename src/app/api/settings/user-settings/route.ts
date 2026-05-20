@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { requireUserTenant } from "@/lib/http";
+import { validateRequestOrigin } from "@/lib/origin";
 import { prisma } from "@/lib/prisma";
 import { generatePayCycles } from "@/lib/cycles/generate";
 import { reclassifyTenant } from "@/lib/cycles/reclassify";
@@ -26,6 +27,9 @@ function parseDateOnly(value: string | null | undefined): Date | null | undefine
 }
 
 export async function PATCH(request: Request) {
+  const invalidOrigin = validateRequestOrigin(request);
+  if (invalidOrigin) return invalidOrigin;
+
   const auth = await requireUserTenant();
   if ("error" in auth) return auth.error;
 

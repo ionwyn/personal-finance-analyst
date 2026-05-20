@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { requireUserTenant } from "@/lib/http";
+import { validateRequestOrigin } from "@/lib/origin";
 import { prisma } from "@/lib/prisma";
 import { reclassifyTenant } from "@/lib/cycles/reclassify";
 
@@ -12,6 +13,9 @@ const bodySchema = z.object({
 });
 
 export async function PATCH(request: Request, context: { params: Promise<{ id: string }> }) {
+  const invalidOrigin = validateRequestOrigin(request);
+  if (invalidOrigin) return invalidOrigin;
+
   const auth = await requireUserTenant();
   if ("error" in auth) return auth.error;
   const { id } = await context.params;
@@ -46,7 +50,10 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
   return NextResponse.json({ pattern, reclassified });
 }
 
-export async function DELETE(_request: Request, context: { params: Promise<{ id: string }> }) {
+export async function DELETE(request: Request, context: { params: Promise<{ id: string }> }) {
+  const invalidOrigin = validateRequestOrigin(request);
+  if (invalidOrigin) return invalidOrigin;
+
   const auth = await requireUserTenant();
   if ("error" in auth) return auth.error;
   const { id } = await context.params;

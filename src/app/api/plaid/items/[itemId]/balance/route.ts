@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { requireOwnedPlaidItem } from "@/lib/http";
 import { setLogContext, withRequestLogging } from "@/lib/logger";
+import { validateRequestOrigin } from "@/lib/origin";
 import { refreshBalancesForItem } from "@/lib/plaid/accounts";
 import { rateLimitRequest } from "@/lib/rate-limit";
 
@@ -16,6 +17,9 @@ export async function POST(request: Request, context: { params: Promise<{ itemId
         windowMs: 60_000,
       });
       if (limited) return limited;
+
+      const invalidOrigin = validateRequestOrigin(request);
+      if (invalidOrigin) return invalidOrigin;
 
       const { itemId } = await context.params;
       const auth = await requireOwnedPlaidItem(itemId);

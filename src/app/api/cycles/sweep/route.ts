@@ -5,6 +5,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { requireUserTenant } from "@/lib/http";
+import { validateRequestOrigin } from "@/lib/origin";
 import { prisma } from "@/lib/prisma";
 import { ensureCycleForDate } from "@/lib/cycles/generate";
 import { TX_SOURCE_MANUAL_SWEEP } from "@/lib/cycles/types";
@@ -19,6 +20,9 @@ const skipSchema = z.object({
 });
 
 export async function POST(request: Request) {
+  const invalidOrigin = validateRequestOrigin(request);
+  if (invalidOrigin) return invalidOrigin;
+
   const auth = await requireUserTenant();
   if ("error" in auth) return auth.error;
 
@@ -87,6 +91,9 @@ export async function POST(request: Request) {
 }
 
 export async function PATCH(request: Request) {
+  const invalidOrigin = validateRequestOrigin(request);
+  if (invalidOrigin) return invalidOrigin;
+
   const auth = await requireUserTenant();
   if ("error" in auth) return auth.error;
 

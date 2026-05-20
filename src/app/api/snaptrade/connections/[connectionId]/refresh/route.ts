@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { requireOwnedSnapTradeConnection } from "@/lib/http";
 import { setLogContext, withRequestLogging } from "@/lib/logger";
+import { validateRequestOrigin } from "@/lib/origin";
 import { rateLimitRequest } from "@/lib/rate-limit";
 import { refreshSnapTradeConnection } from "@/lib/snaptrade/sync";
 
@@ -23,6 +24,9 @@ export async function POST(
         windowMs: 60_000,
       });
       if (limited) return limited;
+
+      const invalidOrigin = validateRequestOrigin(request);
+      if (invalidOrigin) return invalidOrigin;
 
       const { connectionId } = await context.params;
       const auth = await requireOwnedSnapTradeConnection(connectionId);
