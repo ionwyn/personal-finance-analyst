@@ -262,7 +262,11 @@ async function syncPositions(input: {
   return { positionsCount, omittedPositionsCount };
 }
 
-async function syncConnection(input: { tenantId: string; authorization: BrokerageAuthorization }) {
+async function syncConnection(input: {
+  tenantId: string;
+  authorization: BrokerageAuthorization;
+  source?: SyncSource;
+}) {
   const client = getSnapTradeClient();
   const { userId, userSecret } = getSnapTradeCredentials();
   const connection = await ensureConnectionRecord({
@@ -340,6 +344,21 @@ async function syncConnection(input: { tenantId: string; authorization: Brokerag
   }
 
   try {
+    if (input.source === SyncSource.MANUAL) {
+      try {
+        await client.connections.refreshBrokerageAuthorization({
+          authorizationId: connection.snapTradeAuthorizationId,
+          userId,
+          userSecret,
+        });
+      } catch (refreshError) {
+        logger.warn(
+          { connectionId: connection.id, error: safeError(refreshError) },
+          "snaptrade broker refresh failed (non-fatal)"
+        );
+      }
+    }
+
     const accountsResponse = await client.connections.listBrokerageAuthorizationAccounts({
       authorizationId: connection.snapTradeAuthorizationId,
       userId,
@@ -518,7 +537,7 @@ async function syncSnapTradeTenantWithContext(tenantId: string, source: SyncSour
       .filter((id): id is string => Boolean(id));
 
     for (const authorization of authorizations.data) {
-      const counts = await syncConnection({ tenantId, authorization });
+      const counts = await syncConnection({ tenantId, authorization, source });
       connectionsCount += 1;
       accountsCount += counts.accountsCount;
       balancesCount += counts.balancesCount;

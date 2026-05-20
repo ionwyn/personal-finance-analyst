@@ -323,7 +323,7 @@ export async function getDashboardData(tenantSlug: string) {
   }
   const balanceHistory: BalancePoint[] = [...balanceByDay.entries()].map(([date, info]) => ({
     date,
-    balance: info.balance,
+    balance: info.balance + investments.summary.portfolioCAD,
   }));
 
   const totalAssets = tenant.plaidAccounts
@@ -350,11 +350,12 @@ export async function getDashboardData(tenantSlug: string) {
   const balanceDelta = (() => {
     if (balanceHistory.length < 2) return null;
     const entries = [...balanceByDay.values()];
-    const last = entries[entries.length - 1].balance;
+    const inv = investments.summary.portfolioCAD;
+    const last = entries[entries.length - 1].balance + inv;
     const cutoff = subDays(now, 30);
     const prior = entries.find((e) => e.date <= cutoff);
     if (!prior) return null;
-    return delta(last, prior.balance);
+    return delta(last, prior.balance + inv);
   })();
 
   function buildCategorySpend(map: Map<string, number>): CategorySpend[] {

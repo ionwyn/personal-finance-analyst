@@ -8,37 +8,34 @@ import { Button } from "@/components/ui";
 
 export function ItemActions({ itemId, status }: { itemId: string; status: string }) {
   const router = useRouter();
-  const [busyAction, setBusyAction] = useState<"sync" | "balance" | null>(null);
+  const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function run(action: "sync" | "balance") {
-    setBusyAction(action);
+  async function sync() {
+    setBusy(true);
     setError(null);
     try {
-      const response = await fetch(`/api/plaid/items/${itemId}/${action}`, { method: "POST" });
-      if (!response.ok) throw new Error(`Could not refresh ${action}.`);
+      const response = await fetch(`/api/plaid/items/${itemId}/sync`, { method: "POST" });
+      if (!response.ok) throw new Error("Could not sync.");
       router.refresh();
-    } catch (actionError) {
-      setError(actionError instanceof Error ? actionError.message : "Refresh failed.");
+    } catch (syncError) {
+      setError(syncError instanceof Error ? syncError.message : "Sync failed.");
     } finally {
-      setBusyAction(null);
+      setBusy(false);
     }
   }
 
-  const isSyncing = busyAction === "sync" || status === "SYNCING";
+  const isSyncing = busy || status === "SYNCING";
 
   return (
     <>
       <Button
         size="sm"
-        onClick={() => run("sync")}
-        disabled={Boolean(busyAction) || status === "SYNCING"}
+        onClick={sync}
+        disabled={isSyncing}
         icon={<RefreshCcw size={11} className={isSyncing ? "spin" : undefined} />}
       >
         Sync
-      </Button>
-      <Button size="sm" onClick={() => run("balance")} disabled={Boolean(busyAction)}>
-        Refresh balance
       </Button>
       <Button
         variant="danger"

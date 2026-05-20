@@ -63,7 +63,10 @@ export default async function AccountsPage() {
         actions={
           <>
             {!isDemo && (
-              <SyncAllButton items={institutions.map((i) => ({ id: i.id, status: i.status }))} />
+              <SyncAllButton
+                items={institutions.map((i) => ({ id: i.id, status: i.status }))}
+                hasSnaptrade={data.investments.summary.connectionCount > 0}
+              />
             )}
             {!isDemo && <PlaidLinkButton />}
           </>
@@ -324,9 +327,7 @@ function InstitutionCard({ institution, isDemo }: { institution: Institution; is
               <div>
                 <div>
                   <span className={styles.acctName}>{account.name}</span>
-                  {account.mask ? (
-                    <span className={styles.acctMask}>··{account.mask}</span>
-                  ) : null}
+                  {account.mask ? <span className={styles.acctMask}>··{account.mask}</span> : null}
                 </div>
                 <div className={styles.acctType}>
                   {[account.type, account.subtype].filter(Boolean).join(" · ").toUpperCase()}

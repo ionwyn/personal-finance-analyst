@@ -60,7 +60,12 @@ export function DashboardView({ data, mode }: { data: DashboardData; mode: Dashb
         subtitle={subLine}
         actions={
           <>
-            {!isDemo ? <SyncAllButton items={data.plaidItems} /> : null}
+            {!isDemo ? (
+              <SyncAllButton
+                items={data.plaidItems}
+                hasSnaptrade={data.investments.summary.connectionCount > 0}
+              />
+            ) : null}
             <Button disabled title="Coming soon" icon={<Download size={12} />}>
               Export
             </Button>

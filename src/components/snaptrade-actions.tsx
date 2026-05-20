@@ -75,10 +75,10 @@ export function SnapTradeSyncButton({ compact = false }: { compact?: boolean }) 
 
 export function SnapTradeConnectionActions({ connectionId }: { connectionId: string }) {
   const router = useRouter();
-  const [busyAction, setBusyAction] = useState<"sync" | "refresh" | "unlink" | null>(null);
+  const [busyAction, setBusyAction] = useState<"sync" | "unlink" | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  async function run(action: "sync" | "refresh" | "unlink") {
+  async function run(action: "sync" | "unlink") {
     if (action === "unlink" && !window.confirm("Unlink this SnapTrade brokerage connection?")) {
       return;
     }
@@ -87,11 +87,7 @@ export function SnapTradeConnectionActions({ connectionId }: { connectionId: str
     setError(null);
     try {
       const response = await fetch(
-        action === "sync"
-          ? "/api/snaptrade/sync"
-          : action === "refresh"
-            ? `/api/snaptrade/connections/${connectionId}/refresh`
-            : `/api/snaptrade/connections/${connectionId}`,
+        action === "sync" ? "/api/snaptrade/sync" : `/api/snaptrade/connections/${connectionId}`,
         { method: action === "unlink" ? "DELETE" : "POST" }
       );
       if (!response.ok) throw new Error(`Could not ${action} SnapTrade connection.`);
@@ -112,9 +108,6 @@ export function SnapTradeConnectionActions({ connectionId }: { connectionId: str
         icon={<RefreshCw size={11} className={busyAction === "sync" ? "spin" : undefined} />}
       >
         Sync
-      </Button>
-      <Button size="sm" onClick={() => run("refresh")} disabled={Boolean(busyAction)}>
-        Refresh
       </Button>
       <Button
         variant="danger"

@@ -6,20 +6,28 @@ import { RefreshCcw } from "lucide-react";
 
 import { Button } from "@/components/ui";
 
-export function SyncAllButton({ items }: { items: Array<{ id: string; status: string }> }) {
+export function SyncAllButton({
+  items,
+  hasSnaptrade = false,
+}: {
+  items: Array<{ id: string; status: string }>;
+  hasSnaptrade?: boolean;
+}) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  if (items.length === 0) return null;
+  if (items.length === 0 && !hasSnaptrade) return null;
 
   async function syncAll() {
     setBusy(true);
     setError(null);
     try {
-      await Promise.allSettled(
-        items.map((item) => fetch(`/api/plaid/items/${item.id}/sync`, { method: "POST" }))
+      const fetches = items.map((item) =>
+        fetch(`/api/plaid/items/${item.id}/sync`, { method: "POST" })
       );
+      if (hasSnaptrade) fetches.push(fetch("/api/snaptrade/sync", { method: "POST" }));
+      await Promise.allSettled(fetches);
       router.refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Sync failed");

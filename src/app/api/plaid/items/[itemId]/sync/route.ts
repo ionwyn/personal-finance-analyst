@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { requireOwnedPlaidItem } from "@/lib/http";
 import { setLogContext, withRequestLogging } from "@/lib/logger";
 import { validateRequestOrigin } from "@/lib/origin";
+import { refreshBalancesForItem } from "@/lib/plaid/accounts";
 import { syncPlaidItem } from "@/lib/plaid/sync";
 import { rateLimitRequest } from "@/lib/rate-limit";
 
@@ -29,6 +30,7 @@ export async function POST(request: Request, context: { params: Promise<{ itemId
       setLogContext({ tenantId: auth.tenant.id });
 
       const run = await syncPlaidItem(auth.item.id, SyncSource.MANUAL);
+      await refreshBalancesForItem(auth.item.id);
       return NextResponse.json({ sync_run: run });
     }
   );
