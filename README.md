@@ -118,6 +118,14 @@ SNAPTRADE_USER_ID=""
 SNAPTRADE_USER_SECRET_ENCRYPTED=""
 ```
 
+Generate the encrypted SnapTrade user secret after `TOKEN_ENCRYPTION_KEY` is set in `.env`:
+
+```bash
+npm run snaptrade:encrypt-secret
+```
+
+Paste the printed `SNAPTRADE_USER_SECRET_ENCRYPTED="..."` value into `.env`.
+
 Optional:
 
 ```env
@@ -158,6 +166,7 @@ npm run sync:plaid       # Sync all Plaid items
 npm run backfill:cycles  # Generate cycles and classify historical transactions
 npm run seed:demo        # Alias for mock demo seeding
 npm run secrets          # Print local secret values
+npm run snaptrade:encrypt-secret # Encrypt the SnapTrade user secret for .env
 ```
 
 ## Application Routes
