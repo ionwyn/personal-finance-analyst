@@ -28,8 +28,8 @@
     "snaptrade:encrypt-secret": "tsx scripts/encrypt-snaptrade-secret.ts"
   },
   "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "author": "Ionwyn Sean",
+  "license": "UNLICENSED",
   "type": "module",
   "dependencies": {
     "@next-auth/prisma-adapter": "^1.0.7",

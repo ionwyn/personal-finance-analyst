@@ -1,5 +1,7 @@
 # Personal Finance Analysis
 
+[![License: Proprietary](https://img.shields.io/badge/license-Proprietary-red.svg)](LICENSE)
+
 Local-first personal finance dashboard for banking, spending, pay-cycle planning, and investment tracking.
 
 The app syncs read-only banking data through Plaid and brokerage data through SnapTrade, stores it in your own PostgreSQL database, and renders a private Next.js dashboard.
@@ -239,3 +241,9 @@ Plaid access tokens and optional SnapTrade user secrets are encrypted with AES-2
 - Unauthenticated users resolve to the `demo` tenant when it exists.
 - Pay-cycle classification runs during Plaid sync and can be backfilled with `npm run backfill:cycles`.
 - Production must not run with `PLAID_VERIFY_WEBHOOKS=false`.
+
+## License
+
+Copyright © 2026 Ionwyn Sean. All rights reserved.
+
+This is proprietary software — see [LICENSE](LICENSE). No permission is granted to use, copy, modify, or distribute it without prior written consent.
