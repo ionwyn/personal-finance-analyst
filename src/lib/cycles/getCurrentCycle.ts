@@ -1,7 +1,7 @@
 import { Prisma } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
-import { closeOverdueCycles, getActiveCarryover } from "@/lib/cycles/close";
+import { closeOverdueCycles } from "@/lib/cycles/close";
 import { computeSafeToSweep, type SafeToSweepResult } from "@/lib/cycles/safeToSweep";
 import { ensureCycleForDate } from "@/lib/cycles/generate";
 import {
@@ -40,7 +40,6 @@ export type CurrentCycleData = {
   spentSoFar: Prisma.Decimal;
   pendingSum: Prisma.Decimal;
   pendingCount: number;
-  carryover: Prisma.Decimal;
   chequingBalance: Prisma.Decimal;
   creditCardBalance: Prisma.Decimal;
   sweepBuffer: Prisma.Decimal;
@@ -185,7 +184,6 @@ export async function getCurrentCycleData(
     new Prisma.Decimal(0)
   );
 
-  const carryover = await getActiveCarryover(tenantId, cycle.startDate);
   const sweepBuffer = settings?.sweepBuffer ?? new Prisma.Decimal(100);
 
   const safeToSweep = computeSafeToSweep({
@@ -194,7 +192,6 @@ export async function getCurrentCycleData(
     unsettledAccruals,
     creditCardBalance,
     sweepBuffer,
-    carryover,
   });
 
   const daysRemaining = Math.max(0, Math.ceil((cycleEnd.getTime() - today.getTime()) / DAY_MS) + 1);
@@ -234,7 +231,6 @@ export async function getCurrentCycleData(
     spentSoFar: expenseAll,
     pendingSum,
     pendingCount,
-    carryover,
     chequingBalance,
     creditCardBalance,
     sweepBuffer,

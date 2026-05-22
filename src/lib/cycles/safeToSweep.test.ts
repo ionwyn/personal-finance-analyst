@@ -40,22 +40,4 @@ describe("computeSafeToSweep", () => {
     });
     expect(result.amount.toNumber()).toBe(2900);
   });
-
-  it("adds positive carryover from previous cycle", () => {
-    const result = computeSafeToSweep({
-      chequingBalance: 1000,
-      sweepBuffer: 100,
-      carryover: 250,
-    });
-    expect(result.amount.toNumber()).toBe(1150);
-  });
-
-  it("subtracts negative carryover from previous cycle", () => {
-    const result = computeSafeToSweep({
-      chequingBalance: 1000,
-      sweepBuffer: 100,
-      carryover: -250,
-    });
-    expect(result.amount.toNumber()).toBe(650);
-  });
 });

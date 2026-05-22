@@ -53,7 +53,6 @@ export function CycleView({
     spentSoFar,
     pendingSum,
     pendingCount,
-    carryover,
     chequingBalance,
     creditCardBalance,
     sweepBuffer,
@@ -68,7 +67,6 @@ export function CycleView({
   const sweptAmount = toNumber(cycle.sweptAmount);
   const spent = toNumber(spentSoFar);
   const pending = toNumber(pendingSum);
-  const carry = toNumber(carryover);
   const chequing = toNumber(chequingBalance);
   const ccBalance = toNumber(creditCardBalance);
   const buffer = toNumber(sweepBuffer);
@@ -141,11 +139,6 @@ export function CycleView({
           <BigNumber value={sweepSpace} />
           <div className="kpi-meta">
             <span>Buffer {formatMoney(buffer)}</span>
-            <span>·</span>
-            <span>
-              {carry >= 0 ? "carry +" : "carry "}
-              {formatMoney(carry, { sign: true })}
-            </span>
           </div>
         </div>
 
@@ -253,11 +246,6 @@ export function CycleView({
                 sign="−"
               />
               <BreakdownRow label="Sweep buffer" value={buffer} sign="−" />
-              <BreakdownRow
-                label="Prev-cycle carryover"
-                value={Math.abs(carry)}
-                sign={carry >= 0 ? "+" : "−"}
-              />
               <div
                 style={{
                   borderTop: "1px solid var(--border)",
