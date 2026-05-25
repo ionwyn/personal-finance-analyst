@@ -52,7 +52,7 @@
     "react-dom": "^19.2.6",
     "react-plaid-link": "^4.1.1",
     "recharts": "^3.8.1",
-    "snaptrade-typescript-sdk": "^9.0.195",
+    "snaptrade-typescript-sdk": "^10.0.1",
     "zod": "^4.4.3"
   },
   "devDependencies": {
