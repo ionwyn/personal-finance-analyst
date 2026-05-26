@@ -1,0 +1,389 @@
+// Settings — left-rail sub-nav shell + section chrome.
+// Ported/adapted from the designer mockup (styles-2.css). The design's
+// `--font-cond` token does not exist in this app; mapped to `--font-sans`.
+
+.shell {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+}
+
+// ─── Left rail ───
+.rail {
+  position: sticky;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 4px 0;
+}
+.railHead {
+  padding: 4px 10px 14px;
+  border-bottom: 1px solid var(--border-subtle);
+  margin-bottom: 8px;
+}
+.railTitle {
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--text);
+}
+.railSub {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--text-4);
+  letter-spacing: 0.04em;
+  margin-top: 4px;
+}
+.railNav {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.railItem {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: var(--radius);
+  color: var(--text-3);
+  font-size: 12.5px;
+  text-align: left;
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition:
+    background 80ms ease,
+    color 80ms ease;
+  letter-spacing: -0.005em;
+
+  &:hover {
+    background: var(--hover);
+    color: var(--text);
+  }
+  &.on {
+    background: var(--surface-3);
+    color: var(--text);
+  }
+}
+.railNum {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-4);
+}
+.railItem.on .railNum {
+  color: var(--accent);
+}
+.railLabel {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: 500;
+}
+.railFoot {
+  margin-top: 14px;
+  padding: 12px 10px 0;
+  border-top: 1px solid var(--border-subtle);
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--text-4);
+  letter-spacing: 0.04em;
+}
+
+// ─── Pane / section header ───
+.pane {
+  min-width: 0;
+  max-width: 1000px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.sectionHead {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.sectionTitle {
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  color: var(--text);
+}
+.sectionSub {
+  font-size: 12.5px;
+  color: var(--text-3);
+  margin-top: 4px;
+  max-width: 640px;
+  line-height: 1.45;
+}
+.sectionActions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+// ─── Setting row (label + control) ───
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 24px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--border-subtle);
+  align-items: center;
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+.rowLabel {
+  flex: 1 1 240px;
+  min-width: 220px;
+}
+.rowTitle {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+  letter-spacing: -0.005em;
+}
+.rowDesc {
+  font-size: 11.5px;
+  color: var(--text-3);
+  margin-top: 3px;
+  max-width: 540px;
+  line-height: 1.45;
+}
+.rowControl {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+// ─── Pay frequency cards ───
+.payFreqGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+.payFreqCard {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface-2);
+  padding: 14px;
+  text-align: left;
+  position: relative;
+  cursor: pointer;
+  transition:
+    border-color 100ms ease,
+    background 100ms ease;
+
+  &:hover:not(:disabled) {
+    border-color: var(--border-strong);
+    background: var(--surface-3);
+  }
+  &.on {
+    border-color: var(--accent);
+    background: var(--accent-bg);
+  }
+  &:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+}
+.payFreqDays {
+  font-family: var(--font-mono);
+  font-size: 24px;
+  font-weight: 500;
+  letter-spacing: -0.04em;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+
+  .u {
+    font-size: 13px;
+    color: var(--text-3);
+    margin-left: 2px;
+  }
+}
+.payFreqCard.on .payFreqDays {
+  color: var(--accent);
+}
+.payFreqLabel {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  margin-top: 8px;
+}
+.payFreqHint {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--text-4);
+  margin-top: 2px;
+}
+.payFreqCheck {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  color: var(--accent);
+  font-size: 10px;
+}
+
+// ─── Connection / runs tables ───
+.connLogo {
+  width: 26px;
+  height: 26px;
+  border-radius: 5px;
+  display: grid;
+  place-items: center;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 10.5px;
+  color: #fff;
+  letter-spacing: -0.03em;
+}
+.connErr {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--neg);
+  margin-top: 2px;
+  letter-spacing: 0.04em;
+}
+.rowWarn {
+  background: rgba(248, 113, 113, 0.03);
+}
+.runDot {
+  display: inline-block;
+  margin-right: 6px;
+  font-size: 10px;
+
+  &.pos {
+    color: var(--pos);
+  }
+  &.neg {
+    color: var(--neg);
+  }
+  &.inf {
+    color: var(--info);
+  }
+}
+
+// ─── Endpoint pill ───
+.endpointPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 6px 4px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--text-2);
+
+  code {
+    color: var(--text);
+    font-family: inherit;
+  }
+}
+.liveDot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--pos);
+  box-shadow: 0 0 0 2px rgba(74, 222, 128, 0.15);
+}
+
+// ─── Export cards ───
+.exportGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.exportCard {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 14px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface-2);
+  align-items: center;
+}
+.exportName {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+.exportDesc {
+  font-size: 11.5px;
+  color: var(--text-3);
+  margin-top: 3px;
+  line-height: 1.4;
+}
+
+// ─── Phase-2/3 placeholder ───
+.placeholder {
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-lg);
+  background: var(--surface-2);
+  padding: 28px 24px;
+  text-align: center;
+}
+.placeholderTag {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent);
+  background: var(--accent-bg);
+  border: 1px solid rgba(245, 165, 36, 0.3);
+  border-radius: 3px;
+  padding: 3px 8px;
+  margin-bottom: 10px;
+}
+.placeholderTitle {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+.placeholderText {
+  font-size: 12px;
+  color: var(--text-3);
+  margin-top: 6px;
+  line-height: 1.5;
+  max-width: 520px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+// ─── Stacked sub-panels within a section ───
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+@media (max-width: 860px) {
+  .shell {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  .rail {
+    position: static;
+  }
+  .railNav {
+    flex-direction: row;
+    overflow-x: auto;
+  }
+  .payFreqGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .exportGrid {
+    grid-template-columns: 1fr;
+  }
+}
