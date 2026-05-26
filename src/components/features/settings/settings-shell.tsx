@@ -13,6 +13,7 @@ import {
   type ConnectionItem,
   type ConnectionSnapTrade,
 } from "./connections-section";
+import { BudgetsGoalsSection } from "./budgets-goals-section";
 import { DataSection } from "./data-section";
 import { DisplaySection } from "./display-section";
 import { IncomeSourcesSection } from "./income-sources-section";
@@ -48,7 +49,7 @@ const META: Record<SectionId, { title: string; sub: string }> = {
   },
   budgets: {
     title: "Budgets & Goals",
-    sub: "Per-category caps and savings targets.",
+    sub: "Set per-category monthly caps and savings targets here; track progress on the Budgets & Goals page.",
   },
   display: {
     title: "Display & Preferences",
@@ -167,14 +168,13 @@ export function SettingsShell({
         ) : null}
 
         {active === "budgets" ? (
-          <div className={styles.placeholder}>
-            <div className={styles.placeholderTag}>Phase 2</div>
-            <div className={styles.placeholderTitle}>Budgets & savings goals</div>
-            <div className={styles.placeholderText}>
-              Per-category spending caps and savings goals (tied to your savings destinations) are
-              planned for Phase 2. They require new data models and will surface pace/overspend
-              flags in the Spending Insight view.
-            </div>
+          <div className={styles.stack}>
+            <BudgetsGoalsSection
+              budgets={data.budgets}
+              goals={data.savingsGoals}
+              spendingCategories={data.spendingCategories}
+              destinations={data.savingsDestinations}
+            />
           </div>
         ) : null}
 

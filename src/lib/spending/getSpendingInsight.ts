@@ -2,6 +2,7 @@ import { format, startOfMonth, startOfYear, subMonths, subYears } from "date-fns
 import type { Prisma } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
+import { formatCategoryName } from "@/lib/spending/category";
 import { hashColor } from "@/lib/spending/color";
 import { incomeWhere, spendingWhere } from "@/lib/spending/classify";
 
@@ -39,19 +40,9 @@ export type SpendingInsightData = {
   categories: CategoryRow[];
 };
 
-const UNCATEGORIZED = "Uncategorized";
-
 function num(value: Prisma.Decimal | number | null | undefined): number {
   if (value == null) return 0;
   return typeof value === "number" ? value : Number(value.toString());
-}
-
-function formatCategoryName(raw: string | null): string {
-  if (!raw) return UNCATEGORIZED;
-  return raw
-    .toLowerCase()
-    .replace(/_/g, " ")
-    .replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
 function computeRanges(period: Period, now: Date) {

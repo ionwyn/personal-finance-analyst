@@ -62,6 +62,8 @@ model Tenant {
   savingsDestinations   SavingsDestination[]
   settlementPatterns    SettlementPattern[]
   incomeSources         IncomeSource[]
+  budgets               Budget[]
+  savingsGoals          SavingsGoal[]
   userSettings          UserSettings?
 
   @@index([kind])
@@ -486,7 +488,8 @@ model SavingsDestination {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenant       Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  savingsGoals SavingsGoal[]
 
   @@index([tenantId, active])
 }
@@ -521,6 +524,44 @@ model IncomeSource {
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@index([tenantId, active])
+}
+
+// A per-category monthly spending cap. categoryPrimary is a Plaid primary
+// category (e.g. FOOD_AND_DRINK); spend is compared against month-to-date
+// "real spending" for that category. One budget per category per tenant.
+model Budget {
+  id              String   @id @default(cuid())
+  tenantId        String
+  categoryPrimary String
+  amount          Decimal  @db.Decimal(18, 2)
+  active          Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, categoryPrimary])
+  @@index([tenantId, active])
+}
+
+// A savings target. When linked to a SavingsDestination, progress is computed
+// from savings-classified transactions matching that destination's pattern.
+model SavingsGoal {
+  id                   String    @id @default(cuid())
+  tenantId             String
+  name                 String
+  targetAmount         Decimal   @db.Decimal(18, 2)
+  targetDate           DateTime?
+  savingsDestinationId String?
+  active               Boolean   @default(true)
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  tenant             Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  savingsDestination SavingsDestination? @relation(fields: [savingsDestinationId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, active])
+  @@index([savingsDestinationId])
 }
 
 model UserSettings {
