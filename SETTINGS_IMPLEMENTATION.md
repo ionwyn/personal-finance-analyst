@@ -59,33 +59,50 @@ Legend: `[x]` done · `[~]` partial (see note) · `[ ]` not started · `[—]` i
 
 ---
 
-## Phase 2 — Classification & money models (net-new) — NOT STARTED
+## Phase 2 — Classification & money models (net-new) — IN PROGRESS
 
-> ⚠️ **Prior-art warning — read before building Categories & Rules.** A full custom-category
-> system (`Category`, `CategoryRule` tables, `PlaidTransaction.categoryId`/`isManuallyCategorized`,
-> `RecurringExpense.categoryId`) **already existed and was deliberately removed** on 2026-05-11
-> (migration `20260511000000_remove_custom_categories`) in favour of using Plaid `categoryPrimary`
-> directly. Rebuilding it would reverse a recent intentional decision. **Confirm with the owner
-> why it was dropped before re-adding** — the simpler pattern-based model (savings destinations /
-> settlement patterns, surfaced in Phase 1) may be the intended direction instead.
+> ✅ **Categories decision gate — RESOLVED 2026-05-26 (owner).** Stay on **Plaid
+> `categoryPrimary`**; do **not** rebuild a custom-category override/classification system.
+> Plaid's transaction enrichment + MCC codes beat reinventing it, and a prior custom system was
+> deliberately removed on 2026-05-11 (`20260511000000_remove_custom_categories`). Anything that
+> renames/hides/recolors/overrides categories is **out of scope**. Pattern-based buckets (savings
+> destinations / settlement patterns / income sources) remain the model.
+
+**Owner decisions captured 2026-05-26:**
+
+- **Categories/rules**: skip entirely (above).
+- **Plaid Unlink**: **hard delete** — call Plaid `/item/remove` to revoke the token, then
+  cascade-delete the item's accounts, transactions, snapshots, and sync runs. **Re-authenticate**
+  needed for compliance and `ERROR` items.
+- **Income detection**: **manual income sources + keep Plaid `INCOME_SALARY` auto-classify** (no
+  credit-side auto-discovery this phase).
+- **Budgets**: per-`categoryPrimary` caps, **calendar-month** reset (aligns with `getSpendingInsight` MTD).
+- **Budgets & Goals get their own top-level workspace page** (`/app/budgets`, new sidebar item),
+  while the _configuration_ (create/edit budgets + goals) lives in Settings → Budgets & Goals.
 
 ### Must-have
 
-- [ ] **Decision gate**: re-introduce custom categories, or stay with Plaid `categoryPrimary` + pattern rules? (see warning above)
-- [ ] If re-introducing: custom **Categories** model + management (rename, hide, color, default-for-uncategorized)
-- [ ] **Auto-classification rules** (pattern → category) — generalize `reclassifyTenant` + `matchesPattern`
-- [ ] **Plaid Unlink** + **Re-authenticate** flows (Unlink is currently a disabled stub)
+- [ ] **Plaid Unlink** (item/remove + cascade hard-delete) + **Re-authenticate** (update-mode link token)
+- [ ] **Multiple income sources** (new `IncomeSource` model; migrate the single
+      `employerMerchantPattern`; thread through `classify`/`context`; verify pay-cycle income +
+      spending-insight `totalIncome` pick it up automatically)
+- [ ] **Budgets & Goals workspace page** (`/app/budgets`) + sidebar nav + settings config
 
 ### Good-to-have
 
-- [ ] Manual per-transaction override + "Make rule"
-- [ ] **Budgets**: per-category caps with warn/over (new `Budget` model; spend via `getSpendingInsight`)
-- [ ] **Savings goals** (new `SavingsGoal` model; tie to `SavingsDestination`)
-- [ ] **Multiple income sources** (new `IncomeSource` model; reuse `discovery.ts` detection)
+- [ ] **Budgets**: per-category caps with warn/over bars (new `Budget` model; spend via `spendingWhere`)
+- [ ] **Savings goals** (new `SavingsGoal` model; tie to `SavingsDestination`; progress from savings txns)
+
+### Out of scope (owner decision)
+
+- [—] Custom **Categories** model, rename/hide/recolor, manual per-transaction category override,
+  "Make rule", category auto-classification rules. **Why:** Plaid enrichment + MCC is better; a
+  prior custom system was deliberately removed. Don't reinvent it.
 
 ### Not worth (now)
 
 - [—] Per-account rule scoping + precise "hits this cycle" counters (bookkeeping; can derive).
+- [—] Credit-side income auto-detection (discovery for deposits) — manual entry suffices for now.
 
 ---
 
