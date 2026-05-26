@@ -12,6 +12,7 @@ import {
   LogOut,
   PieChart,
   Settings,
+  Target,
   TrendingUp,
   Wallet,
 } from "lucide-react";
@@ -84,6 +85,13 @@ export function Sidebar({ mode, user }: { mode: "private" | "demo"; user?: Sideb
             icon: <CalendarClock size={ICON_SIZE} />,
             kbd: "⌘6",
           },
+          {
+            key: "budgets",
+            label: "Budgets & Goals",
+            href: "/app/budgets",
+            icon: <Target size={ICON_SIZE} />,
+            kbd: "⌘7",
+          },
         ]
       : [
           {
@@ -128,6 +136,13 @@ export function Sidebar({ mode, user }: { mode: "private" | "demo"; user?: Sideb
             icon: <CalendarClock size={ICON_SIZE} />,
             kbd: "⌘6",
           },
+          {
+            key: "budgets",
+            label: "Budgets & Goals",
+            href: "/app/budgets",
+            icon: <Target size={ICON_SIZE} />,
+            kbd: "⌘7",
+          },
         ];
 
   const secondary: NavItem[] =
@@ -150,6 +165,7 @@ export function Sidebar({ mode, user }: { mode: "private" | "demo"; user?: Sideb
       "4": "/app/spending-insight",
       "5": "/app/investments",
       "6": "/app/cycles",
+      "7": "/app/budgets",
     };
     const onKey = (e: KeyboardEvent) => {
       if (!(e.metaKey || e.ctrlKey)) return;

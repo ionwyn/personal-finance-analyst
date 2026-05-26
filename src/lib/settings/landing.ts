@@ -11,6 +11,7 @@ export const LANDING_OPTIONS = [
   { value: "spending-insight", label: "Spending Insight", path: "/app/spending-insight" },
   { value: "investments", label: "Investments", path: "/app/investments" },
   { value: "cycles", label: "Pay cycles", path: "/app/cycles" },
+  { value: "budgets", label: "Budgets & Goals", path: "/app/budgets" },
 ] as const;
 
 export type LandingValue = (typeof LANDING_OPTIONS)[number]["value"];
