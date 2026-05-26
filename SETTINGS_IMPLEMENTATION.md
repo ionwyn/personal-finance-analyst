@@ -87,13 +87,17 @@ Legend: `[x]` done · `[~]` partial (see note) · `[ ]` not started · `[—]` i
 - [x] **Multiple income sources** (new `IncomeSource` model; migrated the single
       `employerMerchantPattern`; threaded through `classify`/`context`). Pay-cycle income +
       spending-insight `totalIncome` pick it up automatically (both aggregate on txnType/credits).
-- [x] **Budgets & Goals workspace page** (`/app/budgets`) + sidebar nav (⌘7) + settings config
+- [x] **Budgets & Goals workspace page** (`/app/budgets`) + sidebar nav (⌘7). **Management lives on
+      the workspace page** (per owner: it's confusing to set budgets from Settings); Settings keeps
+      only the **Alert thresholds** (warn % / alarm % / roll-forward) which drive the status flags.
 
 ### Good-to-have
 
 - [x] **Budgets**: per-category monthly caps with under/warn/over bars (`Budget` model; spend via
-      `spendingWhere`; warn ≥80%, over >100%)
-- [x] **Savings goals** (`SavingsGoal` model; optional link to a `SavingsDestination`; progress
+      `spendingWhere`; warn/alarm % are configurable in Settings → `UserSettings.budgetWarnPct`/`budgetAlarmPct`).
+      Caps are added/edited/removed inline on the workspace page (mockup-faithful `budgets.module.scss`).
+- [x] **Savings goals** (`SavingsGoal` model; **start + target date via `DateRangePicker`**; optional
+      link to a `SavingsDestination`; progress
       computed from savings-classified transactions matching that destination's pattern)
 
 ### Out of scope (owner decision)
@@ -201,14 +205,20 @@ Legend: `[x]` done · `[~]` partial (see note) · `[ ]` not started · `[—]` i
   `POST .../update-link-token`. `item-actions.tsx` does Unlink (with a destructive confirm) and a
   Re-authenticate button for `ERROR` items.
 
-**Budgets & Goals**
+**Budgets & Goals** (revised 2026-05-26 — management on the workspace page, not Settings)
 
-- `/api/settings/budgets` + `/api/settings/savings-goals` CRUD; `getSettingsData` extended with
-  budgets/goals + the categories the tenant actually spends in.
-- New settings section `budgets-goals-section.tsx` (config) replacing the placeholder.
-- `getBudgetGoalData.ts` (MTD spend per category + goal progress), `/app/budgets` page,
-  `budgets-view.tsx`, sidebar entry (⌘7) + landing option.
+- `/api/settings/budgets` + `/api/settings/savings-goals` CRUD. Goals carry `startDate` + `targetDate`.
+- **Workspace `/app/budgets` is the management surface** — `budgets-view.tsx`: inline cap editing,
+  add/remove caps, goal cards with create/edit/delete via `DateRangePicker` (start → target). Styling
+  ported from the mockup into `budgets.module.scss`. Sidebar entry (⌘7) + landing option.
+- **Settings → Budgets & Goals keeps only Alert thresholds** — `alert-thresholds-section.tsx`
+  (warn % / alarm % / roll-forward) persisted on `UserSettings`. The old `budgets-goals-section.tsx`
+  creation UI was removed.
+- `getBudgetGoalData.ts` — MTD spend per category, goal progress, status from the configured
+  warn/alarm %, plus available categories + destinations for the management UI. `getSettingsData`
+  trimmed back (no longer fetches budgets/goals/categories).
 - `lib/spending/category.ts` — shared `formatCategoryName` (dedup from `getSpendingInsight`).
+- New `UserSettings` fields: `budgetWarnPct` (85), `budgetAlarmPct` (100), `budgetRollForward` (false).
 
 **Verification:** `npm run typecheck` ✅ · `npm run lint` ✅ · `npm test` ✅ (56 passed) ·
 `npm run build` ✅.
@@ -217,8 +227,9 @@ Legend: `[x]` done · `[~]` partial (see note) · `[ ]` not started · `[—]` i
 
 - Income sources are pattern-matched only (no credit-side auto-discovery yet).
 - Budgets are calendar-month and per Plaid `categoryPrimary` (no sub-category / per-cycle budgets).
-- Savings-goal progress counts all-time savings to the linked destination (no per-goal start date);
-  manual (unlinked) goals show 0 progress.
+- `budgetRollForward` is stored but not yet applied — month-rollover carry isn't implemented.
+- Savings-goal progress counts all-time savings to the linked destination (start date is stored for
+  the timeframe display but doesn't yet window the progress sum); manual (unlinked) goals show 0.
 - Unlink is a hard delete — that bank's history disappears from all charts (by design).
 
 ### Ready for Phase 3
