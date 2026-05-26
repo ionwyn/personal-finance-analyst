@@ -8,6 +8,7 @@ import { prisma } from "@/lib/prisma";
 const bodySchema = z.object({
   name: z.string().min(1).max(200).optional(),
   targetAmount: z.number().positive().optional(),
+  startDate: z.string().nullable().optional(),
   targetDate: z.string().nullable().optional(),
   savingsDestinationId: z.string().nullable().optional(),
   active: z.boolean().optional(),
@@ -47,6 +48,9 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
     data: {
       ...(body.name !== undefined ? { name: body.name.trim() } : {}),
       ...(body.targetAmount !== undefined ? { targetAmount: body.targetAmount } : {}),
+      ...(body.startDate !== undefined
+        ? { startDate: body.startDate ? new Date(body.startDate) : null }
+        : {}),
       ...(body.targetDate !== undefined
         ? { targetDate: body.targetDate ? new Date(body.targetDate) : null }
         : {}),

@@ -13,7 +13,7 @@ import {
   type ConnectionItem,
   type ConnectionSnapTrade,
 } from "./connections-section";
-import { BudgetsGoalsSection } from "./budgets-goals-section";
+import { AlertThresholdsSection } from "./alert-thresholds-section";
 import { DataSection } from "./data-section";
 import { DisplaySection } from "./display-section";
 import { IncomeSourcesSection } from "./income-sources-section";
@@ -49,7 +49,7 @@ const META: Record<SectionId, { title: string; sub: string }> = {
   },
   budgets: {
     title: "Budgets & Goals",
-    sub: "Set per-category monthly caps and savings targets here; track progress on the Budgets & Goals page.",
+    sub: "Alert thresholds for category budgets. Set the actual caps and savings goals on the Budgets & Goals page.",
   },
   display: {
     title: "Display & Preferences",
@@ -169,12 +169,7 @@ export function SettingsShell({
 
         {active === "budgets" ? (
           <div className={styles.stack}>
-            <BudgetsGoalsSection
-              budgets={data.budgets}
-              goals={data.savingsGoals}
-              spendingCategories={data.spendingCategories}
-              destinations={data.savingsDestinations}
-            />
+            <AlertThresholdsSection settings={data.settings} />
           </div>
         ) : null}
 

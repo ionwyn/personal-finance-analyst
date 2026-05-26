@@ -8,6 +8,7 @@ import { prisma } from "@/lib/prisma";
 const bodySchema = z.object({
   name: z.string().min(1).max(200),
   targetAmount: z.number().positive(),
+  startDate: z.string().nullable().optional(),
   targetDate: z.string().nullable().optional(),
   savingsDestinationId: z.string().nullable().optional(),
 });
@@ -43,6 +44,7 @@ export async function POST(request: Request) {
       tenantId: auth.tenant.id,
       name: body.name.trim(),
       targetAmount: body.targetAmount,
+      startDate: body.startDate ? new Date(body.startDate) : null,
       targetDate: body.targetDate ? new Date(body.targetDate) : null,
       savingsDestinationId: body.savingsDestinationId ?? null,
     },

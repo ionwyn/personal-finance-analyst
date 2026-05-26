@@ -1,0 +1,312 @@
+/* Budgets & Goals workspace — ported from the designer mockup (styles-2.css),
+   with --font-cond mapped to --font-sans and category colours via hashColor. */
+
+.grid2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  align-items: start;
+}
+@media (max-width: 1100px) {
+  .grid2 {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ─── Category caps ─── */
+.capsList {
+  padding: 4px 0;
+}
+.capRow {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.capRow:last-child {
+  border-bottom: none;
+}
+.capRowHead {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.swLg {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+  flex: none;
+}
+.capName {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+  letter-spacing: -0.005em;
+  flex: 1;
+}
+.capSpent {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 13px;
+  color: var(--text);
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  margin-right: 12px;
+  white-space: nowrap;
+}
+.capSpent .of {
+  color: var(--text-4);
+  font-weight: 400;
+  margin-left: 4px;
+}
+.capControls {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.capInput {
+  width: 110px;
+  padding: 5px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius, 6px);
+  background: var(--surface-2);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+  text-align: right;
+}
+.capInput:focus {
+  border-color: var(--accent);
+  outline: none;
+}
+.capBar {
+  position: relative;
+  height: 8px;
+  background: var(--surface-3);
+  border-radius: 3px;
+  overflow: visible;
+}
+.capBarFill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  border-radius: 3px;
+  transition: width 220ms ease;
+}
+.capBarOver {
+  position: absolute;
+  top: 0;
+  left: 100%;
+  height: 100%;
+  background: var(--neg);
+  opacity: 0.55;
+  background-image: repeating-linear-gradient(
+    -45deg,
+    rgba(0, 0, 0, 0.25) 0,
+    rgba(0, 0, 0, 0.25) 2px,
+    transparent 2px,
+    transparent 5px
+  );
+  border-radius: 0 3px 3px 0;
+}
+.capBarMark {
+  position: absolute;
+  top: -3px;
+  width: 1px;
+  height: 14px;
+  background: var(--text-4);
+  transform: translateX(-0.5px);
+  opacity: 0.5;
+}
+
+.badge {
+  font-family: var(--font-sans);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  border-radius: 3px;
+  border: 1px solid;
+  white-space: nowrap;
+}
+.badgeOver {
+  color: var(--neg);
+  background: var(--neg-bg);
+  border-color: rgba(248, 113, 113, 0.3);
+}
+.badgeWarn {
+  color: var(--warn);
+  background: rgba(251, 191, 36, 0.08);
+  border-color: rgba(251, 191, 36, 0.3);
+}
+
+/* Add row (caps + goal form) */
+.addRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 8px;
+  padding: 12px 16px;
+  border-top: 1px dashed var(--border-strong);
+  background: var(--surface-2);
+}
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+.input,
+.select {
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius, 6px);
+  background: var(--surface-2);
+  font-size: 12px;
+  color: var(--text);
+  font-family: var(--font-sans);
+}
+.input:focus,
+.select:focus {
+  border-color: var(--accent);
+  outline: none;
+}
+.inputNum {
+  font-family: var(--font-mono);
+  text-align: right;
+}
+
+/* ─── Goals grid ─── */
+.goalsGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0;
+}
+@media (max-width: 640px) {
+  .goalsGrid {
+    grid-template-columns: 1fr;
+  }
+}
+.goalCard {
+  padding: 16px 18px;
+  border-right: 1px solid var(--border-subtle);
+  border-bottom: 1px solid var(--border-subtle);
+}
+.goalCard:nth-child(2n) {
+  border-right: none;
+}
+.goalHead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.goalName {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: -0.01em;
+}
+.goalDest {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--text-4);
+  margin-top: 3px;
+  letter-spacing: 0.02em;
+}
+.goalActions {
+  display: inline-flex;
+  gap: 2px;
+}
+.goalAmts {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+.goalCurrent {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 22px;
+  font-weight: 500;
+  letter-spacing: -0.03em;
+  color: var(--text);
+}
+.goalTarget {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 13px;
+  color: var(--text-4);
+}
+.goalPct {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 12px;
+  color: var(--text-2);
+  margin-left: auto;
+  padding: 2px 7px;
+  border-radius: 3px;
+  background: var(--surface-3);
+}
+.goalBar {
+  height: 5px;
+  background: var(--surface-3);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 10px;
+}
+.goalBarFill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 250ms ease;
+}
+.goalFoot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.goalCond {
+  font-family: var(--font-sans);
+  font-size: 10px;
+  color: var(--text-4);
+  letter-spacing: 0.12em;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+.goalEta {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--text-2);
+  letter-spacing: 0.02em;
+}
+
+.empty {
+  padding: 16px;
+  font-size: 12px;
+  color: var(--text-3);
+}
+.goalForm {
+  display: grid;
+  gap: 10px;
+  padding: 14px 16px;
+  border-top: 1px dashed var(--border-strong);
+  background: var(--surface-2);
+}
+.goalFormRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: flex-end;
+}
+.formActions {
+  display: inline-flex;
+  gap: 8px;
+}

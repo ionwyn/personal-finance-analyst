@@ -551,6 +551,7 @@ model SavingsGoal {
   tenantId             String
   name                 String
   targetAmount         Decimal   @db.Decimal(18, 2)
+  startDate            DateTime?
   targetDate           DateTime?
   savingsDestinationId String?
   active               Boolean   @default(true)
@@ -574,6 +575,9 @@ model UserSettings {
   sweepBuffer             Decimal   @default(100) @db.Decimal(18, 2)
   ccPaymentDayOfMonth     Int?
   defaultLanding          String    @default("dashboard")
+  budgetWarnPct           Int       @default(85)
+  budgetAlarmPct          Int       @default(100)
+  budgetRollForward       Boolean   @default(false)
   createdAt               DateTime  @default(now())
   updatedAt               DateTime  @updatedAt
 

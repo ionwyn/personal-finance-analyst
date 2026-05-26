@@ -23,6 +23,9 @@ const bodySchema = z.object({
     .refine((v) => v === 7 || v === 14, "Only weekly (7) or biweekly (14) are supported")
     .optional(),
   defaultLanding: z.enum(LANDING_VALUES).optional(),
+  budgetWarnPct: z.number().int().min(0).max(200).optional(),
+  budgetAlarmPct: z.number().int().min(0).max(200).optional(),
+  budgetRollForward: z.boolean().optional(),
 });
 
 function parseDateOnly(value: string | null | undefined): Date | null | undefined {
@@ -71,6 +74,9 @@ export async function PATCH(request: Request) {
     updateData.ccPaymentDayOfMonth = body.ccPaymentDayOfMonth;
   if (body.payFrequencyDays !== undefined) updateData.payFrequencyDays = body.payFrequencyDays;
   if (body.defaultLanding !== undefined) updateData.defaultLanding = body.defaultLanding;
+  if (body.budgetWarnPct !== undefined) updateData.budgetWarnPct = body.budgetWarnPct;
+  if (body.budgetAlarmPct !== undefined) updateData.budgetAlarmPct = body.budgetAlarmPct;
+  if (body.budgetRollForward !== undefined) updateData.budgetRollForward = body.budgetRollForward;
 
   const settings = await prisma.userSettings.update({
     where: { tenantId: auth.tenant.id },
