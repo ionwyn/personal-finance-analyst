@@ -97,8 +97,8 @@ Legend: `[x]` done · `[~]` partial (see note) · `[ ]` not started · `[—]` i
       `spendingWhere`; warn/alarm % are configurable in Settings → `UserSettings.budgetWarnPct`/`budgetAlarmPct`).
       Caps are added/edited/removed inline on the workspace page (mockup-faithful `budgets.module.scss`).
 - [x] **Savings goals** (`SavingsGoal` model; **start + target date via `DateRangePicker`**; optional
-      link to a `SavingsDestination`; progress
-      computed from savings-classified transactions matching that destination's pattern)
+      link to a `SavingsDestination`; progress computed from savings-classified transactions matching
+      that destination's pattern, **windowed to on/after the goal's start date**)
 
 ### Out of scope (owner decision)
 
@@ -215,8 +215,9 @@ Legend: `[x]` done · `[~]` partial (see note) · `[ ]` not started · `[—]` i
   (warn % / alarm % / roll-forward) persisted on `UserSettings`. The old `budgets-goals-section.tsx`
   creation UI was removed.
 - `getBudgetGoalData.ts` — MTD spend per category, goal progress, status from the configured
-  warn/alarm %, plus available categories + destinations for the management UI. `getSettingsData`
-  trimmed back (no longer fetches budgets/goals/categories).
+  warn/alarm %, plus available categories + destinations for the management UI. Goal progress is
+  **windowed to savings dated on/after the goal's `startDate`** (no start date = all-time).
+  `getSettingsData` trimmed back (no longer fetches budgets/goals/categories).
 - `lib/spending/category.ts` — shared `formatCategoryName` (dedup from `getSpendingInsight`).
 - New `UserSettings` fields: `budgetWarnPct` (85), `budgetAlarmPct` (100), `budgetRollForward` (false).
 
@@ -228,8 +229,8 @@ Legend: `[x]` done · `[~]` partial (see note) · `[ ]` not started · `[—]` i
 - Income sources are pattern-matched only (no credit-side auto-discovery yet).
 - Budgets are calendar-month and per Plaid `categoryPrimary` (no sub-category / per-cycle budgets).
 - `budgetRollForward` is stored but not yet applied — month-rollover carry isn't implemented.
-- Savings-goal progress counts all-time savings to the linked destination (start date is stored for
-  the timeframe display but doesn't yet window the progress sum); manual (unlinked) goals show 0.
+- Savings-goal progress is windowed to savings on/after the goal's start date (or all-time when no
+  start date is set); manual (unlinked) goals show 0.
 - Unlink is a hard delete — that bank's history disappears from all charts (by design).
 
 ### Ready for Phase 3

@@ -99,7 +99,7 @@ export async function getBudgetGoalData(
       }),
       prisma.plaidTransaction.findMany({
         where: { tenantId, txnType: "savings", removed: false, supersededById: null },
-        select: { name: true, merchantName: true, amount: true },
+        select: { name: true, merchantName: true, amount: true, date: true },
       }),
       prisma.savingsDestination.findMany({
         where: { tenantId, active: true },
@@ -139,9 +139,13 @@ export async function getBudgetGoalData(
   const goalProgress: GoalProgress[] = goals.map((g) => {
     const target = num(g.targetAmount);
     const pattern = g.savingsDestination?.matchPattern ?? null;
+    // Only count savings on or after the goal's start date (inclusive). Goals
+    // with no start date count all-time savings to the destination.
+    const since = g.startDate ? g.startDate.getTime() : null;
     let saved = 0;
     if (pattern) {
       for (const tx of savingsTxns) {
+        if (since !== null && tx.date.getTime() < since) continue;
         const merchant = `${tx.name ?? ""} ${tx.merchantName ?? ""}`.toUpperCase();
         if (matches(merchant, pattern)) saved += Math.max(0, num(tx.amount));
       }
