@@ -45,7 +45,7 @@ export function Sidebar({ mode, user }: { mode: "private" | "demo"; user?: Sideb
           {
             key: "dashboard",
             label: "Dashboard",
-            href: "/app",
+            href: "/app?home=1",
             icon: <LayoutGrid size={ICON_SIZE} />,
             kbd: "⌘1",
           },
@@ -89,7 +89,7 @@ export function Sidebar({ mode, user }: { mode: "private" | "demo"; user?: Sideb
           {
             key: "dashboard",
             label: "Dashboard",
-            href: "/app",
+            href: "/app?home=1",
             icon: <LayoutGrid size={ICON_SIZE} />,
             kbd: "⌘1",
           },
@@ -144,7 +144,7 @@ export function Sidebar({ mode, user }: { mode: "private" | "demo"; user?: Sideb
 
   useEffect(() => {
     const map: Record<string, string> = {
-      "1": "/app",
+      "1": "/app?home=1",
       "2": "/app/accounts",
       "3": "/app/transactions",
       "4": "/app/spending-insight",
@@ -164,8 +164,9 @@ export function Sidebar({ mode, user }: { mode: "private" | "demo"; user?: Sideb
   }, [router, mode]);
 
   const isActive = (href: string) => {
-    if (href === "/app") return pathname === "/app";
-    return pathname === href || pathname.startsWith(href + "/");
+    const path = href.split("?")[0];
+    if (path === "/app") return pathname === "/app";
+    return pathname === path || pathname.startsWith(path + "/");
   };
 
   const initials =
