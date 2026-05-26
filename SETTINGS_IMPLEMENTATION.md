@@ -59,7 +59,7 @@ Legend: `[x]` done · `[~]` partial (see note) · `[ ]` not started · `[—]` i
 
 ---
 
-## Phase 2 — Classification & money models (net-new) — IN PROGRESS
+## Phase 2 — Classification & money models (net-new) — LANDED (2026-05-26)
 
 > ✅ **Categories decision gate — RESOLVED 2026-05-26 (owner).** Stay on **Plaid
 > `categoryPrimary`**; do **not** rebuild a custom-category override/classification system.
@@ -82,16 +82,19 @@ Legend: `[x]` done · `[~]` partial (see note) · `[ ]` not started · `[—]` i
 
 ### Must-have
 
-- [ ] **Plaid Unlink** (item/remove + cascade hard-delete) + **Re-authenticate** (update-mode link token)
-- [ ] **Multiple income sources** (new `IncomeSource` model; migrate the single
-      `employerMerchantPattern`; thread through `classify`/`context`; verify pay-cycle income +
-      spending-insight `totalIncome` pick it up automatically)
-- [ ] **Budgets & Goals workspace page** (`/app/budgets`) + sidebar nav + settings config
+- [x] **Plaid Unlink** (item/remove + cascade hard-delete) + **Re-authenticate** (update-mode link
+      token) — `DELETE /api/plaid/items/[itemId]`, `.../update-link-token`, wired in `item-actions.tsx`
+- [x] **Multiple income sources** (new `IncomeSource` model; migrated the single
+      `employerMerchantPattern`; threaded through `classify`/`context`). Pay-cycle income +
+      spending-insight `totalIncome` pick it up automatically (both aggregate on txnType/credits).
+- [x] **Budgets & Goals workspace page** (`/app/budgets`) + sidebar nav (⌘7) + settings config
 
 ### Good-to-have
 
-- [ ] **Budgets**: per-category caps with warn/over bars (new `Budget` model; spend via `spendingWhere`)
-- [ ] **Savings goals** (new `SavingsGoal` model; tie to `SavingsDestination`; progress from savings txns)
+- [x] **Budgets**: per-category monthly caps with under/warn/over bars (`Budget` model; spend via
+      `spendingWhere`; warn ≥80%, over >100%)
+- [x] **Savings goals** (`SavingsGoal` model; optional link to a `SavingsDestination`; progress
+      computed from savings-classified transactions matching that destination's pattern)
 
 ### Out of scope (owner decision)
 
@@ -117,7 +120,7 @@ Legend: `[x]` done · `[~]` partial (see note) · `[ ]` not started · `[—]` i
 - [ ] Theme light/dark/system (define light palette + switch) — heavy, cross-cutting
 - [ ] Multi-currency conversion (FX via `SnapTradeFxRate`) — heavy, pervasive
 - [ ] Sessions: list active + "sign out all" (DB-strategy sessions make this feasible)
-- [ ] Danger zone: Unlink-all (needs Phase 2 unlink) + Purge tenant (cascade deletes exist)
+- [ ] Danger zone: Unlink-all (Phase 2 unlink endpoint now exists — reuse it) + Purge tenant (cascade deletes exist)
 - [ ] Row density + tabular-numbers toggles; Export JSON + extra datasets
 
 ### Not worth (now)
@@ -175,8 +178,51 @@ Legend: `[x]` done · `[~]` partial (see note) · `[ ]` not started · `[—]` i
 - Sync schedule shows the global 6h cadence (read-only) — per-item interval deferred.
 - Categories/Budgets/Display-theme/currency/Data-danger-zone render as Phase-2/3 placeholders.
 
-### Ready for Phase 2
+### Phase 2 — landed (2026-05-26)
 
-Phase 1 is complete and verified. **Before starting Phase 2, resolve the Categories & Rules
-decision gate** (custom categories were deliberately removed on 2026-05-11 — see the warning
-in the Phase 2 section).
+**Schema / data** (two migrations: `20260526130000_add_income_sources`, `20260526140000_add_budgets_goals`)
+
+- `IncomeSource` (1:N labelled merchant pattern → income). Migration copies each tenant's
+  `employerMerchantPattern` into a "Primary employer" source.
+- `Budget` (per-`categoryPrimary` monthly cap, unique per category) and `SavingsGoal`
+  (target/date, optional `savingsDestinationId`).
+
+**Classification (income sources)**
+
+- `classify.ts` / `context.ts` — match any active `IncomeSource`; legacy `employerMerchantPattern`
+  kept as a fallback. Downstream (`recomputeCycleTotals` → `PayCycle.incomeReceived`,
+  `getSpendingInsight.totalIncome`) is source-agnostic, so it picked up automatically.
+- `classify.test.ts` — multi-source / inactive / paycheck-window coverage.
+
+**Plaid unlink + re-auth**
+
+- `client.ts` — `removePlaidItem` (`/item/remove`), `createUpdateLinkToken` (update mode).
+- `DELETE /api/plaid/items/[itemId]` (revoke token best-effort, then cascade hard-delete) and
+  `POST .../update-link-token`. `item-actions.tsx` does Unlink (with a destructive confirm) and a
+  Re-authenticate button for `ERROR` items.
+
+**Budgets & Goals**
+
+- `/api/settings/budgets` + `/api/settings/savings-goals` CRUD; `getSettingsData` extended with
+  budgets/goals + the categories the tenant actually spends in.
+- New settings section `budgets-goals-section.tsx` (config) replacing the placeholder.
+- `getBudgetGoalData.ts` (MTD spend per category + goal progress), `/app/budgets` page,
+  `budgets-view.tsx`, sidebar entry (⌘7) + landing option.
+- `lib/spending/category.ts` — shared `formatCategoryName` (dedup from `getSpendingInsight`).
+
+**Verification:** `npm run typecheck` ✅ · `npm run lint` ✅ · `npm test` ✅ (56 passed) ·
+`npm run build` ✅.
+
+**Known caveats**
+
+- Income sources are pattern-matched only (no credit-side auto-discovery yet).
+- Budgets are calendar-month and per Plaid `categoryPrimary` (no sub-category / per-cycle budgets).
+- Savings-goal progress counts all-time savings to the linked destination (no per-goal start date);
+  manual (unlinked) goals show 0 progress.
+- Unlink is a hard delete — that bank's history disappears from all charts (by design).
+
+### Ready for Phase 3
+
+Phase 2 is complete and verified. Phase 3 is display/account/data (theme, multi-currency,
+locale/formats, sessions, danger zone). Note: **Danger-zone "Unlink-all" is now unblocked** by the
+Phase 2 unlink endpoint.
