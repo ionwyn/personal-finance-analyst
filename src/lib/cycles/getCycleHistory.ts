@@ -12,7 +12,7 @@ export type CycleHistoryRow = {
   sweptAmount: Prisma.Decimal;
   totalSaved: Prisma.Decimal;
   spent: Prisma.Decimal;
-  carryover: Prisma.Decimal;
+  carryover: Prisma.Decimal | null;
   closedAt: Date | null;
 };
 

@@ -40,6 +40,7 @@ export type CurrentCycleData = {
   spentSoFar: Prisma.Decimal;
   pendingSum: Prisma.Decimal;
   pendingCount: number;
+  lastCycleCarryover: Prisma.Decimal | null;
   chequingBalance: Prisma.Decimal;
   creditCardBalance: Prisma.Decimal;
   sweepBuffer: Prisma.Decimal;
@@ -186,6 +187,13 @@ export async function getCurrentCycleData(
 
   const sweepBuffer = settings?.sweepBuffer ?? new Prisma.Decimal(100);
 
+  const lastClosedCycle = await prisma.payCycle.findFirst({
+    where: { tenantId, endDate: { lt: cycle.startDate }, closedAt: { not: null } },
+    orderBy: { startDate: "desc" },
+    select: { carryover: true },
+  });
+  const lastCycleCarryover = lastClosedCycle?.carryover ?? null;
+
   const safeToSweep = computeSafeToSweep({
     chequingBalance,
     pendingExpenses: pendingSum,
@@ -231,6 +239,7 @@ export async function getCurrentCycleData(
     spentSoFar: expenseAll,
     pendingSum,
     pendingCount,
+    lastCycleCarryover,
     chequingBalance,
     creditCardBalance,
     sweepBuffer,

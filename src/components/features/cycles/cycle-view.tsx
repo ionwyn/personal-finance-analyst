@@ -53,6 +53,7 @@ export function CycleView({
     spentSoFar,
     pendingSum,
     pendingCount,
+    lastCycleCarryover,
     chequingBalance,
     creditCardBalance,
     sweepBuffer,
@@ -67,6 +68,7 @@ export function CycleView({
   const sweptAmount = toNumber(cycle.sweptAmount);
   const spent = toNumber(spentSoFar);
   const pending = toNumber(pendingSum);
+  const lastCarry = lastCycleCarryover != null ? toNumber(lastCycleCarryover) : null;
   const chequing = toNumber(chequingBalance);
   const ccBalance = toNumber(creditCardBalance);
   const buffer = toNumber(sweepBuffer);
@@ -293,6 +295,13 @@ export function CycleView({
                 })}
                 accent
               />
+              {lastCarry != null ? (
+                <Row
+                  label="Prev cycle net position"
+                  value={formatMoney(lastCarry, { sign: true })}
+                  negative={lastCarry < 0}
+                />
+              ) : null}
             </div>
           </div>
 
@@ -383,7 +392,17 @@ export function CycleView({
   );
 }
 
-function Row({ label, value, accent }: { label: string; value: string; accent?: boolean }) {
+function Row({
+  label,
+  value,
+  accent,
+  negative,
+}: {
+  label: string;
+  value: string;
+  accent?: boolean;
+  negative?: boolean;
+}) {
   return (
     <div
       style={{
@@ -399,7 +418,7 @@ function Row({ label, value, accent }: { label: string; value: string; accent?: 
         className="mono"
         style={{
           fontVariantNumeric: "tabular-nums",
-          color: accent ? "var(--accent)" : "var(--text)",
+          color: accent ? "var(--accent)" : negative ? "var(--neg)" : "var(--text)",
           fontWeight: accent ? 600 : 400,
         }}
       >

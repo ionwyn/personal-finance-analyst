@@ -31,6 +31,7 @@ export default async function CycleHistoryPage() {
 
   await closeOverdueCycles(tenantId);
   const rows = await getCycleHistory(tenantId, 36);
+  const now = new Date();
 
   return (
     <AppShell
@@ -82,7 +83,8 @@ export default async function CycleHistoryPage() {
               </thead>
               <tbody>
                 {rows.map((row) => {
-                  const carry = toNumber(row.carryover);
+                  const isFuture = !row.closedAt && row.endDate > now;
+                  const carry = row.carryover != null ? toNumber(row.carryover) : null;
                   return (
                     <tr key={row.id}>
                       <td>
@@ -102,10 +104,25 @@ export default async function CycleHistoryPage() {
                       <td className="num mono">{formatMoney(toNumber(row.spent))}</td>
                       <td
                         className="num mono"
-                        style={{ color: carry >= 0 ? "var(--pos)" : "var(--neg)" }}
+                        style={{
+                          color:
+                            isFuture || carry == null
+                              ? "var(--text-3)"
+                              : carry >= 0
+                                ? "var(--pos)"
+                                : "var(--neg)",
+                        }}
                       >
-                        {carry >= 0 ? "+" : "−"}
-                        {formatMoney(Math.abs(carry))}
+                        {isFuture ? (
+                          "—"
+                        ) : carry == null ? (
+                          "N/A"
+                        ) : (
+                          <>
+                            {carry >= 0 ? "+" : "−"}
+                            {formatMoney(Math.abs(carry))}
+                          </>
+                        )}
                       </td>
                     </tr>
                   );
@@ -118,8 +135,8 @@ export default async function CycleHistoryPage() {
 
       <div className="foot-note">
         <span>
-          Carryover is cumulative: previous carryover + income − Stage 1 − Stage 2 − spent. Card
-          payments count as spent before card transaction history begins.
+          Carryover = chequing balance − credit card balance − unsettled recurring accruals at cycle
+          end. N/A means no balance snapshot was available for that period.
         </span>
         <span>⌘5 current cycle</span>
       </div>

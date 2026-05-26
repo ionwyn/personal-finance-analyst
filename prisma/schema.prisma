@@ -441,7 +441,7 @@ model PayCycle {
   incomeReceived        Decimal?  @db.Decimal(18, 2)
   fixedSavingsPull      Decimal?  @db.Decimal(18, 2)
   sweptAmount           Decimal?  @db.Decimal(18, 2)
-  carryover             Decimal   @default(0) @db.Decimal(18, 2)
+  carryover             Decimal?  @db.Decimal(18, 2)
   creditCardPaymentDate DateTime?
   notes                 String?
   closedAt              DateTime?

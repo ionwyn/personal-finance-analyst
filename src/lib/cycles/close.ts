@@ -12,7 +12,7 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 async function getBalancesAtCycleEnd(
   tenantId: string,
   cycleEndDate: Date
-): Promise<{ chequing: Prisma.Decimal; cc: Prisma.Decimal }> {
+): Promise<{ chequing: Prisma.Decimal; cc: Prisma.Decimal; hasSnapshot: boolean }> {
   const snapshotCutoff = new Date(cycleEndDate.getTime() + DAY_MS);
 
   const accounts = await prisma.plaidAccount.findMany({
@@ -22,6 +22,7 @@ async function getBalancesAtCycleEnd(
 
   let chequing = new Prisma.Decimal(0);
   let cc = new Prisma.Decimal(0);
+  let hasSnapshot = false;
 
   for (const acct of accounts) {
     const snap = await prisma.balanceSnapshot.findFirst({
@@ -29,12 +30,13 @@ async function getBalancesAtCycleEnd(
       orderBy: { capturedAt: "desc" },
       select: { currentBalance: true },
     });
-    if (!snap?.currentBalance) continue;
+    if (snap?.currentBalance == null) continue;
+    hasSnapshot = true;
     if (acct.type === "depository") chequing = chequing.add(snap.currentBalance);
     else if (acct.type === "credit") cc = cc.add(snap.currentBalance);
   }
 
-  return { chequing, cc };
+  return { chequing, cc, hasSnapshot };
 }
 
 /**
@@ -98,14 +100,20 @@ export async function closeOverdueCycles(
   let closed = 0;
 
   for (const cycle of overdue) {
-    const { chequing, cc } = await getBalancesAtCycleEnd(tenantId, cycle.endDate);
-    const unsettled = await getUnsettledAccruals(tenantId, cycle.id);
-    const newCarryover = chequing.sub(cc).sub(unsettled);
+    const { chequing, cc, hasSnapshot } = await getBalancesAtCycleEnd(tenantId, cycle.endDate);
+    const newCarryover = hasSnapshot
+      ? chequing.sub(cc).sub(await getUnsettledAccruals(tenantId, cycle.id))
+      : null;
 
-    if (!cycle.carryover.equals(newCarryover) || !cycle.closedAt) {
+    const carryoverChanged =
+      cycle.carryover == null
+        ? newCarryover !== null
+        : newCarryover == null || !cycle.carryover.equals(newCarryover);
+
+    if (carryoverChanged || !cycle.closedAt) {
       await prisma.payCycle.update({
         where: { id: cycle.id },
-        data: { carryover: newCarryover, closedAt: cycle.closedAt ?? now },
+        data: { carryover: { set: newCarryover }, closedAt: cycle.closedAt ?? now },
       });
     }
     if (!cycle.closedAt) closed += 1;
