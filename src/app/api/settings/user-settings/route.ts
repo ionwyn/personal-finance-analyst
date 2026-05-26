@@ -7,6 +7,7 @@ import { prisma } from "@/lib/prisma";
 import { generatePayCycles } from "@/lib/cycles/generate";
 import { reclassifyTenant } from "@/lib/cycles/reclassify";
 import { seedCycleDefaultsForTenant } from "@/lib/cycles/seed";
+import { LANDING_VALUES } from "@/lib/settings/landing";
 
 const bodySchema = z.object({
   lastPaycheckDate: z.string().nullable().optional(),
@@ -14,6 +15,14 @@ const bodySchema = z.object({
   defaultFixedSavings: z.number().nullable().optional(),
   sweepBuffer: z.number().nullable().optional(),
   ccPaymentDayOfMonth: z.number().int().min(1).max(31).nullable().optional(),
+  // Only fixed-length strides are supported by the cycle engine (weekly/biweekly).
+  // Semi-monthly / monthly need an engine overhaul — see SETTINGS_IMPLEMENTATION.md.
+  payFrequencyDays: z
+    .number()
+    .int()
+    .refine((v) => v === 7 || v === 14, "Only weekly (7) or biweekly (14) are supported")
+    .optional(),
+  defaultLanding: z.enum(LANDING_VALUES).optional(),
 });
 
 function parseDateOnly(value: string | null | undefined): Date | null | undefined {
@@ -48,7 +57,7 @@ export async function PATCH(request: Request) {
   const lastPaycheckDate = parseDateOnly(body.lastPaycheckDate);
   const existing = await prisma.userSettings.findUnique({
     where: { tenantId: auth.tenant.id },
-    select: { lastPaycheckDate: true, employerMerchantPattern: true },
+    select: { lastPaycheckDate: true, employerMerchantPattern: true, payFrequencyDays: true },
   });
 
   const updateData: Record<string, unknown> = {};
@@ -60,6 +69,8 @@ export async function PATCH(request: Request) {
   if (body.sweepBuffer !== undefined) updateData.sweepBuffer = body.sweepBuffer ?? 100;
   if (body.ccPaymentDayOfMonth !== undefined)
     updateData.ccPaymentDayOfMonth = body.ccPaymentDayOfMonth;
+  if (body.payFrequencyDays !== undefined) updateData.payFrequencyDays = body.payFrequencyDays;
+  if (body.defaultLanding !== undefined) updateData.defaultLanding = body.defaultLanding;
 
   const settings = await prisma.userSettings.update({
     where: { tenantId: auth.tenant.id },
@@ -71,15 +82,24 @@ export async function PATCH(request: Request) {
     lastPaycheckDate !== null &&
     (!existing?.lastPaycheckDate ||
       existing.lastPaycheckDate.getTime() !== lastPaycheckDate.getTime());
-  if (paycheckChanged && lastPaycheckDate) {
-    await generatePayCycles(auth.tenant.id, lastPaycheckDate);
+
+  const frequencyChanged =
+    body.payFrequencyDays !== undefined && body.payFrequencyDays !== existing?.payFrequencyDays;
+
+  // Regenerate forward cycles at the new stride. NOTE: this upserts new cycle
+  // boundaries but does not delete/rebuild closed historical cycles or re-bucket
+  // already-bound transactions — that retro migration is a Phase 2 overhaul item
+  // (see SETTINGS_IMPLEMENTATION.md).
+  const anchor = lastPaycheckDate ?? settings.lastPaycheckDate ?? null;
+  if ((paycheckChanged || frequencyChanged) && anchor) {
+    await generatePayCycles(auth.tenant.id, anchor, { lengthDays: settings.payFrequencyDays });
   }
 
   const employerChanged =
     body.employerMerchantPattern !== undefined &&
     (body.employerMerchantPattern?.trim() || null) !== (existing?.employerMerchantPattern ?? null);
   let reclassified = 0;
-  if (employerChanged || paycheckChanged) {
+  if (employerChanged || paycheckChanged || frequencyChanged) {
     reclassified = await reclassifyTenant(auth.tenant.id);
   }
 
