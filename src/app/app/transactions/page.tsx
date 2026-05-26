@@ -99,7 +99,7 @@ export default async function TransactionsPage({ searchParams }: Props) {
           <div className="page-sub">{subLine}</div>
         </div>
         <div className="page-actions">
-          <ExportCsvButton />
+          <ExportCsvButton from={from} to={to} />
         </div>
       </div>
 

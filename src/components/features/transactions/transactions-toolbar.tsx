@@ -255,9 +255,28 @@ export function TransactionsToolbar({
   );
 }
 
-export function ExportCsvButton() {
+export function ExportCsvButton({ from, to }: { from: string; to: string }) {
+  const searchParams = useSearchParams();
+
+  function exportCsv() {
+    const params = new URLSearchParams(searchParams?.toString() ?? "");
+    if (!params.has("from")) params.set("from", from);
+    if (!params.has("to")) params.set("to", to);
+
+    const link = document.createElement("a");
+    link.href = `/api/transactions/export?${params.toString()}`;
+    link.download = "";
+    document.body.append(link);
+    link.click();
+    link.remove();
+  }
+
   return (
-    <Button disabled icon={<Download size={12} />} title="CSV export coming soon">
+    <Button
+      icon={<Download size={12} />}
+      title="Export filtered transactions as CSV"
+      onClick={exportCsv}
+    >
       Export CSV
     </Button>
   );
