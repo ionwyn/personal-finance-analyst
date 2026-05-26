@@ -39,7 +39,6 @@ export function PayCycleSection({ settings }: { settings: SettingsData["settings
   const [payFrequencyDays, setPayFrequencyDays] = useState<number>(settings.payFrequencyDays ?? 14);
   const [form, setForm] = useState({
     lastPaycheckDate: toDateInput(settings.lastPaycheckDate),
-    employerMerchantPattern: settings.employerMerchantPattern ?? "",
     defaultFixedSavings:
       settings.defaultFixedSavings != null ? String(settings.defaultFixedSavings) : "",
     sweepBuffer: String(settings.sweepBuffer ?? 100),
@@ -53,7 +52,6 @@ export function PayCycleSection({ settings }: { settings: SettingsData["settings
     try {
       await postJSON("/api/settings/user-settings", "PATCH", {
         lastPaycheckDate: form.lastPaycheckDate || null,
-        employerMerchantPattern: form.employerMerchantPattern.trim() || null,
         defaultFixedSavings: form.defaultFixedSavings ? Number(form.defaultFixedSavings) : null,
         sweepBuffer: form.sweepBuffer ? Number(form.sweepBuffer) : 100,
         ccPaymentDayOfMonth: form.ccPaymentDayOfMonth ? Number(form.ccPaymentDayOfMonth) : null,
@@ -114,21 +112,6 @@ export function PayCycleSection({ settings }: { settings: SettingsData["settings
               onChange={(e) => setForm({ ...form, lastPaycheckDate: e.target.value })}
               style={{ ...INPUT_STYLE, fontFamily: "var(--font-mono)" }}
             />
-          </label>
-          <label style={LABEL_STYLE}>
-            Employer merchant pattern
-            <input
-              type="text"
-              value={form.employerMerchantPattern}
-              onChange={(e) => setForm({ ...form, employerMerchantPattern: e.target.value })}
-              placeholder="e.g. ACME PAYROLL"
-              style={INPUT_STYLE}
-            />
-            <span style={HINT_STYLE}>
-              Case-insensitive substring match against the transaction description (Plaid
-              &quot;name&quot;, always present) plus the merchant name (if Plaid set one). e.g. ACME
-              PAYROLL matches &quot;ACME PAYROLL DIRECT DEP&quot;.
-            </span>
           </label>
           <label style={LABEL_STYLE}>
             Default fixed savings (Stage 1)

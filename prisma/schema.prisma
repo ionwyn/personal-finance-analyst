@@ -61,6 +61,7 @@ model Tenant {
   recurringExpenses     RecurringExpense[]
   savingsDestinations   SavingsDestination[]
   settlementPatterns    SettlementPattern[]
+  incomeSources         IncomeSource[]
   userSettings          UserSettings?
 
   @@index([kind])
@@ -491,6 +492,24 @@ model SavingsDestination {
 }
 
 model SettlementPattern {
+  id           String   @id @default(cuid())
+  tenantId     String
+  label        String
+  matchPattern String
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, active])
+}
+
+// A labelled merchant pattern whose matching credits are classified as income.
+// Replaces the single UserSettings.employerMerchantPattern with a 1:N model so a
+// tenant can track several paychecks/income streams. Matched credits become
+// txnType=income and flow into PayCycle.incomeReceived + spending-insight totals.
+model IncomeSource {
   id           String   @id @default(cuid())
   tenantId     String
   label        String

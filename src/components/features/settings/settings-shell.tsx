@@ -15,6 +15,7 @@ import {
 } from "./connections-section";
 import { DataSection } from "./data-section";
 import { DisplaySection } from "./display-section";
+import { IncomeSourcesSection } from "./income-sources-section";
 import { PayCycleSection } from "./pay-cycle-section";
 import { RecurringExpensesSection } from "./recurring-expenses-section";
 import { SavingsDestinationsSection } from "./savings-destinations-section";
@@ -134,6 +135,7 @@ export function SettingsShell({
         {active === "pay-cycle" ? (
           <div className={styles.stack}>
             <PayCycleSection settings={data.settings} />
+            <IncomeSourcesSection sources={data.incomeSources} />
             <RecurringExpensesSection expenses={data.recurringExpenses} />
           </div>
         ) : null}

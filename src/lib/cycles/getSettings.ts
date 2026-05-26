@@ -6,21 +6,26 @@ export type SettingsData = Awaited<ReturnType<typeof getSettingsData>>;
 export async function getSettingsData(tenantId: string) {
   await seedCycleDefaultsForTenant(tenantId);
 
-  const [settings, recurringExpenses, savingsDestinations, settlementPatterns] = await Promise.all([
-    prisma.userSettings.findUniqueOrThrow({ where: { tenantId } }),
-    prisma.recurringExpense.findMany({
-      where: { tenantId },
-      orderBy: [{ active: "desc" }, { name: "asc" }],
-    }),
-    prisma.savingsDestination.findMany({
-      where: { tenantId },
-      orderBy: [{ active: "desc" }, { accountName: "asc" }],
-    }),
-    prisma.settlementPattern.findMany({
-      where: { tenantId },
-      orderBy: [{ active: "desc" }, { label: "asc" }],
-    }),
-  ]);
+  const [settings, recurringExpenses, savingsDestinations, settlementPatterns, incomeSources] =
+    await Promise.all([
+      prisma.userSettings.findUniqueOrThrow({ where: { tenantId } }),
+      prisma.recurringExpense.findMany({
+        where: { tenantId },
+        orderBy: [{ active: "desc" }, { name: "asc" }],
+      }),
+      prisma.savingsDestination.findMany({
+        where: { tenantId },
+        orderBy: [{ active: "desc" }, { accountName: "asc" }],
+      }),
+      prisma.settlementPattern.findMany({
+        where: { tenantId },
+        orderBy: [{ active: "desc" }, { label: "asc" }],
+      }),
+      prisma.incomeSource.findMany({
+        where: { tenantId },
+        orderBy: [{ active: "desc" }, { label: "asc" }],
+      }),
+    ]);
 
   return {
     settings: {
@@ -37,5 +42,6 @@ export async function getSettingsData(tenantId: string) {
     })),
     savingsDestinations,
     settlementPatterns,
+    incomeSources,
   };
 }

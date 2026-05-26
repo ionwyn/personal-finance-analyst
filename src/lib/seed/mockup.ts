@@ -89,8 +89,17 @@ export async function seedMockupDemo() {
       tenantId: tenant.id,
       payFrequencyDays: 14,
       lastPaycheckDate,
-      employerMerchantPattern: "TD BANK PAYROLL",
       defaultFixedSavings: 200000,
+    },
+  });
+
+  // Income is classified via IncomeSource patterns (supersedes the single
+  // employerMerchantPattern). Matching credits become txnType=income.
+  await prisma.incomeSource.create({
+    data: {
+      tenantId: tenant.id,
+      label: "Primary employer",
+      matchPattern: "TD BANK PAYROLL",
     },
   });
 
@@ -370,6 +379,227 @@ export async function seedMockupDemo() {
       date: getDateDaysAgo(daysBack),
       categoryPrimary: "GENERAL_MERCHANDISE",
       categoryDetailed: place.cat,
+      pending: false,
+      source: SyncSource.SEED,
+      removed: false,
+      raw: {},
+    });
+  }
+
+  const gasMerchants = [
+    { name: "SHELL GAS STATION", min: 45, max: 65 },
+    { name: "ESSO", min: 50, max: 70 },
+    { name: "PETRO CANADA", min: 40, max: 60 },
+  ];
+
+  for (let i = 0; i < 24; i++) {
+    const daysBack = Math.floor(Math.random() * 180);
+    const merchant = gasMerchants[Math.floor(Math.random() * gasMerchants.length)];
+    const amount = merchant.min + Math.random() * (merchant.max - merchant.min);
+
+    transactions.push({
+      tenantId: tenant.id,
+      itemId: plaidItem.id,
+      accountId: visa.id,
+      plaidTransactionId: `mock-txn-${txnId++}`,
+      name: merchant.name,
+      merchantName: merchant.name,
+      amount: parseFloat(amount.toFixed(2)),
+      date: getDateDaysAgo(daysBack),
+      categoryPrimary: "TRANSPORTATION",
+      categoryDetailed: "TRANSPORTATION_GAS",
+      pending: false,
+      source: SyncSource.SEED,
+      removed: false,
+      raw: {},
+    });
+  }
+
+  const medicalPlaces = [
+    {
+      name: "SHOPPERS DRUG MART PHARMACY",
+      min: 15,
+      max: 80,
+      cat: "MEDICAL_PHARMACIES_AND_SUPPLEMENTS",
+    },
+    { name: "DENTAL CARE CLINIC", min: 150, max: 400, cat: "MEDICAL_DENTAL_CARE" },
+    { name: "CLEARLY EYECARE", min: 200, max: 500, cat: "MEDICAL_EYE_CARE" },
+    { name: "WALK IN CLINIC", min: 100, max: 250, cat: "MEDICAL_PRIMARY_CARE" },
+  ];
+
+  for (let i = 0; i < 20; i++) {
+    const daysBack = Math.floor(Math.random() * 180);
+    const place = medicalPlaces[Math.floor(Math.random() * medicalPlaces.length)];
+    const amount = place.min + Math.random() * (place.max - place.min);
+
+    transactions.push({
+      tenantId: tenant.id,
+      itemId: plaidItem.id,
+      accountId: visa.id,
+      plaidTransactionId: `mock-txn-${txnId++}`,
+      name: place.name,
+      merchantName: place.name,
+      amount: parseFloat(amount.toFixed(2)),
+      date: getDateDaysAgo(daysBack),
+      categoryPrimary: "MEDICAL",
+      categoryDetailed: place.cat,
+      pending: false,
+      source: SyncSource.SEED,
+      removed: false,
+      raw: {},
+    });
+  }
+
+  const entertainment = [
+    { name: "CINEPLEX ODEON", min: 20, max: 35, cat: "ENTERTAINMENT_TV_AND_MOVIES" },
+    {
+      name: "TICKETMASTER",
+      min: 80,
+      max: 250,
+      cat: "ENTERTAINMENT_SPORTING_EVENTS_AMUSEMENT_PARKS_MUSEUMS",
+    },
+    { name: "STEAM GAMES", min: 10, max: 60, cat: "ENTERTAINMENT_VIDEO_GAMES" },
+    { name: "SPOTIFY PREMIUM", min: 10.99, max: 10.99, cat: "ENTERTAINMENT_MUSIC_AND_AUDIO" },
+    { name: "CHAPTER INDIGO", min: 20, max: 70, cat: "ENTERTAINMENT_MUSIC_AND_AUDIO" },
+  ];
+
+  for (let i = 0; i < 18; i++) {
+    const daysBack = Math.floor(Math.random() * 180);
+    const place = entertainment[Math.floor(Math.random() * entertainment.length)];
+    const amount = place.min + Math.random() * (place.max - place.min);
+
+    transactions.push({
+      tenantId: tenant.id,
+      itemId: plaidItem.id,
+      accountId: visa.id,
+      plaidTransactionId: `mock-txn-${txnId++}`,
+      name: place.name,
+      merchantName: place.name,
+      amount: parseFloat(amount.toFixed(2)),
+      date: getDateDaysAgo(daysBack),
+      categoryPrimary: "ENTERTAINMENT",
+      categoryDetailed: place.cat,
+      pending: false,
+      source: SyncSource.SEED,
+      removed: false,
+      raw: {},
+    });
+  }
+
+  const services = [
+    { name: "SPORT CLIPS HAIR SALON", min: 25, max: 40, cat: "PERSONAL_CARE_HAIR_AND_BEAUTY" },
+    { name: "DRY CLEAN EXPRESS", min: 15, max: 35, cat: "PERSONAL_CARE_LAUNDRY_AND_DRY_CLEANING" },
+    { name: "STATE FARM INSURANCE", min: 180, max: 220, cat: "GENERAL_SERVICES_INSURANCE" },
+    { name: "KIJIJI EDUCATION COURSE", min: 50, max: 500, cat: "GENERAL_SERVICES_EDUCATION" },
+    { name: "HOME DEPOT", min: 60, max: 250, cat: "HOME_IMPROVEMENT_HARDWARE" },
+    { name: "IKEA FURNITURE", min: 100, max: 400, cat: "HOME_IMPROVEMENT_FURNITURE" },
+    { name: "BEST BUY ELECTRONICS", min: 50, max: 300, cat: "GENERAL_MERCHANDISE_ELECTRONICS" },
+    { name: "PETCO PETS", min: 30, max: 150, cat: "GENERAL_MERCHANDISE_PET_SUPPLIES" },
+  ];
+
+  for (let i = 0; i < 32; i++) {
+    const daysBack = Math.floor(Math.random() * 180);
+    const place = services[Math.floor(Math.random() * services.length)];
+    const amount = place.min + Math.random() * (place.max - place.min);
+
+    transactions.push({
+      tenantId: tenant.id,
+      itemId: plaidItem.id,
+      accountId: visa.id,
+      plaidTransactionId: `mock-txn-${txnId++}`,
+      name: place.name,
+      merchantName: place.name,
+      amount: parseFloat(amount.toFixed(2)),
+      date: getDateDaysAgo(daysBack),
+      categoryPrimary: place.cat.split("_")[0],
+      categoryDetailed: place.cat,
+      pending: false,
+      source: SyncSource.SEED,
+      removed: false,
+      raw: {},
+    });
+  }
+
+  const travel = [
+    { name: "AIR CANADA FLIGHTS", min: 350, max: 1200, cat: "TRAVEL_FLIGHTS" },
+    { name: "MARRIOTT HOTEL", min: 150, max: 400, cat: "TRAVEL_LODGING" },
+    { name: "HERTZ RENTAL CARS", min: 80, max: 150, cat: "TRAVEL_RENTAL_CARS" },
+  ];
+
+  for (let i = 0; i < 8; i++) {
+    const daysBack = Math.floor(Math.random() * 180);
+    const place = travel[Math.floor(Math.random() * travel.length)];
+    const amount = place.min + Math.random() * (place.max - place.min);
+
+    transactions.push({
+      tenantId: tenant.id,
+      itemId: plaidItem.id,
+      accountId: chequing.id,
+      plaidTransactionId: `mock-txn-${txnId++}`,
+      name: place.name,
+      merchantName: place.name,
+      amount: parseFloat(amount.toFixed(2)),
+      date: getDateDaysAgo(daysBack),
+      categoryPrimary: "TRAVEL",
+      categoryDetailed: place.cat,
+      pending: false,
+      source: SyncSource.SEED,
+      removed: false,
+      raw: {},
+    });
+  }
+
+  const bankFees = [
+    { name: "TD BANK - OVERDRAFT FEE", amount: 35, cat: "BANK_FEES_OVERDRAFT_FEES" },
+    { name: "ATM WITHDRAWAL FEE", amount: 2.5, cat: "BANK_FEES_ATM_FEES" },
+    { name: "FOREIGN TRANSACTION FEE", amount: 5.25, cat: "BANK_FEES_FOREIGN_TRANSACTION_FEES" },
+    { name: "INSUFFICIENT FUNDS FEE", amount: 45, cat: "BANK_FEES_INSUFFICIENT_FUNDS" },
+  ];
+
+  for (let i = 0; i < 6; i++) {
+    const daysBack = Math.floor(Math.random() * 180);
+    const fee = bankFees[Math.floor(Math.random() * bankFees.length)];
+
+    transactions.push({
+      tenantId: tenant.id,
+      itemId: plaidItem.id,
+      accountId: chequing.id,
+      plaidTransactionId: `mock-txn-${txnId++}`,
+      name: fee.name,
+      merchantName: fee.name,
+      amount: fee.amount,
+      date: getDateDaysAgo(daysBack),
+      categoryPrimary: "BANK_FEES",
+      categoryDetailed: fee.cat,
+      pending: false,
+      source: SyncSource.SEED,
+      removed: false,
+      raw: {},
+    });
+  }
+
+  const dividends = [
+    { name: "DIVIDEND FROM AAPL", amount: 42.5 },
+    { name: "DIVIDEND FROM MSFT", amount: 28.75 },
+    { name: "DIVIDEND FROM JNJ", amount: 65.0 },
+    { name: "INTEREST EARNED", amount: 12.3 },
+  ];
+
+  for (let i = 0; i < 8; i++) {
+    const daysBack = Math.floor(Math.random() * 180);
+    const div = dividends[Math.floor(Math.random() * dividends.length)];
+
+    transactions.push({
+      tenantId: tenant.id,
+      itemId: plaidItem.id,
+      accountId: savings.id,
+      plaidTransactionId: `mock-txn-${txnId++}`,
+      name: div.name,
+      merchantName: div.name,
+      amount: -div.amount,
+      date: getDateDaysAgo(daysBack),
+      categoryPrimary: "INCOME",
+      categoryDetailed: "INCOME_DIVIDENDS",
       pending: false,
       source: SyncSource.SEED,
       removed: false,
@@ -694,6 +924,205 @@ export async function seedMockupDemo() {
   await prisma.snapTradePosition.createMany({ data: positions });
   console.log(`  ✓ Created ${positions.length} SnapTradePositions`);
 
+  const ibkrConnection = await prisma.snapTradeConnection.create({
+    data: {
+      tenantId: tenant.id,
+      snapTradeAuthorizationId: "mock-ibkr-auth-001",
+      brokerageName: "Interactive Brokers",
+      brokerageSlug: "IBKR",
+      status: SnapTradeConnectionStatus.IDLE,
+      disabled: false,
+      lastSyncAt: new Date(),
+    },
+  });
+
+  const ibkrAccounts = await Promise.all([
+    prisma.snapTradeAccount.create({
+      data: {
+        tenantId: tenant.id,
+        connectionId: ibkrConnection.id,
+        snapTradeAccountId: "ibkr-main",
+        rawType: "Individual",
+        accountCategory: "Individual",
+        totalValue: 180000,
+        isPaper: false,
+        holdingsInitialSyncComplete: true,
+        name: "Interactive Brokers Main",
+      },
+    }),
+  ]);
+
+  const [ibkrMainAcc] = ibkrAccounts;
+
+  const ibkrStockPositions: SeedPosition[] = [
+    {
+      snapTradeAccountId: ibkrMainAcc.id,
+      symbol: "AAPL",
+      rawSymbol: "AAPL",
+      assetType: "cs",
+      exchange: "NASDAQ",
+      currency: "USD",
+      units: 50,
+      price: 227.45,
+      avgCost: 195.6,
+    },
+    {
+      snapTradeAccountId: ibkrMainAcc.id,
+      symbol: "MSFT",
+      rawSymbol: "MSFT",
+      assetType: "cs",
+      exchange: "NASDAQ",
+      currency: "USD",
+      units: 35,
+      price: 415.3,
+      avgCost: 380.25,
+    },
+    {
+      snapTradeAccountId: ibkrMainAcc.id,
+      symbol: "GOOGL",
+      rawSymbol: "GOOGL",
+      assetType: "cs",
+      exchange: "NASDAQ",
+      currency: "USD",
+      units: 25,
+      price: 396.45,
+      avgCost: 360.8,
+    },
+    {
+      snapTradeAccountId: ibkrMainAcc.id,
+      symbol: "AMZN",
+      rawSymbol: "AMZN",
+      assetType: "cs",
+      exchange: "NASDAQ",
+      currency: "USD",
+      units: 40,
+      price: 198.72,
+      avgCost: 165.5,
+    },
+    {
+      snapTradeAccountId: ibkrMainAcc.id,
+      symbol: "TSLA",
+      rawSymbol: "TSLA",
+      assetType: "cs",
+      exchange: "NASDAQ",
+      currency: "USD",
+      units: 30,
+      price: 427.15,
+      avgCost: 380.0,
+    },
+    {
+      snapTradeAccountId: ibkrMainAcc.id,
+      symbol: "META",
+      rawSymbol: "META",
+      assetType: "cs",
+      exchange: "NASDAQ",
+      currency: "USD",
+      units: 20,
+      price: 611.25,
+      avgCost: 545.9,
+    },
+    {
+      snapTradeAccountId: ibkrMainAcc.id,
+      symbol: "NVDA",
+      rawSymbol: "NVDA",
+      assetType: "cs",
+      exchange: "NASDAQ",
+      currency: "USD",
+      units: 15,
+      price: 214.82,
+      avgCost: 165.4,
+    },
+    {
+      snapTradeAccountId: ibkrMainAcc.id,
+      symbol: "AMD",
+      rawSymbol: "AMD",
+      assetType: "cs",
+      exchange: "NASDAQ",
+      currency: "USD",
+      units: 60,
+      price: 178.45,
+      avgCost: 145.2,
+    },
+    {
+      snapTradeAccountId: ibkrMainAcc.id,
+      symbol: "JPM",
+      rawSymbol: "JPM",
+      assetType: "cs",
+      exchange: "NYSE",
+      currency: "USD",
+      units: 55,
+      price: 192.3,
+      avgCost: 175.8,
+    },
+    {
+      snapTradeAccountId: ibkrMainAcc.id,
+      symbol: "JNJ",
+      rawSymbol: "JNJ",
+      assetType: "cs",
+      exchange: "NYSE",
+      currency: "USD",
+      units: 35,
+      price: 155.72,
+      avgCost: 142.1,
+    },
+    {
+      snapTradeAccountId: ibkrMainAcc.id,
+      symbol: "PG",
+      rawSymbol: "PG",
+      assetType: "cs",
+      exchange: "NYSE",
+      currency: "USD",
+      units: 40,
+      price: 168.45,
+      avgCost: 155.3,
+    },
+    {
+      snapTradeAccountId: ibkrMainAcc.id,
+      symbol: "KO",
+      rawSymbol: "KO",
+      assetType: "cs",
+      exchange: "NYSE",
+      currency: "USD",
+      units: 80,
+      price: 68.9,
+      avgCost: 62.5,
+    },
+  ];
+
+  const ibkrPositions: Prisma.SnapTradePositionCreateManyInput[] = ibkrStockPositions.map((p) => {
+    const marketValueNative = p.units * p.price;
+    const costNative = p.units * p.avgCost;
+    const multiplier = p.currency === "USD" ? usdToCAD : 1;
+    const marketValueCad = marketValueNative * multiplier;
+    const costCad = costNative * multiplier;
+    const pnlCad = marketValueCad - costCad;
+    const pnlPct = costCad > 0 ? (pnlCad / costCad) * 100 : 0;
+
+    return {
+      tenantId: tenant.id,
+      accountId: p.snapTradeAccountId,
+      symbol: p.symbol,
+      rawSymbol: p.rawSymbol,
+      assetType: p.assetType,
+      exchange: p.exchange,
+      currency: p.currency,
+      units: p.units,
+      price: p.price,
+      avgCost: p.avgCost,
+      marketValueNative,
+      marketValueCad,
+      costNative,
+      costCad,
+      pnlCad,
+      pnlPct,
+    };
+  });
+
+  await prisma.snapTradePosition.createMany({ data: ibkrPositions });
+  console.log(
+    `  ✓ Created SnapTradeConnection (Interactive Brokers) with ${ibkrPositions.length} stock positions`
+  );
+
   await prisma.snapTradeCashBalance.createMany({
     data: [
       {
@@ -727,6 +1156,22 @@ export async function seedMockupDemo() {
         cash: 1200,
         cashCad: 1656,
         buyingPower: 2400,
+      },
+      {
+        tenantId: tenant.id,
+        accountId: ibkrMainAcc.id,
+        currency: "USD",
+        cash: 5000,
+        cashCad: 6900,
+        buyingPower: 12500,
+      },
+      {
+        tenantId: tenant.id,
+        accountId: ibkrMainAcc.id,
+        currency: "CAD",
+        cash: 2500,
+        cashCad: 2500,
+        buyingPower: 2500,
       },
     ],
   });
@@ -821,5 +1266,8 @@ export async function seedMockupDemo() {
   console.log(
     `   Plaid: 3 accounts, ${transactions.length} transactions, ${snapshots.length} balance snapshots`
   );
-  console.log(`   SnapTrade: 3 accounts, ${positions.length} positions`);
+  console.log(`   SnapTrade Questrade: 3 accounts, ${positions.length} positions`);
+  console.log(
+    `   SnapTrade Interactive Brokers: 1 account, ${ibkrPositions.length} stock positions`
+  );
 }

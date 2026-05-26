@@ -18,6 +18,8 @@ export type ClassifyInput = {
 export type ClassifyContext = {
   savingsDestinations: Array<{ id: string; matchPattern: string; active: boolean }>;
   settlementPatterns: Array<{ id: string; matchPattern: string; active: boolean }>;
+  incomeSources: Array<{ id: string; matchPattern: string; active: boolean }>;
+  /** Legacy single-employer pattern, retained as a fallback for tenants not yet migrated. */
   employerMerchantPattern?: string | null;
   expectedPaycheckDates?: Date[];
 };
@@ -73,12 +75,22 @@ export function classifyTransaction(input: ClassifyInput, ctx: ClassifyContext):
     }
   }
 
-  if (
-    isCredit &&
-    ctx.employerMerchantPattern &&
-    matchesPattern(merchant, ctx.employerMerchantPattern)
-  ) {
-    if (withinPaycheckWindow(input.date, ctx.expectedPaycheckDates ?? [])) {
+  if (isCredit) {
+    for (const source of ctx.incomeSources) {
+      if (!source.active) continue;
+      if (matchesPattern(merchant, source.matchPattern)) {
+        if (withinPaycheckWindow(input.date, ctx.expectedPaycheckDates ?? [])) {
+          return { txnType: "income", reason: `income:${source.matchPattern}` };
+        }
+      }
+    }
+
+    // Fallback for tenants not yet migrated off the single-employer field.
+    if (
+      ctx.employerMerchantPattern &&
+      matchesPattern(merchant, ctx.employerMerchantPattern) &&
+      withinPaycheckWindow(input.date, ctx.expectedPaycheckDates ?? [])
+    ) {
       return { txnType: "income", reason: "income:employer" };
     }
   }
