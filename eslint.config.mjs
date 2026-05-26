@@ -25,5 +25,13 @@ export default defineConfig([
       "prefer-const": ["error", { destructuring: "all" }],
     },
   },
-  globalIgnores([".next/**", "node_modules/**", "coverage/**", "dist/**", "tsconfig.tsbuildinfo"]),
+  // `settings.jsx` is a standalone UI/UX design reference mockup (not app code).
+  globalIgnores([
+    ".next/**",
+    "node_modules/**",
+    "coverage/**",
+    "dist/**",
+    "tsconfig.tsbuildinfo",
+    "settings.jsx",
+  ]),
 ]);
