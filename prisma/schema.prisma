@@ -513,6 +513,7 @@ model UserSettings {
   defaultFixedSavings     Decimal?  @db.Decimal(18, 2)
   sweepBuffer             Decimal   @default(100) @db.Decimal(18, 2)
   ccPaymentDayOfMonth     Int?
+  defaultLanding          String    @default("dashboard")
   createdAt               DateTime  @default(now())
   updatedAt               DateTime  @updatedAt
 
