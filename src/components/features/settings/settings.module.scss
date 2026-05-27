@@ -1,6 +1,7 @@
 // Settings — left-rail sub-nav shell + section chrome.
 // Ported/adapted from the designer mockup (styles-2.css). The design's
 // `--font-cond` token does not exist in this app; mapped to `--font-sans`.
+@use "breakpoints" as *;
 
 .shell {
   display: grid;
@@ -605,5 +606,102 @@
   }
   .exportGrid {
     grid-template-columns: 1fr;
+  }
+}
+
+// ─── Mobile (≤760px) ───
+// The fixed 220px rail can't sit beside the pane on a phone, so the shell
+// stacks and the rail becomes a horizontally scrolling chip row pinned under
+// the mobile nav (slim topbar 44px + tab bar ~61px). Setting rows stack their
+// control under the label, and the multi-column grids collapse.
+@include respond-to("sm") {
+  .shell {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+  .rail {
+    position: sticky;
+    top: 105px;
+    z-index: 20;
+    flex-direction: row;
+    gap: 6px;
+    overflow-x: auto;
+    margin: 0 -14px 14px;
+    padding: 8px 14px;
+    background: var(--bg);
+    border-bottom: 1px solid var(--border-subtle);
+    scrollbar-width: none;
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
+  }
+  .railHead,
+  .railFoot {
+    display: none;
+  }
+  .railNav {
+    flex-direction: row;
+    gap: 6px;
+  }
+  .railItem {
+    flex: 0 0 auto;
+    grid-template-columns: auto;
+    white-space: nowrap;
+    min-height: 36px;
+    padding: 8px 12px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--surface);
+    font-size: 12.5px;
+  }
+  .railNum {
+    display: none;
+  }
+  .pane {
+    max-width: none;
+  }
+  .sectionHead {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 14px;
+  }
+  .sectionActions {
+    white-space: normal;
+    flex-wrap: wrap;
+  }
+  .row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+  .rowLabel {
+    flex: 1 1 100%;
+    min-width: 0;
+  }
+  .rowControl {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+  .payFreqGrid {
+    grid-template-columns: 1fr 1fr;
+  }
+  .exportGrid {
+    grid-template-columns: 1fr;
+  }
+  .exportCard {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  .dangerRow {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .dangerRowInfo {
+    flex: 1 1 100%;
+    min-width: 0;
+  }
+  .dangerConfirm {
+    flex-wrap: wrap;
   }
 }
