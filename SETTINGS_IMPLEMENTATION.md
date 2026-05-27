@@ -113,19 +113,30 @@ Legend: `[x]` done · `[~]` partial (see note) · `[ ]` not started · `[—]` i
 
 ---
 
-## Phase 3 — Display, account & data (cross-cutting) — NOT STARTED
+## Phase 3 — Display, account & data (cross-cutting) — IN PROGRESS
+
+> Doing Phase 3 slowly, one section at a time. **Display & Preferences UI is scaffolded
+> (2026-05-26)** from the `TD Personal Finance.html` design handoff (`claude.ai/design` bundle:
+> `settings.jsx` DisplayTab + `theme.js` + `styles.css`). The controls render but are **UI-only /
+> not wired** except the Default landing page (shipped Phase 1). Feature wiring comes next, section
+> by section.
 
 ### Must-have
 
-- [ ] Locale / date / number format prefs (refactor `format.ts` away from hardcoded `en-US`/`USD`)
+- [~] Locale / date / number format prefs — **UI built** (currency / locale selects, date- and
+  number-format segmented controls). **Not wired:** needs `lib/format.ts` refactored off hardcoded
+  `en-US`/`USD` + persistence on `UserSettings`.
 
 ### Good-to-have
 
-- [ ] Theme light/dark/system (define light palette + switch) — heavy, cross-cutting
+- [~] Theme light/dark/system — **UI built** (3 preview cards, ported `theme-*` styles). **Not
+  wired:** needs a theme controller (localStorage + `<html data-theme>`, cf. design `theme.js`) and
+  a light palette in `_tokens.scss`.
 - [ ] Multi-currency conversion (FX via `SnapTradeFxRate`) — heavy, pervasive
 - [ ] Sessions: list active + "sign out all" (DB-strategy sessions make this feasible)
 - [ ] Danger zone: Unlink-all (Phase 2 unlink endpoint now exists — reuse it) + Purge tenant (cascade deletes exist)
-- [ ] Row density + tabular-numbers toggles; Export JSON + extra datasets
+- [~] Row density + tabular-numbers toggles — **UI built** (segmented + switches, incl. market-session
+  toggle). **Not wired:** global CSS preference classes + persistence. Export JSON + extra datasets still TODO.
 
 ### Not worth (now)
 
@@ -233,8 +244,25 @@ Legend: `[x]` done · `[~]` partial (see note) · `[ ]` not started · `[—]` i
   start date is set); manual (unlinked) goals show 0.
 - Unlink is a hard delete — that bank's history disappears from all charts (by design).
 
-### Ready for Phase 3
+### Phase 3 — in progress (2026-05-26)
 
-Phase 2 is complete and verified. Phase 3 is display/account/data (theme, multi-currency,
-locale/formats, sessions, danger zone). Note: **Danger-zone "Unlink-all" is now unblocked** by the
-Phase 2 unlink endpoint.
+Tackling Phase 3 one section at a time. Source of truth for the UI is the `TD Personal Finance.html`
+design handoff (Claude Design bundle — `project/settings.jsx` DisplayTab, `project/theme.js`,
+`project/styles.css`).
+
+**Display & Preferences — UI scaffold (no feature wiring yet)**
+
+- `display-section.tsx` rebuilt to the design: **Localization** (currency + locale selects, date- and
+  number-format segmented controls), **Theme** (dark/light/system preview cards), **Interface**
+  (default landing page, row density, tabular numbers, market-session toggle).
+- Built on existing primitives (`SegmentedControl`, `Switch`, `Panel`) + the shared `.row`/`.rowLabel`
+  classes. Theme-card styles ported into `settings.module.scss` (`.themeGrid`/`.themeCard`/`.themePv*`).
+- **Only Default landing page is wired** (shipped Phase 1). Everything else holds local state and is
+  intentionally not persisted/applied — file-header comments mark each seam for follow-up:
+  - currency/locale/formats → `lib/format.ts` refactor + `UserSettings` persistence.
+  - theme → controller (localStorage + `<html data-theme>`, cf. design `theme.js`) + light palette.
+  - density/tabular-nums → global CSS preference classes; market-session → topbar pill.
+
+**Verification:** `npm run typecheck` ✅ · `npm run lint` ✅.
+
+Note: **Danger-zone "Unlink-all" is unblocked** by the Phase 2 unlink endpoint when that section comes.

@@ -53,7 +53,7 @@ const META: Record<SectionId, { title: string; sub: string }> = {
   },
   display: {
     title: "Display & Preferences",
-    sub: "How the app opens and renders.",
+    sub: "How numbers, dates and the chrome render. Only the landing page is wired so far.",
   },
   data: {
     title: "Data & Account",
