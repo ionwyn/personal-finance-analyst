@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
-import { requireUserTenant } from "@/lib/http";
+import { parseJson, requireUserTenant } from "@/lib/http";
 import { setLogContext, withRequestLogging } from "@/lib/logger";
 import { validateRequestOrigin } from "@/lib/origin";
 import { rateLimitRequest } from "@/lib/rate-limit";
@@ -33,7 +33,9 @@ export async function POST(request: Request) {
 
       setLogContext({ tenantId: auth.tenant.id });
 
-      const body = bodySchema.parse(await request.json().catch(() => undefined));
+      const parsed = await parseJson(request, bodySchema, { allowEmpty: true });
+      if ("error" in parsed) return parsed.error;
+      const { data: body } = parsed;
       const portal = await createSnapTradeConnectionPortal({
         reconnectAuthorizationId: body?.reconnectAuthorizationId,
       });

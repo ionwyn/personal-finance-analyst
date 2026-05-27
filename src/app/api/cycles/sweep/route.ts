@@ -4,7 +4,7 @@ import { Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
-import { requireUserTenant } from "@/lib/http";
+import { parseJson, requireUserTenant } from "@/lib/http";
 import { validateRequestOrigin } from "@/lib/origin";
 import { prisma } from "@/lib/prisma";
 import { ensureCycleForDate } from "@/lib/cycles/generate";
@@ -26,15 +26,9 @@ export async function POST(request: Request) {
   const auth = await requireUserTenant();
   if ("error" in auth) return auth.error;
 
-  let body: z.infer<typeof sweepSchema>;
-  try {
-    body = sweepSchema.parse(await request.json());
-  } catch (error) {
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Invalid body" },
-      { status: 400 }
-    );
-  }
+  const parsed = await parseJson(request, sweepSchema);
+  if ("error" in parsed) return parsed.error;
+  const { data: body } = parsed;
 
   const now = new Date();
   const cycle = await ensureCycleForDate(auth.tenant.id, now);
@@ -97,15 +91,9 @@ export async function PATCH(request: Request) {
   const auth = await requireUserTenant();
   if ("error" in auth) return auth.error;
 
-  let body: z.infer<typeof skipSchema>;
-  try {
-    body = skipSchema.parse(await request.json());
-  } catch (error) {
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Invalid body" },
-      { status: 400 }
-    );
-  }
+  const parsed = await parseJson(request, skipSchema);
+  if ("error" in parsed) return parsed.error;
+  const { data: body } = parsed;
 
   const cycle = await ensureCycleForDate(auth.tenant.id, new Date());
   await prisma.payCycle.update({

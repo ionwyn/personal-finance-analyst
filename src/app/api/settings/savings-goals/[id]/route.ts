@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
-import { requireUserTenant } from "@/lib/http";
+import { parseJson, requireUserTenant } from "@/lib/http";
 import { validateRequestOrigin } from "@/lib/origin";
 import { prisma } from "@/lib/prisma";
 
@@ -25,15 +25,9 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
   const owned = await prisma.savingsGoal.findFirst({ where: { id, tenantId: auth.tenant.id } });
   if (!owned) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  let body: z.infer<typeof bodySchema>;
-  try {
-    body = bodySchema.parse(await request.json());
-  } catch (error) {
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Invalid body" },
-      { status: 400 }
-    );
-  }
+  const parsed = await parseJson(request, bodySchema);
+  if ("error" in parsed) return parsed.error;
+  const { data: body } = parsed;
 
   if (body.savingsDestinationId) {
     const dest = await prisma.savingsDestination.findFirst({

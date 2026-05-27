@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
-import { requireUserTenant } from "@/lib/http";
+import { parseJson, requireUserTenant } from "@/lib/http";
 import { setLogContext, withRequestLogging } from "@/lib/logger";
 import { validateRequestOrigin } from "@/lib/origin";
 import { exchangeAndStorePlaidItem } from "@/lib/plaid/items";
@@ -41,7 +41,9 @@ export async function POST(request: Request) {
       const userId = auth.session.user?.id;
       if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-      const body = bodySchema.parse(await request.json());
+      const parsed = await parseJson(request, bodySchema);
+      if ("error" in parsed) return parsed.error;
+      const { data: body } = parsed;
       const item = await exchangeAndStorePlaidItem({
         tenantId: auth.tenant.id,
         userId,

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
-import { requireUserTenant } from "@/lib/http";
+import { parseJson, requireUserTenant } from "@/lib/http";
 import { validateRequestOrigin } from "@/lib/origin";
 import { prisma } from "@/lib/prisma";
 import { computeAccrualPerCycle } from "@/lib/cycles/accrual";
@@ -30,15 +30,9 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
   });
   if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  let body: z.infer<typeof bodySchema>;
-  try {
-    body = bodySchema.parse(await request.json());
-  } catch (error) {
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Invalid body" },
-      { status: 400 }
-    );
-  }
+  const parsed = await parseJson(request, bodySchema);
+  if ("error" in parsed) return parsed.error;
+  const { data: body } = parsed;
 
   const nextAmount = body.amount ?? Number(existing.amount.toString());
   const nextFrequency = (body.frequency ?? existing.frequency) as Frequency;
