@@ -180,7 +180,7 @@ export function CycleView({
         </div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 16 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 16, marginTop: 16 }}>
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           <div className="panel">
             <div className="panel-head">

@@ -273,7 +273,7 @@ export function SpendingInsightView({
           <span className="meta">Categories · {data.categories.length}</span>
           <span className="spacer" />
           <Switch isSelected={showShadow} onChange={setShowShadow}>
-            Shadow bar
+            Delta
           </Switch>
           <SegmentedControl
             label="Sort categories"
@@ -281,7 +281,6 @@ export function SpendingInsightView({
             onChange={setSortKey}
             options={[
               { value: "amount", label: "$", ariaLabel: "Sort by amount" },
-              { value: "pct", label: "%", ariaLabel: "Sort by percent of income" },
               { value: "delta", label: "Δ", ariaLabel: "Sort by delta" },
             ]}
           />

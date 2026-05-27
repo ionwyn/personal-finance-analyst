@@ -21,7 +21,7 @@ import styles from "./settings.module.scss";
  * the mockup's KMS "rotated 47d ago" is fictional, so it's not shown).
  */
 
-type Period = "30d" | "90d" | "ytd" | "12m" | "all";
+type Period = "30D" | "90D" | "ytd" | "12M" | "all";
 type Format = "csv" | "json" | "xlsx" | "ofx";
 
 function rangeFor(period: Period): { from: string; to: string } {
@@ -29,16 +29,16 @@ function rangeFor(period: Period): { from: string; to: string } {
   const iso = (d: Date) => d.toISOString().split("T")[0];
   const from = new Date(today);
   switch (period) {
-    case "30d":
+    case "30D":
       from.setDate(from.getDate() - 29);
       break;
-    case "90d":
+    case "90D":
       from.setDate(from.getDate() - 89);
       break;
     case "ytd":
       from.setMonth(0, 1);
       break;
-    case "12m":
+    case "12M":
       from.setFullYear(from.getFullYear() - 1);
       break;
     case "all":
@@ -103,10 +103,10 @@ export function DataSection({ tenantLabel, isDemo }: { tenantLabel: string; isDe
               value={period}
               onChange={setPeriod}
               options={[
-                { value: "30d", label: "30d" },
-                { value: "90d", label: "90d" },
+                { value: "30D", label: "30D" },
+                { value: "90D", label: "90D" },
                 { value: "ytd", label: "YTD" },
-                { value: "12m", label: "12m" },
+                { value: "12M", label: "12M" },
                 { value: "all", label: "All time" },
               ]}
             />
