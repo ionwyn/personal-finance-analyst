@@ -2,6 +2,7 @@ import { format, startOfMonth, startOfYear, subMonths, subYears } from "date-fns
 import type { Prisma } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
+import { resolveDisplayCurrency } from "@/lib/fx/displayRate";
 import { formatCategoryName } from "@/lib/spending/category";
 import { hashColor } from "@/lib/spending/color";
 import { incomeWhere, spendingWhere } from "@/lib/spending/classify";
@@ -128,6 +129,10 @@ export async function getSpendingInsight(
       incomeTotal(tenantId, ranges.prevRangeStart, ranges.prevRangeEnd),
     ]);
 
+  // Convert base-CAD figures to the tenant's display currency.
+  const { rate } = await resolveDisplayCurrency(tenantId);
+  const fx = (v: number) => v * rate;
+
   const totalSpending = [...currentPrimary.values()].reduce((s, v) => s + v, 0);
   const prevTotalSpending = [...prevPrimary.values()].reduce((s, v) => s + v, 0);
 
@@ -155,8 +160,8 @@ export async function getSpendingInsight(
       detailed.push({
         name: formatCategoryName(dKey),
         detailedRaw: dKey ?? "",
-        amount: dAmount,
-        prevAmount: dPrev,
+        amount: fx(dAmount),
+        prevAmount: fx(dPrev),
       });
     }
     detailed.sort((a, b) => b.amount - a.amount);
@@ -164,8 +169,9 @@ export async function getSpendingInsight(
     categories.push({
       primary: primaryName,
       primaryRaw: key ?? "",
-      amount,
-      prevAmount,
+      amount: fx(amount),
+      prevAmount: fx(prevAmount),
+      // ratio of CAD amounts — currency-invariant
       pctOfIncome: totalIncome > 0 ? (amount / totalIncome) * 100 : 0,
       color: hashColor(primaryName),
       detailed,
@@ -182,10 +188,10 @@ export async function getSpendingInsight(
     rangeEnd: ranges.rangeEnd,
     prevRangeStart: ranges.prevRangeStart,
     prevRangeEnd: ranges.prevRangeEnd,
-    totalSpending,
-    prevTotalSpending,
-    totalIncome,
-    prevTotalIncome,
+    totalSpending: fx(totalSpending),
+    prevTotalSpending: fx(prevTotalSpending),
+    totalIncome: fx(totalIncome),
+    prevTotalIncome: fx(prevTotalIncome),
     categories,
   };
 }
