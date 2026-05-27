@@ -35,11 +35,13 @@ vi.mock("@/lib/prisma", () => ({
 }));
 
 import {
+  parseJson,
   requireOwnedPlaidItem,
   requireOwnedSnapTradeConnection,
   requireOwnedSnapTradeLogo,
   requireUserTenant,
 } from "@/lib/http";
+import { z } from "zod";
 
 const session = { user: { id: "user_1" } };
 const tenant = { id: "tenant_1", slug: "personal" };
@@ -133,5 +135,62 @@ describe("HTTP auth and tenant guards", () => {
       select: { id: true },
     });
     expect("logoId" in result).toBe(true);
+  });
+});
+
+describe("parseJson", () => {
+  const schema = z.object({
+    name: z.string().min(1),
+    amount: z.number().positive(),
+  });
+
+  it("returns typed data for valid JSON", async () => {
+    const request = new Request("https://example.test", {
+      method: "POST",
+      body: JSON.stringify({ name: "Rent", amount: 100 }),
+    });
+
+    const result = await parseJson(request, schema);
+
+    expect(result).toEqual({ data: { name: "Rent", amount: 100 } });
+  });
+
+  it("returns a 400 response for malformed JSON", async () => {
+    const request = new Request("https://example.test", {
+      method: "POST",
+      body: "{",
+    });
+
+    const result = await parseJson(request, schema);
+
+    if (!("error" in result)) {
+      throw new Error("Expected an invalid body response.");
+    }
+    expect(result.error.status).toBe(400);
+  });
+
+  it("returns a 400 response for schema validation failures", async () => {
+    const request = new Request("https://example.test", {
+      method: "POST",
+      body: JSON.stringify({ name: "", amount: -1 }),
+    });
+
+    const result = await parseJson(request, schema);
+
+    if (!("error" in result)) {
+      throw new Error("Expected an invalid body response.");
+    }
+    expect(result.error.status).toBe(400);
+  });
+
+  it("allows empty optional bodies", async () => {
+    const request = new Request("https://example.test", {
+      method: "POST",
+      body: "",
+    });
+
+    const result = await parseJson(request, schema.optional(), { allowEmpty: true });
+
+    expect(result).toEqual({ data: undefined });
   });
 });

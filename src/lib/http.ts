@@ -1,9 +1,52 @@
 import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
+import type { z } from "zod";
 
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getUserTenant } from "@/lib/tenant";
+
+type ParseJsonOptions = {
+  allowEmpty?: boolean;
+};
+
+export async function parseJson<TSchema extends z.ZodType>(
+  request: Request,
+  schema: TSchema,
+  options: ParseJsonOptions = {}
+): Promise<{ data: z.infer<TSchema> } | { error: NextResponse }> {
+  let payload: unknown;
+
+  try {
+    const text = await request.text();
+    if (text.trim() === "") {
+      if (!options.allowEmpty) {
+        return invalidBodyResponse(new Error("Invalid body"));
+      }
+      payload = undefined;
+    } else {
+      payload = JSON.parse(text);
+    }
+  } catch (error) {
+    return invalidBodyResponse(error);
+  }
+
+  const parsed = schema.safeParse(payload);
+  if (!parsed.success) {
+    return invalidBodyResponse(parsed.error);
+  }
+
+  return { data: parsed.data };
+}
+
+function invalidBodyResponse(error: unknown) {
+  return {
+    error: NextResponse.json(
+      { error: error instanceof Error ? error.message : "Invalid body" },
+      { status: 400 }
+    ),
+  };
+}
 
 export async function requireUserTenant() {
   const session = await getServerSession(authOptions);
