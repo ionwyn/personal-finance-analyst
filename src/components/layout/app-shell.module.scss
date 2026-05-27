@@ -5,6 +5,12 @@
   display: grid;
   grid-template-columns: var(--sidebar-w) 1fr;
   min-height: 100vh;
+
+  // Sidebar is display:none at sm — collapse to a single column so the main
+  // content doesn't land in the now-empty 0px track.
+  @include respond-to("sm") {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* ── Sidebar ─────────────────────────────────────────── */
@@ -199,6 +205,10 @@
   position: sticky;
   top: 0;
   z-index: 10;
+
+  @include respond-to("sm") {
+    display: none;
+  }
 }
 
 .crumbs {
@@ -259,5 +269,161 @@
   &:hover {
     color: var(--text);
     border-color: var(--border-strong);
+  }
+}
+
+/* ── Mobile shell (≤760px) ────────────────────────────────────────────── */
+/* Slim top bar + a horizontally scrolling tab bar replace the sidebar. */
+.mTopbar,
+.mTabs {
+  display: none;
+}
+
+@include respond-to("sm") {
+  .mTopbar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    height: var(--topbar-h);
+    padding: 0 14px;
+    background: var(--bg);
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    z-index: 30;
+  }
+  .mBrand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 1;
+    min-width: 0;
+  }
+  .mBrandMark {
+    width: 24px;
+    height: 24px;
+    border-radius: 4px;
+    background: var(--accent);
+    color: #0a0a0b;
+    display: grid;
+    place-items: center;
+    font-family: var(--font-mono);
+    font-weight: 700;
+    font-size: 9.5px;
+    letter-spacing: -0.04em;
+    flex-shrink: 0;
+  }
+  .mTitle {
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .mStatus {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 9px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--surface);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-2);
+    letter-spacing: 0.02em;
+    flex-shrink: 0;
+  }
+  .mStatusDot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--pos);
+    box-shadow: 0 0 0 2px rgba(74, 222, 128, 0.15);
+  }
+  .mStatusTxt {
+    font-variant-numeric: tabular-nums;
+  }
+  .mIconBtn {
+    width: 36px;
+    height: 36px;
+    border-radius: 6px;
+    display: grid;
+    place-items: center;
+    color: var(--text-2);
+    background: transparent;
+    flex-shrink: 0;
+
+    &:hover,
+    &:active {
+      background: var(--surface-2);
+      color: var(--text);
+    }
+  }
+
+  .mTabs {
+    display: flex;
+    gap: 4px;
+    padding: 6px 8px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: var(--topbar-h);
+    z-index: 25;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
+  }
+  .mTab {
+    flex: 0 0 auto;
+    min-width: 62px;
+    height: 48px;
+    padding: 4px 10px;
+    border-radius: 6px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    color: var(--text-3);
+    background: transparent;
+    border: 1px solid transparent;
+    text-decoration: none;
+    transition:
+      color 80ms ease,
+      background 80ms ease,
+      border-color 80ms ease;
+
+    &:active {
+      background: var(--hover);
+    }
+    &.on {
+      color: var(--accent);
+      background: var(--accent-bg);
+      border-color: rgba(245, 165, 36, 0.25);
+    }
+  }
+  .mTabIc {
+    width: 18px;
+    height: 18px;
+    display: inline-flex;
+    opacity: 0.85;
+  }
+  .mTab.on .mTabIc {
+    opacity: 1;
+  }
+  .mTabLbl {
+    font-size: 10.5px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-weight: 600;
+    line-height: 1;
   }
 }
