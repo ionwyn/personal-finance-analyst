@@ -141,8 +141,13 @@ Legend: `[x]` done · `[~]` partial (see note) · `[ ]` not started · `[—]` i
   Transactions were all removed (column dropped via `20260527090000_drop_display_currency`). Revisit
   later: base is CAD; editable config (caps/targets/settings) should stay CAD; the dashboard
   (`getDashboardData`) and investments page have entangled/bespoke currency handling to reconcile.
-- [ ] Sessions: list active + "sign out all" (DB-strategy sessions make this feasible)
-- [ ] Danger zone: Unlink-all (Phase 2 unlink endpoint now exists — reuse it) + Purge tenant (cascade deletes exist)
+- [~] **Data & Account section — UI scaffolded** from the design (`data-section.tsx`): Export grid
+  (period + format + 4 datasets), Security (token encryption, sessions), and a Danger zone (unlink-all,
+  purge w/ type-to-confirm). **Wired:** only the existing CSV transaction export. **UI-only previews:**
+  non-CSV formats, holdings/rules/backup datasets, session sign-out-all, and the danger-zone actions
+  (disabled). The mockup's fictional KMS "rotated 47d ago" is replaced with honest AES-256-GCM copy.
+- [ ] Sessions: list active + "sign out all" (DB-strategy sessions make this feasible) — UI stub exists
+- [ ] Danger zone wiring: Unlink-all (reuse Phase 2 unlink endpoint) + Purge tenant (cascade deletes exist) — UI stub exists
 - [~] Row density + tabular-numbers toggles — **UI built** (segmented + switches, incl. market-session
   toggle). **Not wired:** global CSS preference classes + persistence. Export JSON + extra datasets still TODO.
 

@@ -57,7 +57,7 @@ const META: Record<SectionId, { title: string; sub: string }> = {
   },
   data: {
     title: "Data & Account",
-    sub: "Export your data and manage this tenant.",
+    sub: "Export your data, or perform destructive admin actions on this tenant.",
   },
 };
 
@@ -174,7 +174,7 @@ export function SettingsShell({
         ) : null}
 
         {active === "display" ? <DisplaySection settings={data.settings} /> : null}
-        {active === "data" ? <DataSection /> : null}
+        {active === "data" ? <DataSection tenantLabel={tenantLabel} isDemo={isDemo} /> : null}
       </section>
     </div>
   );

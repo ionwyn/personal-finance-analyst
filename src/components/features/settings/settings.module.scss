@@ -324,6 +324,135 @@
   margin-top: 3px;
   line-height: 1.4;
 }
+.exportSize {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--text-4);
+  margin-top: 6px;
+  letter-spacing: 0.04em;
+}
+
+// ─── Data & Account: tenant chip + danger zone (ported from the design) ───
+.tenantChip {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-3);
+  letter-spacing: 0.02em;
+}
+.tenantChip code {
+  color: var(--text-2);
+  background: var(--surface-3);
+  border: 1px solid var(--border);
+  padding: 1px 6px;
+  border-radius: 3px;
+}
+.dangerZone {
+  margin-top: 4px;
+  border: 1px solid rgba(248, 113, 113, 0.3);
+  border-radius: var(--radius-lg);
+  background: linear-gradient(180deg, rgba(248, 113, 113, 0.04), transparent 40%);
+  overflow: hidden;
+}
+.dangerHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px 12px;
+  border-bottom: 1px solid rgba(248, 113, 113, 0.18);
+  background: rgba(248, 113, 113, 0.05);
+}
+.dangerTitle {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--neg);
+  letter-spacing: -0.01em;
+}
+.dangerSub {
+  font-size: 11.5px;
+  color: var(--text-3);
+  margin-top: 2px;
+}
+.dangerBadge {
+  font-family: var(--font-sans);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--neg);
+  background: var(--neg-bg);
+  border: 1px solid rgba(248, 113, 113, 0.3);
+  padding: 3px 8px;
+  border-radius: 3px;
+  font-weight: 600;
+}
+.dangerRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 20px;
+  padding: 14px 16px;
+  border-bottom: 1px solid rgba(248, 113, 113, 0.14);
+  align-items: center;
+}
+.dangerRow:last-child {
+  border-bottom: none;
+}
+.dangerRowTall {
+  align-items: flex-start;
+}
+.dangerRowInfo {
+  flex: 1 1 280px;
+  min-width: 240px;
+}
+.dangerRowTitle {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: -0.005em;
+}
+.dangerRowDesc {
+  font-size: 11.5px;
+  color: var(--text-3);
+  margin-top: 3px;
+  line-height: 1.45;
+  max-width: 540px;
+}
+.dangerConfirm {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+}
+.dangerConfirmLabel {
+  font-family: var(--font-sans);
+  font-size: 10.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-4);
+  font-weight: 600;
+}
+.dangerConfirmLabel code {
+  font-family: var(--font-mono);
+  color: var(--neg);
+  background: var(--neg-bg);
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-size: 11px;
+  text-transform: none;
+  letter-spacing: 0;
+}
+.btnDangerSolid {
+  color: var(--neg);
+  border-color: rgba(248, 113, 113, 0.4);
+  background: var(--neg-bg);
+}
+.btnDangerSolid:hover:not(:disabled) {
+  color: #fff;
+  background: var(--neg-dim);
+  border-color: var(--neg-dim);
+}
+.btnDangerSolid:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
 
 // ─── Phase-2/3 placeholder ───
 .placeholder {
