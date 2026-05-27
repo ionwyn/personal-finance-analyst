@@ -37,12 +37,18 @@
     font-size: 12px;
     color: var(--text-3);
   }
+  // Header actions stack full-width on their own lines rather than crowding
+  // side-by-side (e.g. Sync all / Export / Link account on the dashboard).
   .page-actions {
+    flex-direction: column;
+    align-items: stretch;
     gap: 8px;
-    flex-wrap: wrap;
+  }
+  .page-actions > * {
+    width: 100%;
   }
   .page-actions .btn {
-    flex: 1 1 auto;
+    width: 100%;
     justify-content: center;
     min-height: 38px;
     font-size: 13px;
