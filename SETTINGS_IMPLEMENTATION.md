@@ -129,9 +129,8 @@ Legend: `[x]` done · `[~]` partial (see note) · `[ ]` not started · `[—]` i
 
 ### Good-to-have
 
-- [~] Theme light/dark/system — **UI built** (3 preview cards, ported `theme-*` styles). **Not
-  wired:** needs a theme controller (localStorage + `<html data-theme>`, cf. design `theme.js`) and
-  a light palette in `_tokens.scss`.
+- [x] Theme light/dark/system — **UI built and wired** (3 preview cards + next-themes integration,
+      light palette, localStorage persistence, topbar toggle).
 - [ ] Multi-currency conversion (FX via `SnapTradeFxRate`) — heavy, pervasive
 - [ ] Sessions: list active + "sign out all" (DB-strategy sessions make this feasible)
 - [ ] Danger zone: Unlink-all (Phase 2 unlink endpoint now exists — reuse it) + Purge tenant (cascade deletes exist)
