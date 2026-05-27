@@ -1176,7 +1176,7 @@ export async function seedMockupDemo() {
     ],
   });
 
-  await prisma.snapTradeFxRate.upsert({
+  await prisma.fxRate.upsert({
     where: { pair: "USD-CAD" },
     create: {
       pair: "USD-CAD",

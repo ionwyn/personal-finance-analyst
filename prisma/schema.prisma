@@ -406,7 +406,9 @@ model SnapTradeSyncRun {
   @@index([source])
 }
 
-model SnapTradeFxRate {
+// Provider-neutral FX rate cache (rates sourced from Twelve Data). Formerly
+// SnapTradeFxRate — renamed in 20260526160000 when FX moved off SnapTrade.
+model FxRate {
   id             String   @id @default(cuid())
   pair           String   @unique
   sourceCurrency String

@@ -21,6 +21,11 @@ export function getPlaidEnv() {
   return plaidEnvSchema.parse(process.env.PLAID_ENV ?? "sandbox");
 }
 
+/** Twelve Data API key (used for FX rates). Throws when missing at call time. */
+export function getTwelveDataApiKey(): string {
+  return requireEnv("TWELVE_DATA_API_KEY");
+}
+
 export function getBaseUrl(): string {
   if (process.env.NEXTAUTH_URL) {
     return process.env.NEXTAUTH_URL.replace(/\/$/, "");

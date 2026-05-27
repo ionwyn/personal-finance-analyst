@@ -2,7 +2,7 @@ import { Prisma, SnapTradeConnectionStatus, SyncRunStatus, SyncSource } from "@p
 import type { Account, Balance, BrokerageAuthorization, Position } from "snaptrade-typescript-sdk";
 
 import { prisma } from "@/lib/prisma";
-import { getFxRate } from "@/lib/snaptrade/fx";
+import { getFxRate } from "@/lib/fx/rates";
 import { ensureLogoRecord } from "@/lib/snaptrade/logo";
 import {
   isClosedSnapTradeAccountStatus,

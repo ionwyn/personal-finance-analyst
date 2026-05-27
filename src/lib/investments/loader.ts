@@ -119,7 +119,7 @@ export async function loadInvestments(tenantId?: string | null): Promise<LoadedI
         },
       },
     }),
-    prisma.snapTradeFxRate.findUnique({ where: { pair: "USD-CAD" } }),
+    prisma.fxRate.findUnique({ where: { pair: "USD-CAD" } }),
     prisma.snapTradeSyncRun.findFirst({
       where: { tenantId },
       orderBy: { startedAt: "desc" },
