@@ -213,3 +213,41 @@
   color: var(--text-4);
   font-family: var(--font-mono);
 }
+
+/* ── Mobile (≤760px) ──────────────────────────────────── */
+/* The account row keeps its grid (so the balance never collides with the
+   name) but tightens to 3 tracks: icon, a shrinkable name/type block, and the
+   right-aligned balance. The institution header already wraps at md. */
+@include respond-to("sm") {
+  .acctRow {
+    grid-template-columns: 28px minmax(0, 1fr) auto;
+    column-gap: 12px;
+    padding: 12px 14px;
+  }
+  /* Bank rows carry a 4th child (the row menu); drop it so the row fits three
+     tracks. Investment rows only have three children, so this is a no-op. */
+  .acctRow > :nth-child(4) {
+    display: none;
+  }
+  .acctRow > div {
+    min-width: 0;
+  }
+  .acctBal {
+    align-self: center;
+    min-width: 0;
+  }
+  .acctName {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 100%;
+  }
+  .instBalance {
+    margin-left: auto;
+  }
+  .instActions .btn {
+    flex: 1 1 0;
+    justify-content: center;
+    min-height: 36px;
+  }
+}
