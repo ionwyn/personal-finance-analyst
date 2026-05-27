@@ -175,8 +175,8 @@ export function DisplaySection({ settings }: { settings: SettingsData["settings"
           </select>
         </Row>
         <Row
-          title="Locale"
-          desc="Drives weekday names, currency symbol placement, and a few subtitle copies."
+          title="Language"
+          desc="Language and regional formatting — weekday names, currency symbol placement, and a few subtitle copies. (Stored as a locale.)"
         >
           <select
             value={locale}
