@@ -21,6 +21,8 @@ export type SegmentedControlProps<T extends string> = {
   onChange: (value: T) => void;
   variant?: "default" | "accent";
   size?: "sm" | "md";
+  /** Stretch to full width with equal-width segments on mobile (≤760px). */
+  block?: boolean;
 };
 
 /**
@@ -34,6 +36,7 @@ export function SegmentedControl<T extends string>({
   onChange,
   variant = "default",
   size = "sm",
+  block = false,
 }: SegmentedControlProps<T>) {
   return (
     <ToggleButtonGroup
@@ -49,6 +52,7 @@ export function SegmentedControl<T extends string>({
         styles.group,
         size === "md" && styles.md,
         variant === "accent" && styles.accent,
+        block && styles.block
       )}
     >
       {options.map((option) => (

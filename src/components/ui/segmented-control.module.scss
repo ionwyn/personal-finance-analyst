@@ -1,4 +1,5 @@
 // Co-located styles for the SegmentedControl primitive (react-aria ToggleButtonGroup).
+@use "breakpoints" as *;
 
 .group {
   display: inline-flex;
@@ -45,4 +46,20 @@
   background: var(--accent);
   color: #0a0a0b;
   font-weight: 600;
+}
+
+/* block — on mobile, stretch full width as a pill with equal-width segments */
+@include respond-to("sm") {
+  .block {
+    display: flex;
+    width: 100%;
+    border-radius: 999px;
+  }
+  .block .segment {
+    flex: 1 1 0;
+    text-align: center;
+    justify-content: center;
+    padding-top: 8px;
+    padding-bottom: 8px;
+  }
 }

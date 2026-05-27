@@ -439,6 +439,7 @@ function PeriodToggle({ period, onChange }: { period: Period; onChange: (p: Peri
       label="Period"
       variant="accent"
       size="md"
+      block
       value={period}
       onChange={onChange}
       options={[
