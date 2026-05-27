@@ -115,23 +115,30 @@ Legend: `[x]` done · `[~]` partial (see note) · `[ ]` not started · `[—]` i
 
 ## Phase 3 — Display, account & data (cross-cutting) — IN PROGRESS
 
-> Doing Phase 3 slowly, one section at a time. **Display & Preferences UI is scaffolded
+> Doing Phase 3 slowly, one section at a time. **Display & Preferences UI was scaffolded
 > (2026-05-26)** from the `TD Personal Finance.html` design handoff (`claude.ai/design` bundle:
-> `settings.jsx` DisplayTab + `theme.js` + `styles.css`). The controls render but are **UI-only /
-> not wired** except the Default landing page (shipped Phase 1). Feature wiring comes next, section
-> by section.
+> `settings.jsx` DisplayTab + `theme.js` + `styles.css`). **Wired so far:** Default landing (Phase 1),
+> **Theme** (next-themes + light palette), and **Display currency** (CAD/USD via Twelve Data, applied
+> app-wide at the data layer — rolling out surface by surface). Language / date-format / number-format
+> / density / tabular-numbers / market-session remain UI-only.
 
 ### Must-have
 
-- [~] Locale / date / number format prefs — **UI built** (currency / locale selects, date- and
-  number-format segmented controls). **Not wired:** needs `lib/format.ts` refactored off hardcoded
-  `en-US`/`USD` + persistence on `UserSettings`.
+- [~] Language / date / number format prefs — **UI built** ("Locale" row renamed to "Language";
+  language select + date/number-format segmented controls). **Not wired:** needs `lib/format.ts`
+  refactored off hardcoded `en-US` + persistence on `UserSettings`. (Currency split out below.)
 
 ### Good-to-have
 
 - [x] Theme light/dark/system — **UI built and wired** (3 preview cards + next-themes integration,
       light palette, localStorage persistence, topbar toggle).
-- [ ] Multi-currency conversion (FX via `SnapTradeFxRate`) — heavy, pervasive
+- [~] **Multi-currency conversion (CAD/USD, default CAD)** — FX engine **done** (Twelve Data, new
+  `src/lib/fx/`, `FxRate` cache, requires `TWELVE_DATA_API_KEY`); `UserSettings.displayCurrency`
+  preference + control **done**; app-wide pipeline **done** (`CurrencyProvider` via `/app` layout +
+  topbar CAD/USD badge; conversion at the data layer). **Converted:** Spending Insight, Transactions.
+  **Still CAD (pending):** Dashboard (entangled nested totals + investments sub-object), Pay cycles
+  (Decimal-heavy), Investments page (bespoke CAD UI), and editable config (budget caps, goal
+  targets, settings amounts) which stay CAD by design.
 - [ ] Sessions: list active + "sign out all" (DB-strategy sessions make this feasible)
 - [ ] Danger zone: Unlink-all (Phase 2 unlink endpoint now exists — reuse it) + Purge tenant (cascade deletes exist)
 - [~] Row density + tabular-numbers toggles — **UI built** (segmented + switches, incl. market-session
@@ -271,13 +278,27 @@ design handoff (Claude Design bundle — `project/settings.jsx` DisplayTab, `pro
   (`topbar.tsx` sun/moon button). Theme persists to localStorage + `<html data-theme>` attribute.
 - Updated chart tooltips to stay dark-glass in both themes (Bloomberg convention per mockup).
 
-**Default landing page and theme are wired** (Phase 1 & Phase 3). Everything else holds local state
-and is intentionally not persisted/applied — file-header comments mark each seam for follow-up:
+**Multi-currency / FX — Twelve Data + display currency (2026-05-26)**
 
-- currency/locale/formats → `lib/format.ts` refactor + `UserSettings` persistence.
-- density/tabular-nums → global CSS preference classes; market-session → topbar pill.
+- FX moved off SnapTrade to **Twelve Data** (`/exchange_rate`). New provider-neutral `src/lib/fx/`:
+  `rates.ts` (`getFxRate`, CAD/USD only, 24h cache, inverse + stale-cache fallback; `TWELVE_DATA_API_KEY`)
+  and `displayRate.ts` (`resolveDisplayCurrency(tenantId)` → base→display rate, CAD fallback on error).
+- `SnapTradeFxRate` table renamed to **`FxRate`** (data-preserving migration); consumers repointed.
+- `UserSettings.displayCurrency` (CAD/USD, default CAD) + user-settings PATCH; Display currency
+  control shows only CAD/USD and persists.
+- App-wide pipeline: `CurrencyProvider` mounted by a new `src/app/app/layout.tsx`; topbar shows a
+  CAD/USD badge. **Conversion happens at the data layer** (server loaders multiply base-CAD by the
+  rate) so server + client renderers stay consistent and there's no double-convert.
+- **Converted:** `getSpendingInsight`, `getTransactionsForTenant` (amount filters compare the
+  converted value). **Pending (still CAD):** dashboard (`getDashboardData` — entangled totals +
+  investments sub-object), pay cycles (Decimal-heavy), investments page (bespoke CAD UI). Editable
+  config (budget caps, goal targets, settings amounts) stays CAD by design.
+- "Locale" Display row renamed to **"Language"** (value still a locale; UI only).
 
-**Verification:** `npm run typecheck` ✅ · `npm run lint` ✅ · Theme switching tested end-to-end
-(all 3 cards, localStorage persistence, topbar toggle, hydration-guard) ✅.
+**Default landing, theme, and display currency are wired.** Language / date-format / number-format /
+density / tabular-numbers / market-session still hold local state — seams marked in the file header.
+
+**Verification:** `npm run typecheck` ✅ · `npm run lint` ✅ · `npm test` ✅ (57 passed) ·
+`npm run build` ✅.
 
 Note: **Danger-zone "Unlink-all" is unblocked** by the Phase 2 unlink endpoint when that section comes.
