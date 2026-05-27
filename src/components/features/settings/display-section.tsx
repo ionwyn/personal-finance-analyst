@@ -18,25 +18,25 @@ import styles from "./settings.module.scss";
  *
  * This renders the full Display & Preferences surface from the design. Wired:
  *   - Default landing page → persists to UserSettings (Phase 1).
+ *   - Display currency (CAD/USD) → persists to UserSettings; applied app-wide
+ *     via the CurrencyProvider (FX rates from Twelve Data).
  *   - Theme (dark/light/system) → next-themes (localStorage + <html data-theme>),
  *     with the light palette defined in the design tokens.
  *
  * The remaining controls hold local state and are intentionally NOT persisted or
  * applied yet — they're prepared seams for follow-up feature work:
- *   - currency / locale / date / number format → refactor `lib/format.ts` off
- *     hardcoded en-US/USD + persist on UserSettings.
+ *   - language / date / number format → refactor `lib/format.ts` off hardcoded
+ *     en-US + persist on UserSettings.
  *   - row density / tabular numbers → global CSS preference classes.
  *   - market session pill → topbar feature + toggle persistence.
  */
 
 const SELECT_STYLE = { ...INPUT_STYLE, width: 200, fontFamily: "var(--font-sans)" } as const;
 
+// Only CAD/USD are supported (base data is CAD; FX via Twelve Data).
 const CURRENCY_OPTIONS = [
   { value: "CAD", label: "CAD — Canadian Dollar" },
   { value: "USD", label: "USD — US Dollar" },
-  { value: "EUR", label: "EUR — Euro" },
-  { value: "GBP", label: "GBP — Pound Sterling" },
-  { value: "JPY", label: "JPY — Japanese Yen" },
 ];
 
 const LOCALE_OPTIONS = [
@@ -128,12 +128,14 @@ export function DisplaySection({ settings }: { settings: SettingsData["settings"
   // Wired (Phase 1): default landing page persists to UserSettings.
   const [landing, setLanding] = useState(settings.defaultLanding ?? "dashboard");
 
+  // Wired: display currency persists to UserSettings (CAD/USD; applied app-wide).
+  const [currency, setCurrency] = useState(settings.displayCurrency ?? "CAD");
+
   // Wired: theme persists to localStorage + <html data-theme> via next-themes.
   const { theme, setTheme } = useTheme();
   const mounted = useMounted();
 
   // UI-only local state (not yet persisted/applied — see file header).
-  const [currency, setCurrency] = useState("CAD");
   const [locale, setLocale] = useState("en-CA");
   const [dateFmt, setDateFmt] = useState<DateFmt>("iso");
   const [numFmt, setNumFmt] = useState<NumFmt>("us");
@@ -141,12 +143,11 @@ export function DisplaySection({ settings }: { settings: SettingsData["settings"
   const [tabularNums, setTabularNums] = useState(true);
   const [marketSession, setMarketSession] = useState(true);
 
-  async function saveLanding(next: string) {
-    setLanding(next);
+  async function savePref(patch: Record<string, unknown>) {
     setBusy(true);
     setError(null);
     try {
-      await postJSON("/api/settings/user-settings", "PATCH", { defaultLanding: next });
+      await postJSON("/api/settings/user-settings", "PATCH", patch);
       router.refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to save preference.");
@@ -157,14 +158,18 @@ export function DisplaySection({ settings }: { settings: SettingsData["settings"
 
   return (
     <div className={styles.stack}>
-      <Panel title="Localization" meta="NOT YET APPLIED">
+      <Panel title="Localization">
         <Row
           title="Display currency"
-          desc="All totals are converted to this. Original transaction currency is preserved on detail rows."
+          desc="All totals across the app are converted to this. Original transaction currency is preserved on detail rows."
         >
           <select
             value={currency}
-            onChange={(e) => setCurrency(e.target.value)}
+            disabled={busy}
+            onChange={(e) => {
+              setCurrency(e.target.value);
+              void savePref({ displayCurrency: e.target.value });
+            }}
             style={{ ...SELECT_STYLE, width: 180 }}
           >
             {CURRENCY_OPTIONS.map((o) => (
@@ -264,7 +269,10 @@ export function DisplaySection({ settings }: { settings: SettingsData["settings"
           <select
             value={landing}
             disabled={busy}
-            onChange={(e) => saveLanding(e.target.value)}
+            onChange={(e) => {
+              setLanding(e.target.value);
+              void savePref({ defaultLanding: e.target.value });
+            }}
             style={SELECT_STYLE}
           >
             {LANDING_OPTIONS.map((o) => (

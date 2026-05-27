@@ -577,6 +577,7 @@ model UserSettings {
   sweepBuffer             Decimal   @default(100) @db.Decimal(18, 2)
   ccPaymentDayOfMonth     Int?
   defaultLanding          String    @default("dashboard")
+  displayCurrency         String    @default("CAD")
   budgetWarnPct           Int       @default(85)
   budgetAlarmPct          Int       @default(100)
   budgetRollForward       Boolean   @default(false)
