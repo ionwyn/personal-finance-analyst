@@ -287,6 +287,125 @@
     }
   }
 
+  // ═══════════════════════════════════════════════════════════════════════
+  // SPENDING INSIGHT — category tree rows collapse to 2-line layout so the
+  // name/bar and amount/delta never collide on narrow screens.
+  // (spend-summary-head is already stacked at sm in _spending.scss.)
+  // ═══════════════════════════════════════════════════════════════════════
+  .spend-summary-strip {
+    padding: 14px;
+  }
+  .spend-summary-total {
+    font-size: 28px;
+  }
+  .spend-summary-stat-row {
+    gap: 18px;
+    justify-content: space-between;
+  }
+  .spend-summary-legend {
+    gap: 6px 14px;
+    font-size: 11px;
+  }
+
+  .cat-toolbar {
+    padding: 10px 14px;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .cat-toolbar .meta {
+    font-size: 10px;
+  }
+
+  // Category row → name + bar on the left, amount + delta on the right.
+  .cat-row {
+    grid-template-columns: 14px 10px minmax(0, 1fr) auto;
+    grid-template-areas:
+      "chev dot name amt"
+      "chev dot bar  delta";
+    column-gap: 10px;
+    row-gap: 4px;
+    padding: 14px;
+    align-items: center;
+  }
+  .cat-row .chev {
+    grid-area: chev;
+  }
+  .cat-row .dot {
+    grid-area: dot;
+  }
+  .cat-row .nm {
+    grid-area: name;
+    font-size: 14px;
+    align-self: end;
+  }
+  .cat-row .pct {
+    display: none;
+  }
+  .cat-row .amt {
+    grid-area: amt;
+    justify-self: end;
+    align-self: end;
+    font-size: 15px;
+  }
+  .cat-row .bar-wrap {
+    grid-area: bar;
+    align-self: center;
+  }
+  .cat-row .delta {
+    grid-area: delta;
+    justify-self: end;
+    align-self: center;
+    font-size: 10.5px;
+    padding: 1px 5px;
+    margin-left: 0;
+  }
+
+  .subcat-row {
+    grid-template-columns: 20px 8px minmax(0, 1fr) auto;
+    grid-template-areas:
+      "stub dot name amt"
+      "stub dot bar  delta";
+    padding: 12px 14px;
+    column-gap: 10px;
+    row-gap: 4px;
+    align-items: center;
+  }
+  .subcat-row .stub-chev {
+    grid-area: stub;
+    width: 20px;
+  }
+  .subcat-row .dot {
+    grid-area: dot;
+  }
+  .subcat-row .pct {
+    display: none;
+  }
+  .subcat-row .nm {
+    grid-area: name;
+    font-size: 13px;
+    align-self: end;
+  }
+  .subcat-row .amt {
+    grid-area: amt;
+    justify-self: end;
+    align-self: end;
+  }
+  .subcat-row .sub-bar-wrap {
+    grid-area: bar;
+    align-self: center;
+  }
+  .subcat-row .delta {
+    grid-area: delta;
+    justify-self: end;
+    align-self: center;
+  }
+
+  .si-caveat {
+    font-size: 10.5px;
+    padding: 12px;
+    margin-top: 14px;
+  }
+
   // ── Foot note — center, smaller ──────────────────────────────────────
   .foot-note {
     flex-direction: column;
