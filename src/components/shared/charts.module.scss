@@ -137,3 +137,19 @@
   height: 8px;
   border-radius: 2px;
 }
+
+/* Tooltips stay dark glass in light mode (Bloomberg convention so data pops).
+   The inner text colors reference --text/--text-3, which flip to near-black in
+   light mode — pin them back to light values so they read on the dark glass. */
+:global([data-theme="light"]) .tt {
+  background: rgba(20, 20, 23, 0.94);
+  border-color: rgba(255, 255, 255, 0.12);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.18);
+}
+:global([data-theme="light"]) .ttLabel,
+:global([data-theme="light"]) .ttKey {
+  color: #a1a1aa;
+}
+:global([data-theme="light"]) .ttVal {
+  color: #fafafa;
+}

@@ -18,6 +18,30 @@ body {
   font-feature-settings: "ss01", "cv11";
 }
 
+// Smooth fade when flipping themes. Element-level selectors keep specificity
+// low, so component class-based transitions (bar widths, etc.) still win.
+html,
+body,
+header,
+aside,
+nav,
+main,
+section,
+article,
+div,
+button,
+input,
+select,
+textarea,
+table,
+th,
+td {
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease,
+    color 160ms ease;
+}
+
 body {
   min-height: 100vh;
 }

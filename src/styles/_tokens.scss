@@ -61,3 +61,61 @@
   --radius: 4px;
   --radius-lg: 6px;
 }
+
+// Light theme — "Bloomberg terminal printed on cream paper."
+// Activated via next-themes setting `data-theme="light"` on <html>. Charts and
+// components pick this up automatically because they reference var(--*).
+//
+// The relationship that makes this read as the SAME app: bg / surface /
+// surface-2 / surface-3 all live in ONE warm cream family with the same subtle
+// 4-6% lightness steps dark mode uses — not pure-white panels fighting a tint.
+// The amber accent and saturated data palette are unchanged — that's the identity.
+[data-theme="light"] {
+  /* Surfaces — one warm cream family */
+  --bg: #e6e1ce; /* "desk" */
+  --surface: #efe9d4; /* "document" / panel bg */
+  --surface-2: #e0d9c2; /* hover / table headers */
+  --surface-3: #d5ccae; /* active rows / track wells */
+  --hover: #dbd3ba;
+
+  /* Borders — same warm family */
+  --border: #c3baa0;
+  --border-strong: #968d72;
+  --border-subtle: #d2c9ad;
+
+  /* Text — warm near-blacks */
+  --text: #181610;
+  --text-2: #3a372a;
+  --text-3: #6c6857;
+  --text-4: #95907c;
+
+  /* Accent — UNCHANGED Bloomberg amber */
+  --accent: #f5a524;
+  --accent-dim: #b8780f;
+  --accent-bg: rgba(245, 165, 36, 0.18);
+
+  /* Data — same vibrance, one shade darker to hold on cream */
+  --pos: #16a34a;
+  --pos-dim: #15803d;
+  --pos-bg: rgba(22, 163, 74, 0.14);
+  --neg: #dc2626;
+  --neg-dim: #b91c1c;
+  --neg-bg: rgba(220, 38, 38, 0.14);
+  --info: #2563eb;
+  --warn: #d97706;
+
+  /* Investments — non-directional accent */
+  --invest: #0d9488;
+  --invest-dim: #0f766e;
+  --invest-bg: rgba(13, 148, 136, 0.14);
+
+  /* Categorical palette — saturated for cream bgs */
+  --cat-1: #f5a524;
+  --cat-2: #2563eb;
+  --cat-3: #16a34a;
+  --cat-4: #9333ea;
+  --cat-5: #ec4899;
+  --cat-6: #0ea5e9;
+  --cat-7: #f97316;
+  --cat-8: #64748b;
+}
