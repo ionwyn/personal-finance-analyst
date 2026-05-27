@@ -1,13 +1,16 @@
 "use client";
 
 import { SessionProvider } from "next-auth/react";
+import { ThemeProvider } from "next-themes";
 
 import { PlaidLinkProvider } from "@/components/actions/plaid-link-button";
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <SessionProvider>
-      <PlaidLinkProvider>{children}</PlaidLinkProvider>
+      <ThemeProvider attribute="data-theme" defaultTheme="dark" enableSystem storageKey="td-theme">
+        <PlaidLinkProvider>{children}</PlaidLinkProvider>
+      </ThemeProvider>
     </SessionProvider>
   );
 }
