@@ -2,11 +2,13 @@
 
 import clsx from "clsx";
 import { useRouter } from "next/navigation";
+import { useTheme } from "next-themes";
 import { useState } from "react";
 
 import { Panel, SegmentedControl, Switch } from "@/components/ui";
 import type { SettingsData } from "@/lib/cycles/getSettings";
 import { LANDING_OPTIONS } from "@/lib/settings/landing";
+import { useMounted } from "@/lib/use-mounted";
 
 import { ErrorLine, INPUT_STYLE, postJSON } from "./settings-form";
 import styles from "./settings.module.scss";
@@ -14,14 +16,15 @@ import styles from "./settings.module.scss";
 /*
  * Phase 3 — Display & Preferences (UI scaffold).
  *
- * This renders the full Display & Preferences surface from the design, but only
- * the Default landing page is wired to the backend (shipped in Phase 1). The
- * other controls hold local state and are intentionally NOT persisted or applied
- * yet — they're prepared seams for follow-up feature work:
+ * This renders the full Display & Preferences surface from the design. Wired:
+ *   - Default landing page → persists to UserSettings (Phase 1).
+ *   - Theme (dark/light/system) → next-themes (localStorage + <html data-theme>),
+ *     with the light palette defined in the design tokens.
+ *
+ * The remaining controls hold local state and are intentionally NOT persisted or
+ * applied yet — they're prepared seams for follow-up feature work:
  *   - currency / locale / date / number format → refactor `lib/format.ts` off
  *     hardcoded en-US/USD + persist on UserSettings.
- *   - theme (dark/light/system) → a theme controller (localStorage + <html
- *     data-theme>) + a light palette in the design tokens.
  *   - row density / tabular numbers → global CSS preference classes.
  *   - market session pill → topbar feature + toggle persistence.
  */
@@ -81,16 +84,16 @@ const THEMES = [
     value: "light",
     label: "Light",
     hint: "Always light",
-    bg: "#fafaf9",
-    fg: "#0a0a0b",
-    panel: "#ffffff",
-    accent: "#b8780f",
+    bg: "#e6e1ce",
+    fg: "#181610",
+    panel: "#efe9d4",
+    accent: "#f5a524",
   },
   {
     value: "system",
     label: "Match OS",
     hint: "Follow device",
-    bg: "linear-gradient(135deg,#0a0a0b 50%,#fafaf9 50%)",
+    bg: "linear-gradient(135deg,#0a0a0b 50%,#e6e1ce 50%)",
     fg: "#e8e8ea",
     panel: "#141416",
     accent: "#f5a524",
@@ -125,12 +128,15 @@ export function DisplaySection({ settings }: { settings: SettingsData["settings"
   // Wired (Phase 1): default landing page persists to UserSettings.
   const [landing, setLanding] = useState(settings.defaultLanding ?? "dashboard");
 
+  // Wired: theme persists to localStorage + <html data-theme> via next-themes.
+  const { theme, setTheme } = useTheme();
+  const mounted = useMounted();
+
   // UI-only local state (not yet persisted/applied — see file header).
   const [currency, setCurrency] = useState("CAD");
   const [locale, setLocale] = useState("en-CA");
   const [dateFmt, setDateFmt] = useState<DateFmt>("iso");
   const [numFmt, setNumFmt] = useState<NumFmt>("us");
-  const [theme, setTheme] = useState<string>("dark");
   const [density, setDensity] = useState<Density>("compact");
   const [tabularNums, setTabularNums] = useState(true);
   const [marketSession, setMarketSession] = useState(true);
@@ -202,48 +208,51 @@ export function DisplaySection({ settings }: { settings: SettingsData["settings"
         </Row>
       </Panel>
 
-      <Panel title="Theme" meta="PREVIEW ONLY">
+      <Panel title="Theme">
         <div className={styles.themeGrid}>
-          {THEMES.map((t) => (
-            <button
-              key={t.value}
-              type="button"
-              className={clsx(styles.themeCard, theme === t.value && styles.on)}
-              onClick={() => setTheme(t.value)}
-            >
-              <div className={styles.themePreview} style={{ background: t.bg }}>
-                <div
-                  className={styles.themePvBar}
-                  style={{
-                    background: t.panel,
-                    borderColor: t.value === "light" ? "#e5e5e5" : "#1f1f23",
-                  }}
-                >
-                  <div className={styles.themePvDot} style={{ background: t.accent }} />
+          {THEMES.map((t) => {
+            const active = mounted && theme === t.value;
+            return (
+              <button
+                key={t.value}
+                type="button"
+                className={clsx(styles.themeCard, active && styles.on)}
+                onClick={() => setTheme(t.value)}
+              >
+                <div className={styles.themePreview} style={{ background: t.bg }}>
                   <div
-                    className={styles.themePvLine}
-                    style={{ background: t.value === "light" ? "#a1a1aa" : "#71717a" }}
+                    className={styles.themePvBar}
+                    style={{
+                      background: t.panel,
+                      borderColor: t.value === "light" ? "#c3baa0" : "#1f1f23",
+                    }}
+                  >
+                    <div className={styles.themePvDot} style={{ background: t.accent }} />
+                    <div
+                      className={styles.themePvLine}
+                      style={{ background: t.value === "light" ? "#6c6857" : "#71717a" }}
+                    />
+                  </div>
+                  <div className={styles.themePvNum} style={{ color: t.fg }}>
+                    $54,263
+                  </div>
+                  <div
+                    className={styles.themePvRule}
+                    style={{ background: t.value === "light" ? "#d2c9ad" : "#1f1f23" }}
+                  />
+                  <div
+                    className={styles.themePvRule}
+                    style={{ background: t.value === "light" ? "#d2c9ad" : "#1f1f23" }}
                   />
                 </div>
-                <div className={styles.themePvNum} style={{ color: t.fg }}>
-                  $54,263
+                <div className={styles.themeInfo}>
+                  <div className={styles.themeName}>{t.label}</div>
+                  <div className={styles.themeHint}>{t.hint}</div>
                 </div>
-                <div
-                  className={styles.themePvRule}
-                  style={{ background: t.value === "light" ? "#e5e5e5" : "#1f1f23" }}
-                />
-                <div
-                  className={styles.themePvRule}
-                  style={{ background: t.value === "light" ? "#e5e5e5" : "#1f1f23" }}
-                />
-              </div>
-              <div className={styles.themeInfo}>
-                <div className={styles.themeName}>{t.label}</div>
-                <div className={styles.themeHint}>{t.hint}</div>
-              </div>
-              {theme === t.value ? <span className={styles.themeCheck}>●</span> : null}
-            </button>
-          ))}
+                {active ? <span className={styles.themeCheck}>●</span> : null}
+              </button>
+            );
+          })}
         </div>
       </Panel>
 
