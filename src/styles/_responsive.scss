@@ -1,4 +1,10 @@
 // Shared responsive overrides. Loaded after the layout partials so these win.
+//
+// Breakpoint tiers (see _breakpoints.scss):
+//   desktop   > 1100px  — full 220px sidebar
+//   tablet    761–1100  — narrow 200px sidebar, desktop layout otherwise
+//   mobile    ≤ 760px   — sidebar collapses, mobile shell + content layer (_mobile.scss)
+@use "sass:map";
 @use "breakpoints" as *;
 
 @include respond-to("lg") {
@@ -14,7 +20,14 @@
   }
 }
 
-@include respond-to("md") {
+// Tablet — keep the desktop layout but narrow the sidebar.
+@media (min-width: 761px) and (max-width: 1100px) {
+  :root {
+    --sidebar-w: 200px;
+  }
+}
+
+@include respond-to("sm") {
   :root {
     --sidebar-w: 0px;
   }

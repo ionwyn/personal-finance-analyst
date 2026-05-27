@@ -1,0 +1,302 @@
+// TD Personal Finance — Mobile content layer.
+//
+// Ported from the Claude Design handoff (project/mobile.css). Activates at the
+// `sm` breakpoint (≤760px). The desktop/tablet layout above that is unchanged.
+// Class names are mapped to this codebase's actual markup, which diverges from
+// the prototype on some screens (spending uses `spend-summary-*`, settings is a
+// CSS module, etc.). Loaded LAST in globals so it wins the cascade over the
+// per-feature partials.
+@use "breakpoints" as *;
+
+@include respond-to("sm") {
+  // Density bump — terminal still, but breathed out for thumbs.
+  html,
+  body {
+    font-size: 16px;
+    line-height: 1.5;
+  }
+
+  // ── Content padding (less crammed than desktop) ──────────────────────
+  .content {
+    padding: 16px 14px 80px;
+  }
+
+  // ── Page header: stack title + actions ───────────────────────────────
+  .page-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    padding-bottom: 14px;
+    margin-bottom: 14px;
+  }
+  .page-title {
+    font-size: 22px;
+    letter-spacing: -0.025em;
+  }
+  .page-sub {
+    font-size: 12px;
+    color: var(--text-3);
+  }
+  .page-actions {
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .page-actions .btn {
+    flex: 1 1 auto;
+    justify-content: center;
+    min-height: 38px;
+    font-size: 13px;
+    padding: 8px 12px;
+  }
+
+  // Buttons — bigger tap targets.
+  .btn {
+    min-height: 36px;
+    padding: 7px 12px;
+    font-size: 13px;
+  }
+  .btn-sm {
+    min-height: 30px;
+    padding: 5px 10px;
+    font-size: 12px;
+  }
+
+  // ── Panels: keep, but tighten ────────────────────────────────────────
+  .panel-head {
+    padding: 12px 14px 10px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .panel-title {
+    font-size: 11.5px;
+  }
+  .panel-meta {
+    font-size: 10.5px;
+  }
+  .panel-body {
+    padding: 12px;
+  }
+  .panel-body.flush {
+    padding: 0;
+  }
+
+  // Charts — simplify axes; reduce tick density.
+  .recharts-cartesian-axis-tick-value {
+    font-size: 9px;
+  }
+  .chart-legend {
+    font-size: 10.5px;
+    gap: 10px;
+  }
+  .chart-anno {
+    font-size: 9.5px;
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // TABLES — fix overlapping numbers on narrow screens.
+  //
+  // Transaction-style tables (Transactions page + dashboard recent-tx) and the
+  // holdings table collapse to a 2-line row: primary label + sub on the left,
+  // value + delta stacked on the right. Every other table (cash balances,
+  // cycles, settings) stays a real table but scrolls horizontally so columns
+  // never crush into each other.
+  // ═══════════════════════════════════════════════════════════════════════
+
+  // Non-collapsed tables: horizontal scroll instead of squish.
+  .panel-body.flush {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  // Clear the Transactions panel's desktop maxHeight cap so the list flows.
+  .panel-body.flush[style*="max-height"] {
+    max-height: none !important;
+    overflow: visible !important;
+  }
+  .panel-body table.table:not(.hold-table):not(:has(td.t-merchant)) {
+    min-width: 540px;
+  }
+
+  // ── Transaction tables → 2-line rows (merchant/date · amount/category) ──
+  table.table:has(td.t-merchant) {
+    thead {
+      display: none;
+    }
+    tbody tr {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      grid-template-areas:
+        "primary value"
+        "sub     delta";
+      align-items: baseline;
+      column-gap: 14px;
+      row-gap: 3px;
+      padding: 14px;
+      border-bottom: 1px solid var(--border-subtle);
+      cursor: pointer;
+    }
+    tbody tr:last-child {
+      border-bottom: none;
+    }
+    tbody tr:active {
+      background: var(--surface-3);
+    }
+    tbody td {
+      padding: 0;
+      border: none;
+      background: transparent;
+      display: block;
+      line-height: 1.25;
+    }
+
+    td.t-merchant {
+      grid-area: primary;
+      font-size: 15px;
+      font-weight: 500;
+      color: var(--text);
+      letter-spacing: -0.005em;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      min-width: 0;
+    }
+    // Date drops under the merchant as the sub-line.
+    td.t-date {
+      grid-area: sub;
+      margin-top: 3px;
+      font-family: var(--font-mono);
+      font-size: 11.5px;
+      color: var(--text-4);
+      font-weight: 400;
+      letter-spacing: 0.02em;
+    }
+    // Account column is dropped on mobile (available in the detail sheet).
+    td.t-acct {
+      display: none;
+    }
+    // Category chip sits under the amount, right-aligned.
+    td:nth-child(4) {
+      grid-area: delta;
+      justify-self: end;
+      margin-top: 2px;
+    }
+    td:nth-child(4) .chip {
+      padding: 1px 7px;
+      font-size: 10.5px;
+      background: var(--surface-3);
+      border: 1px solid var(--border-subtle);
+      border-radius: 3px;
+      letter-spacing: 0.04em;
+    }
+    td:nth-child(4) .chip .sw {
+      width: 6px;
+      height: 6px;
+    }
+    // Amount, right-aligned top line.
+    td.num {
+      grid-area: value;
+      justify-self: end;
+      font-family: var(--font-mono);
+      font-variant-numeric: tabular-nums;
+      font-size: 15px;
+      font-weight: 500;
+      letter-spacing: -0.01em;
+      white-space: nowrap;
+    }
+  }
+
+  // ── Holdings table → ticker/desc · market value/P&L ──────────────────
+  // 9 cols: Symbol, Desc, Units, Avg, Price, MV, P&L$, P&L%, CCY.
+  .hold-table {
+    thead {
+      display: none;
+    }
+    tbody tr {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      grid-template-areas:
+        "primary value"
+        "sub     delta";
+      align-items: baseline;
+      column-gap: 14px;
+      row-gap: 3px;
+      padding: 14px;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+    tbody tr:last-child {
+      border-bottom: none;
+    }
+    tbody td {
+      display: block;
+      padding: 0;
+      border: none;
+      background: transparent;
+      line-height: 1.25;
+    }
+    // Symbol (logo + ticker + type tag).
+    tbody td:nth-child(1) {
+      grid-area: primary;
+      min-width: 0;
+    }
+    // Description sub-line.
+    tbody td:nth-child(2) {
+      grid-area: sub;
+      font-size: 11.5px;
+      color: var(--text-4);
+      font-weight: 400;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      letter-spacing: 0;
+    }
+    // Units, Avg, Price — hidden.
+    tbody td:nth-child(3),
+    tbody td:nth-child(4),
+    tbody td:nth-child(5) {
+      display: none;
+    }
+    // Market value — right top.
+    tbody td:nth-child(6) {
+      grid-area: value;
+      justify-self: end;
+      text-align: right;
+      font-family: var(--font-mono);
+      font-variant-numeric: tabular-nums;
+      font-size: 15px;
+      font-weight: 500;
+      color: var(--text);
+      letter-spacing: -0.01em;
+      white-space: nowrap;
+    }
+    // P&L $ — right bottom (delta).
+    tbody td:nth-child(7) {
+      grid-area: delta;
+      justify-self: end;
+      text-align: right;
+      font-family: var(--font-mono);
+      font-variant-numeric: tabular-nums;
+      font-size: 12px;
+      font-weight: 500;
+      letter-spacing: 0;
+      white-space: nowrap;
+      margin-top: 2px;
+    }
+    // P&L %, CCY — hidden.
+    tbody td:nth-child(8),
+    tbody td:nth-child(9) {
+      display: none;
+    }
+  }
+
+  // ── Foot note — center, smaller ──────────────────────────────────────
+  .foot-note {
+    flex-direction: column;
+    gap: 6px;
+    text-align: center;
+    margin-top: 24px;
+    font-size: 10px;
+  }
+  // Drop keyboard hints (last span) on mobile.
+  .foot-note > span:last-child {
+    display: none;
+  }
+}
