@@ -308,9 +308,56 @@
     gap: 18px;
     justify-content: space-between;
   }
+  // Legend → clean row list like the investments "Allocation" card: a colour
+  // dot, the category name, its percent, and the amount right-aligned, each on
+  // its own dividered row with readable text (the desktop inline-wrap is too
+  // cramped on a phone).
   .spend-summary-legend {
-    gap: 6px 14px;
-    font-size: 11px;
+    flex-direction: column;
+    gap: 0;
+    margin-top: 12px;
+  }
+  // Named areas pin all four cells to one row — the markup order is
+  // dot/name/amount/percent, so column-only placement would push the percent
+  // onto a second row.
+  .spend-summary-leg {
+    display: grid;
+    grid-template-columns: 12px minmax(0, 1fr) auto auto;
+    grid-template-areas: "dot name pct amt";
+    align-items: center;
+    column-gap: 12px;
+    padding: 11px 0;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+  .spend-summary-leg:last-child {
+    border-bottom: none;
+  }
+  .spend-summary-leg .dot {
+    grid-area: dot;
+    width: 10px;
+    height: 10px;
+    transform: none;
+  }
+  .spend-summary-leg .nm {
+    grid-area: name;
+    font-size: 14px;
+    color: var(--text);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .spend-summary-leg .pct {
+    grid-area: pct;
+    text-align: right;
+    font-size: 12.5px;
+    color: var(--text-4);
+  }
+  .spend-summary-leg .amt {
+    grid-area: amt;
+    text-align: right;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text);
   }
 
   .cat-toolbar {
