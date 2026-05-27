@@ -23,7 +23,7 @@ export function getPlaidEnv() {
 
 /** Twelve Data API key (used for FX rates). Throws when missing at call time. */
 export function getTwelveDataApiKey(): string {
-  return requireEnv("TWELVE_DATA_API_KEY");
+  return requireEnv("TWELVEDATA_API_KEY");
 }
 
 export function getBaseUrl(): string {

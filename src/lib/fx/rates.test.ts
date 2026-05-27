@@ -22,7 +22,7 @@ describe("Twelve Data FX cache", () => {
     records.clear();
     fetchMock.mockReset();
     vi.stubGlobal("fetch", fetchMock);
-    vi.stubEnv("TWELVE_DATA_API_KEY", "test-key");
+    vi.stubEnv("TWELVEDATA_API_KEY", "test-key");
 
     vi.doMock("@/lib/prisma", () => ({
       prisma: {
