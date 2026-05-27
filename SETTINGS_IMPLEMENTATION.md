@@ -250,19 +250,35 @@ Tackling Phase 3 one section at a time. Source of truth for the UI is the `TD Pe
 design handoff (Claude Design bundle — `project/settings.jsx` DisplayTab, `project/theme.js`,
 `project/styles.css`).
 
-**Display & Preferences — UI scaffold (no feature wiring yet)**
+**Display & Preferences — Theme wired (2026-05-26)**
 
 - `display-section.tsx` rebuilt to the design: **Localization** (currency + locale selects, date- and
   number-format segmented controls), **Theme** (dark/light/system preview cards), **Interface**
   (default landing page, row density, tabular numbers, market-session toggle).
 - Built on existing primitives (`SegmentedControl`, `Switch`, `Panel`) + the shared `.row`/`.rowLabel`
   classes. Theme-card styles ported into `settings.module.scss` (`.themeGrid`/`.themeCard`/`.themePv*`).
-- **Only Default landing page is wired** (shipped Phase 1). Everything else holds local state and is
-  intentionally not persisted/applied — file-header comments mark each seam for follow-up:
-  - currency/locale/formats → `lib/format.ts` refactor + `UserSettings` persistence.
-  - theme → controller (localStorage + `<html data-theme>`, cf. design `theme.js`) + light palette.
-  - density/tabular-nums → global CSS preference classes; market-session → topbar pill.
 
-**Verification:** `npm run typecheck` ✅ · `npm run lint` ✅.
+**Theme — now wired to next-themes (2026-05-26)**
+
+- Installed `next-themes` 0.4.6 and set up `ThemeProvider` in `providers.tsx` with attribute
+  `data-theme` (not class), defaulting to dark, with system-preference detection.
+- Added light-mode palette in `_tokens.scss` (warm cream desk/document family `#e6e1ce`/`#efe9d4`)
+  - saturated categorical colors (matching light-mode design tokens). All CSS custom properties
+    automatically flip on `[data-theme="light"]` without component changes.
+- Added 160ms ease transitions on background/border/color in `_base.scss` for smooth theme flips.
+- Created `useMounted` hook (via `useSyncExternalStore`) to detect hydration and gate theme-dependent
+  UI without setState-in-effect linting violations.
+- Wired theme picker in `display-section.tsx` to `next-themes.setTheme()` and topbar theme toggle
+  (`topbar.tsx` sun/moon button). Theme persists to localStorage + `<html data-theme>` attribute.
+- Updated chart tooltips to stay dark-glass in both themes (Bloomberg convention per mockup).
+
+**Default landing page and theme are wired** (Phase 1 & Phase 3). Everything else holds local state
+and is intentionally not persisted/applied — file-header comments mark each seam for follow-up:
+
+- currency/locale/formats → `lib/format.ts` refactor + `UserSettings` persistence.
+- density/tabular-nums → global CSS preference classes; market-session → topbar pill.
+
+**Verification:** `npm run typecheck` ✅ · `npm run lint` ✅ · Theme switching tested end-to-end
+(all 3 cards, localStorage persistence, topbar toggle, hydration-guard) ✅.
 
 Note: **Danger-zone "Unlink-all" is unblocked** by the Phase 2 unlink endpoint when that section comes.
