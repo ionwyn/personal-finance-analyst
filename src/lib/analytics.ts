@@ -12,7 +12,6 @@ import {
   monthLabel,
   numberValue,
 } from "@/lib/analytics/dashboard-helpers";
-import { resolveDisplayCurrency } from "@/lib/fx/displayRate";
 import { getInvestmentDashboardData } from "@/lib/investments/analytics";
 import type { InvestmentDashboardData } from "@/lib/investments/types";
 import { categorizeForSpending } from "@/lib/spending/classify";
@@ -525,10 +524,6 @@ export async function getTransactionsForTenant(input: {
   const tenant = await prisma.tenant.findUnique({ where: { slug: input.tenantSlug } });
   if (!tenant) return { rows: [], total: 0 };
 
-  // Convert amounts to the tenant's display currency. Amount filters below are
-  // entered in display currency, so comparing them to converted amounts is correct.
-  const { rate } = await resolveDisplayCurrency(tenant.id);
-
   const where: Prisma.PlaidTransactionWhereInput = {
     tenantId: tenant.id,
     removed: false,
@@ -576,7 +571,7 @@ export async function getTransactionsForTenant(input: {
       accountId: t.accountId,
       date: t.date.toISOString(),
       authorizedDate: t.authorizedDate?.toISOString(),
-      amount: numberValue(t.amount) * rate,
+      amount: numberValue(t.amount),
       category: cat,
       categoryColor: colorForCategory(cat, Math.abs(hash(cat)) % CATEGORY_COLORS.length),
       detailedCategory: t.categoryDetailed,

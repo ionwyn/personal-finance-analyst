@@ -117,10 +117,10 @@ Legend: `[x]` done · `[~]` partial (see note) · `[ ]` not started · `[—]` i
 
 > Doing Phase 3 slowly, one section at a time. **Display & Preferences UI was scaffolded
 > (2026-05-26)** from the `TD Personal Finance.html` design handoff (`claude.ai/design` bundle:
-> `settings.jsx` DisplayTab + `theme.js` + `styles.css`). **Wired so far:** Default landing (Phase 1),
-> **Theme** (next-themes + light palette), and **Display currency** (CAD/USD via Twelve Data, applied
-> app-wide at the data layer — rolling out surface by surface). Language / date-format / number-format
-> / density / tabular-numbers / market-session remain UI-only.
+> `settings.jsx` DisplayTab + `theme.js` + `styles.css`). **Wired so far:** Default landing (Phase 1)
+> and **Theme** (next-themes + light palette). The **display-currency feature was built then reverted
+> 2026-05-27** (deferred) — but the **Twelve Data FX provider swap was kept** (see below). Language /
+> date-format / number-format / density / tabular-numbers / market-session remain UI-only.
 
 ### Must-have
 
@@ -132,13 +132,15 @@ Legend: `[x]` done · `[~]` partial (see note) · `[ ]` not started · `[—]` i
 
 - [x] Theme light/dark/system — **UI built and wired** (3 preview cards + next-themes integration,
       light palette, localStorage persistence, topbar toggle).
-- [~] **Multi-currency conversion (CAD/USD, default CAD)** — FX engine **done** (Twelve Data, new
-  `src/lib/fx/`, `FxRate` cache, requires `TWELVE_DATA_API_KEY`); `UserSettings.displayCurrency`
-  preference + control **done**; app-wide pipeline **done** (`CurrencyProvider` via `/app` layout +
-  topbar CAD/USD badge; conversion at the data layer). **Converted:** Spending Insight, Transactions.
-  **Still CAD (pending):** Dashboard (entangled nested totals + investments sub-object), Pay cycles
-  (Decimal-heavy), Investments page (bespoke CAD UI), and editable config (budget caps, goal
-  targets, settings amounts) which stay CAD by design.
+- [~] **FX provider swap — KEPT.** FX rates come from **Twelve Data** (`src/lib/fx/rates.ts`,
+  `getFxRate`, CAD/USD, 24h cache; env `TWELVEDATA_API_KEY`). The SnapTrade FX cache table was
+  renamed to **`FxRate`**. This still backs the existing investments CAD conversion.
+- [—] **Multi-currency display conversion (CAD/USD) — built then reverted 2026-05-27, deferred.**
+  The `UserSettings.displayCurrency` preference, the `CurrencyProvider`/app-layout/topbar-badge
+  pipeline, the `displayRate` resolver, and the data-layer conversion in Spending Insight +
+  Transactions were all removed (column dropped via `20260527090000_drop_display_currency`). Revisit
+  later: base is CAD; editable config (caps/targets/settings) should stay CAD; the dashboard
+  (`getDashboardData`) and investments page have entangled/bespoke currency handling to reconcile.
 - [ ] Sessions: list active + "sign out all" (DB-strategy sessions make this feasible)
 - [ ] Danger zone: Unlink-all (Phase 2 unlink endpoint now exists — reuse it) + Purge tenant (cascade deletes exist)
 - [~] Row density + tabular-numbers toggles — **UI built** (segmented + switches, incl. market-session
@@ -278,27 +280,28 @@ design handoff (Claude Design bundle — `project/settings.jsx` DisplayTab, `pro
   (`topbar.tsx` sun/moon button). Theme persists to localStorage + `<html data-theme>` attribute.
 - Updated chart tooltips to stay dark-glass in both themes (Bloomberg convention per mockup).
 
-**Multi-currency / FX — Twelve Data + display currency (2026-05-26)**
+**FX provider swap — KEPT (2026-05-26)**
 
-- FX moved off SnapTrade to **Twelve Data** (`/exchange_rate`). New provider-neutral `src/lib/fx/`:
-  `rates.ts` (`getFxRate`, CAD/USD only, 24h cache, inverse + stale-cache fallback; `TWELVE_DATA_API_KEY`)
-  and `displayRate.ts` (`resolveDisplayCurrency(tenantId)` → base→display rate, CAD fallback on error).
-- `SnapTradeFxRate` table renamed to **`FxRate`** (data-preserving migration); consumers repointed.
-- `UserSettings.displayCurrency` (CAD/USD, default CAD) + user-settings PATCH; Display currency
-  control shows only CAD/USD and persists.
-- App-wide pipeline: `CurrencyProvider` mounted by a new `src/app/app/layout.tsx`; topbar shows a
-  CAD/USD badge. **Conversion happens at the data layer** (server loaders multiply base-CAD by the
-  rate) so server + client renderers stay consistent and there's no double-convert.
-- **Converted:** `getSpendingInsight`, `getTransactionsForTenant` (amount filters compare the
-  converted value). **Pending (still CAD):** dashboard (`getDashboardData` — entangled totals +
-  investments sub-object), pay cycles (Decimal-heavy), investments page (bespoke CAD UI). Editable
-  config (budget caps, goal targets, settings amounts) stays CAD by design.
+- FX moved off SnapTrade to **Twelve Data** (`/exchange_rate`). New provider-neutral
+  `src/lib/fx/rates.ts` (`getFxRate`, CAD/USD only, 24h cache, inverse + stale-cache fallback;
+  env `TWELVEDATA_API_KEY`).
+- `SnapTradeFxRate` table renamed to **`FxRate`** (data-preserving migration); consumers repointed
+  (SnapTrade sync, investments loader/fx, demo seed). This still backs the investments CAD conversion.
 - "Locale" Display row renamed to **"Language"** (value still a locale; UI only).
 
-**Default landing, theme, and display currency are wired.** Language / date-format / number-format /
-density / tabular-numbers / market-session still hold local state — seams marked in the file header.
+**Display-currency feature — built then reverted/deferred (2026-05-27)**
 
-**Verification:** `npm run typecheck` ✅ · `npm run lint` ✅ · `npm test` ✅ (57 passed) ·
+- A full CAD/USD display-currency feature was built on top of the FX swap, then reverted at the
+  owner's request to defer it. Removed: `UserSettings.displayCurrency` (dropped via
+  `20260527090000_drop_display_currency`), the user-settings PATCH handling, the Display currency
+  control wiring (back to a UI-only stub), `src/lib/fx/displayRate.ts`,
+  `src/components/providers/currency-provider.tsx`, `src/app/app/layout.tsx`, the topbar CAD/USD
+  badge, and the data-layer conversion in `getSpendingInsight` + `getTransactionsForTenant`.
+- The Twelve Data provider swap + `FxRate` rename were intentionally **kept**.
+- When revisited: base is CAD; editable config (caps/targets/settings) should stay CAD; the dashboard
+  (`getDashboardData`) and investments page have entangled/bespoke currency handling to reconcile.
+
+**Verification (post-revert):** `npm run typecheck` ✅ · `npm run lint` ✅ · `npm test` ✅ (57 passed) ·
 `npm run build` ✅.
 
 Note: **Danger-zone "Unlink-all" is unblocked** by the Phase 2 unlink endpoint when that section comes.

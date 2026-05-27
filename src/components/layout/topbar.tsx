@@ -5,7 +5,6 @@ import { usePathname } from "next/navigation";
 import { Command, Moon, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
 
-import { useCurrency } from "@/components/providers/currency-provider";
 import { useMounted } from "@/lib/use-mounted";
 import styles from "./app-shell.module.scss";
 
@@ -30,7 +29,6 @@ export function Topbar({ mode, dbSize }: { mode: "private" | "demo"; dbSize?: st
   const pathname = usePathname() ?? "/";
   const [time, setTime] = useState<string>("");
   const { resolvedTheme, setTheme } = useTheme();
-  const { currency } = useCurrency();
   const mounted = useMounted();
 
   useEffect(() => {
@@ -67,7 +65,6 @@ export function Topbar({ mode, dbSize }: { mode: "private" | "demo"; dbSize?: st
           API · {mode === "demo" ? "SANDBOX" : "OK"}
         </span>
         {dbSize ? <span>DB · {dbSize}</span> : null}
-        <span title="Display currency">{currency}</span>
         {time ? <span>{time}</span> : null}
       </div>
       {mounted ? (
