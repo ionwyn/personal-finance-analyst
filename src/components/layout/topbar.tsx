@@ -2,8 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
-import { Command } from "lucide-react";
+import { Command, Moon, Sun } from "lucide-react";
+import { useTheme } from "next-themes";
 
+import { useMounted } from "@/lib/use-mounted";
 import styles from "./app-shell.module.scss";
 
 const ROUTE_LABELS: Record<string, [string, string]> = {
@@ -26,6 +28,8 @@ function labelsFor(pathname: string): [string, string] {
 export function Topbar({ mode, dbSize }: { mode: "private" | "demo"; dbSize?: string }) {
   const pathname = usePathname() ?? "/";
   const [time, setTime] = useState<string>("");
+  const { resolvedTheme, setTheme } = useTheme();
+  const mounted = useMounted();
 
   useEffect(() => {
     const tick = () => {
@@ -63,6 +67,20 @@ export function Topbar({ mode, dbSize }: { mode: "private" | "demo"; dbSize?: st
         {dbSize ? <span>DB · {dbSize}</span> : null}
         {time ? <span>{time}</span> : null}
       </div>
+      {mounted ? (
+        <button
+          className={styles.topbarBtn}
+          type="button"
+          aria-label={resolvedTheme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+          onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
+        >
+          {resolvedTheme === "dark" ? <Sun size={13} /> : <Moon size={13} />}
+        </button>
+      ) : (
+        <button className={styles.topbarBtn} type="button" aria-label="Toggle theme" disabled>
+          <Sun size={13} />
+        </button>
+      )}
       <button className={styles.topbarBtn} type="button" aria-label="Command palette">
         <Command size={11} />K
       </button>
