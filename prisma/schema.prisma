@@ -56,6 +56,7 @@ model Tenant {
   snapTradeAccounts     SnapTradeAccount[]
   snapTradePositions    SnapTradePosition[]
   snapTradeCashBalances SnapTradeCashBalance[]
+  snapTradeActivities   SnapTradeActivity[]
   snapTradeSyncRuns     SnapTradeSyncRun[]
   payCycles             PayCycle[]
   recurringExpenses     RecurringExpense[]
@@ -315,6 +316,8 @@ model SnapTradeAccount {
   isPaper                     Boolean   @default(false)
   lastHoldingsSyncAt          DateTime?
   holdingsInitialSyncComplete Boolean   @default(false)
+  activitiesBackfilledAt      DateTime?
+  lastActivityDate            DateTime?
   createdAt                   DateTime  @default(now())
   updatedAt                   DateTime  @updatedAt
 
@@ -322,6 +325,7 @@ model SnapTradeAccount {
   connection SnapTradeConnection    @relation(fields: [connectionId], references: [id], onDelete: Cascade)
   positions  SnapTradePosition[]
   balances   SnapTradeCashBalance[]
+  activities SnapTradeActivity[]
 
   @@index([tenantId])
   @@index([connectionId])
@@ -382,6 +386,38 @@ model SnapTradeCashBalance {
   @@index([tenantId])
 }
 
+model SnapTradeActivity {
+  id                  String    @id @default(cuid())
+  tenantId            String
+  accountId           String
+  snapTradeActivityId String    @unique
+  type                String
+  symbol              String?
+  description         String?   @db.Text
+  units               Decimal?  @db.Decimal(24, 8)
+  price               Decimal?  @db.Decimal(24, 8)
+  amount              Decimal?  @db.Decimal(24, 8)
+  fee                 Decimal?  @db.Decimal(24, 8)
+  currency            String
+  fxRate              Decimal?  @db.Decimal(18, 8)
+  tradeDate           DateTime?
+  settlementDate      DateTime?
+  externalReferenceId String?
+  institution         String?
+  raw                 Json?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  tenant  Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  account SnapTradeAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, tradeDate])
+  @@index([accountId, tradeDate])
+  @@index([symbol])
+  @@index([type])
+  @@index([externalReferenceId])
+}
+
 model SnapTradeSyncRun {
   id                    String        @id @default(cuid())
   tenantId              String
@@ -394,6 +430,7 @@ model SnapTradeSyncRun {
   accountsCount         Int           @default(0)
   positionsCount        Int           @default(0)
   balancesCount         Int           @default(0)
+  activitiesCount       Int           @default(0)
   omittedPositionsCount Int           @default(0)
   errorCode             String?
   errorMessage          String?       @db.Text
