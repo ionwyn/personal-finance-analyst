@@ -39,6 +39,7 @@ export async function getInvestmentDashboardData(
 ): Promise<InvestmentDashboardData> {
   const {
     accounts,
+    connections,
     holdings,
     cashBalances,
     fxUSDtoCAD,
@@ -113,6 +114,7 @@ export async function getInvestmentDashboardData(
   return {
     summary,
     accounts,
+    connections,
     holdings,
     cashBalances,
     allocByType,

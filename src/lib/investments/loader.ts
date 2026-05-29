@@ -6,8 +6,18 @@ import type {
   ConnectionStatus,
   InvestmentAccount,
   InvestmentCashBalance,
+  InvestmentConnection,
   InvestmentPosition,
 } from "./types";
+
+const STALE_MS = 24 * 60 * 60 * 1000;
+
+function isStaleSince(iso: string | null | undefined, now: number) {
+  if (!iso) return true;
+  const ts = new Date(iso).getTime();
+  if (!Number.isFinite(ts)) return true;
+  return now - ts > STALE_MS;
+}
 
 const LOGO_PALETTE = [
   "#a6192e",
@@ -68,6 +78,7 @@ export type ConnectionHealth = {
 
 export type LoadedInvestments = {
   accounts: InvestmentAccount[];
+  connections: InvestmentConnection[];
   holdings: InvestmentPosition[];
   cashBalances: InvestmentCashBalance[];
   fxUSDtoCAD: number | null;
@@ -97,6 +108,7 @@ export async function loadInvestments(tenantId?: string | null): Promise<LoadedI
   if (!tenantId) {
     return {
       accounts: [],
+      connections: [],
       holdings: [],
       cashBalances: [],
       fxUSDtoCAD: null,
@@ -134,6 +146,8 @@ export async function loadInvestments(tenantId?: string | null): Promise<LoadedI
     (account) => !isClosedSnapTradeAccountStatus(account.status)
   );
 
+  const now = Date.now();
+
   const accounts: InvestmentAccount[] = activeAccountsRaw.map((account) => {
     const holdingsCAD = account.positions.reduce(
       (sum, position) => sum + numberValue(position.marketValueCad),
@@ -144,6 +158,10 @@ export async function loadInvestments(tenantId?: string | null): Promise<LoadedI
       0
     );
     const institution = account.institutionName ?? account.connection.brokerageName ?? "SnapTrade";
+    const lastSyncAt =
+      account.connection.lastSyncAt?.toISOString() ??
+      account.lastHoldingsSyncAt?.toISOString() ??
+      null;
 
     return {
       id: account.id,
@@ -158,12 +176,11 @@ export async function loadInvestments(tenantId?: string | null): Promise<LoadedI
       cash: cashCAD,
       openedAt:
         account.openedAt?.toISOString() ?? account.snapTradeCreatedAt?.toISOString() ?? null,
-      lastSyncAt:
-        account.connection.lastSyncAt?.toISOString() ??
-        account.lastHoldingsSyncAt?.toISOString() ??
-        null,
+      lastSyncAt,
       positionCount: account.positions.length,
       status: account.connection.status,
+      isStale: isStaleSince(lastSyncAt, now),
+      initialSyncComplete: account.holdingsInitialSyncComplete,
     };
   });
 
@@ -236,8 +253,42 @@ export async function loadInvestments(tenantId?: string | null): Promise<LoadedI
     failingConnectionCount: failing,
   };
 
+  const accountsByConnection = new Map<string, { count: number; initialSyncIncomplete: number }>();
+  for (const account of activeAccountsRaw) {
+    const bucket = accountsByConnection.get(account.connectionId) ?? {
+      count: 0,
+      initialSyncIncomplete: 0,
+    };
+    bucket.count += 1;
+    if (!account.holdingsInitialSyncComplete) bucket.initialSyncIncomplete += 1;
+    accountsByConnection.set(account.connectionId, bucket);
+  }
+
+  const connectionRows: InvestmentConnection[] = connections.map((connection) => {
+    const institution = connection.brokerageName ?? connection.name ?? "SnapTrade";
+    const bucket = accountsByConnection.get(connection.id) ?? {
+      count: 0,
+      initialSyncIncomplete: 0,
+    };
+    const lastSyncAt = connection.lastSyncAt?.toISOString() ?? null;
+    return {
+      id: connection.id,
+      institution,
+      institutionLogoBg: hashColor(institution),
+      institutionLogoText: logoText(institution),
+      status: connection.status as ConnectionStatus,
+      lastSyncAt,
+      isStale: isStaleSince(lastSyncAt, now),
+      errorCode: connection.errorCode,
+      errorMessage: connection.errorMessage,
+      accountCount: bucket.count,
+      initialSyncIncompleteCount: bucket.initialSyncIncomplete,
+    };
+  });
+
   return {
     accounts,
+    connections: connectionRows,
     holdings,
     cashBalances: [...cashByCurrency.values()].sort((a, b) => a.currency.localeCompare(b.currency)),
     fxUSDtoCAD: usdCad?.rate.toNumber() ?? null,

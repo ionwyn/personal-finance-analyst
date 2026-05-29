@@ -16,6 +16,22 @@ export type InvestmentAccount = {
   lastSyncAt: string | null;
   positionCount: number;
   status: "IDLE" | "SYNCING" | "ERROR" | "DISABLED";
+  isStale: boolean;
+  initialSyncComplete: boolean;
+};
+
+export type InvestmentConnection = {
+  id: string;
+  institution: string;
+  institutionLogoBg: string;
+  institutionLogoText: string;
+  status: ConnectionStatus;
+  lastSyncAt: string | null;
+  isStale: boolean;
+  errorCode: string | null;
+  errorMessage: string | null;
+  accountCount: number;
+  initialSyncIncompleteCount: number;
 };
 
 export type InvestmentPosition = {
@@ -80,6 +96,7 @@ export type InvestmentSummary = {
 export type InvestmentDashboardData = {
   summary: InvestmentSummary;
   accounts: InvestmentAccount[];
+  connections: InvestmentConnection[];
   holdings: InvestmentPosition[];
   cashBalances: InvestmentCashBalance[];
   allocByType: Allocation[];

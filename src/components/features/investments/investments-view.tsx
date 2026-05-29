@@ -1,13 +1,37 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import { Search } from "lucide-react";
 
 import { SnapTradeLinkButton, SnapTradeSyncButton } from "@/components/actions/snaptrade-actions";
 import { SymLogo } from "@/components/shared/sym-logo";
-import { PageHeader, SegmentedControl } from "@/components/ui";
+import { SegmentedControl } from "@/components/ui";
 import { formatRelativeTime, formatYearMonth } from "@/lib/format";
-import type { InvestmentDashboardData, InvestmentPosition } from "@/lib/investments/types";
+import type {
+  InvestmentConnection,
+  InvestmentDashboardData,
+  InvestmentPosition,
+} from "@/lib/investments/types";
+
+import { InvestmentsTabs } from "./investments-tabs";
+
+type ConnectionPill = { cls: string; label: string };
+
+function connectionPill(connection: InvestmentConnection): ConnectionPill {
+  switch (connection.status) {
+    case "SYNCING":
+      return { cls: "syncing", label: "SYNCING" };
+    case "ERROR":
+      return { cls: "error", label: "RE-AUTH" };
+    case "DISABLED":
+      return { cls: "error", label: "DISABLED" };
+    default:
+      return connection.isStale
+        ? { cls: "warn", label: "STALE" }
+        : { cls: "success", label: "HEALTHY" };
+  }
+}
 
 type SortKey = "symbol" | "units" | "avgCost" | "price" | "mvCAD" | "plCAD" | "plPct";
 
@@ -17,7 +41,7 @@ const fmt2 = (v: number) =>
   v.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 export function InvestmentsView({ data }: { data: InvestmentDashboardData }) {
-  const { summary, accounts, holdings, allocByType, allocByCcy } = data;
+  const { summary, accounts, connections, holdings, allocByType, allocByCcy } = data;
   const [showCAD, setShowCAD] = useState(false);
   const [sortKey, setSortKey] = useState<SortKey>("mvCAD");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
@@ -54,22 +78,23 @@ export function InvestmentsView({ data }: { data: InvestmentDashboardData }) {
 
   return (
     <>
-      <PageHeader
-        title="Investments"
-        subtitle={
-          <>
+      <div className="page-header">
+        <div>
+          <div className="invest-header-row">
+            <div className="page-title">Investments</div>
+            <InvestmentsTabs active="holdings" />
+          </div>
+          <div className="page-sub">
             {summary.accountCount} {summary.accountCount === 1 ? "ACCOUNT" : "ACCOUNTS"} ·{" "}
             {summary.positionCount} POSITIONS · LAST SYNC{" "}
             {formatRelativeTime(summary.lastSync).toUpperCase()} · SNAPTRADE · OK
-          </>
-        }
-        actions={
-          <>
-            <SnapTradeSyncButton />
-            <SnapTradeLinkButton compact />
-          </>
-        }
-      />
+          </div>
+        </div>
+        <div className="page-actions">
+          <SnapTradeSyncButton />
+          <SnapTradeLinkButton compact />
+        </div>
+      </div>
 
       <div className="summary-bar">
         <div className="cell">
@@ -164,6 +189,68 @@ export function InvestmentsView({ data }: { data: InvestmentDashboardData }) {
         </div>
       </div>
 
+      {connections.length > 0 ? (
+        <div className="panel" style={{ marginBottom: 16 }}>
+          <div className="panel-head">
+            <div className="panel-title">Connection health</div>
+            <div className="panel-meta">
+              {connections.length} {connections.length === 1 ? "CONNECTION" : "CONNECTIONS"}
+            </div>
+          </div>
+          <div className="panel-body flush">
+            <div className="conn-list">
+              {connections.map((c) => {
+                const pill = connectionPill(c);
+                return (
+                  <div className="conn-row" key={c.id}>
+                    <div
+                      className="sym-logo"
+                      style={{
+                        background: c.institutionLogoBg,
+                        width: 28,
+                        height: 28,
+                        fontSize: 10,
+                      }}
+                    >
+                      {c.institutionLogoText}
+                    </div>
+                    <div>
+                      <div className="nm">{c.institution}</div>
+                      <div className="meta">
+                        {c.accountCount} {c.accountCount === 1 ? "account" : "accounts"}
+                      </div>
+                      {c.status === "ERROR" && (c.errorMessage || c.errorCode) ? (
+                        <div className="sub-err">
+                          {c.errorCode ? `${c.errorCode}: ` : ""}
+                          {c.errorMessage ?? "Reconnect required."}
+                        </div>
+                      ) : null}
+                      {c.status !== "ERROR" && c.initialSyncIncompleteCount > 0 ? (
+                        <div className="sub-info">
+                          {c.initialSyncIncompleteCount}{" "}
+                          {c.initialSyncIncompleteCount === 1 ? "account" : "accounts"} still
+                          completing initial sync
+                        </div>
+                      ) : null}
+                    </div>
+                    <span className={`status ${pill.cls}`}>
+                      <i className="pulse" />
+                      {pill.label}
+                    </span>
+                    <span className="meta">
+                      {c.lastSyncAt ? `Synced ${formatRelativeTime(c.lastSyncAt)}` : "Never synced"}
+                    </span>
+                    <Link href="/app/settings?s=connections" className="conn-link">
+                      VIEW DETAIL →
+                    </Link>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       <div className="panel" style={{ marginBottom: 16 }}>
         <div className="panel-head">
           <div className="panel-title">Accounts</div>
@@ -173,34 +260,49 @@ export function InvestmentsView({ data }: { data: InvestmentDashboardData }) {
         </div>
         <div className="panel-body flush">
           <div className="brok-list">
-            {accounts.map((a) => (
-              <div className="brok-row" key={a.id}>
-                <div
-                  className="sym-logo"
-                  style={{
-                    background: a.institutionLogoBg,
-                    width: 28,
-                    height: 28,
-                    fontSize: 10,
-                  }}
-                >
-                  {a.institutionLogoText}
+            {accounts.map((a) => {
+              const badge = !a.initialSyncComplete
+                ? { cls: "warn", label: "INITIAL SYNC" }
+                : a.isStale
+                  ? { cls: "warn", label: "STALE" }
+                  : null;
+              return (
+                <div className="brok-row" key={a.id}>
+                  <div
+                    className="sym-logo"
+                    style={{
+                      background: a.institutionLogoBg,
+                      width: 28,
+                      height: 28,
+                      fontSize: 10,
+                    }}
+                  >
+                    {a.institutionLogoText}
+                  </div>
+                  <div>
+                    <div className="nm">{a.name}</div>
+                    <div className="meta">{a.positionCount} positions</div>
+                  </div>
+                  <span className="reg-cell">
+                    <span className="status reg">
+                      <i className="pulse" />
+                      {a.registration}
+                    </span>
+                    {badge ? (
+                      <span className={`status ${badge.cls}`} title={badge.label}>
+                        <i className="pulse" />
+                        {badge.label}
+                      </span>
+                    ) : null}
+                  </span>
+                  <span className="meta">{a.currency}</span>
+                  <span className="opened">
+                    opened {a.openedAt ? formatYearMonth(a.openedAt) : "—"}
+                  </span>
+                  <span className="val">${fmt2(a.totalValue)}</span>
                 </div>
-                <div>
-                  <div className="nm">{a.name}</div>
-                  <div className="meta">{a.positionCount} positions</div>
-                </div>
-                <span className="status reg">
-                  <i className="pulse" />
-                  {a.registration}
-                </span>
-                <span className="meta">{a.currency}</span>
-                <span className="opened">
-                  opened {a.openedAt ? formatYearMonth(a.openedAt) : "—"}
-                </span>
-                <span className="val">${fmt2(a.totalValue)}</span>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </div>
