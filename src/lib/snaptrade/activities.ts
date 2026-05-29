@@ -7,6 +7,7 @@ import { logger, safeError } from "@/lib/logger";
 
 const BACKFILL_MONTHS = 24;
 const OVERLAP_DAYS = 7;
+const PAGE_LIMIT = 1000;
 
 function decimal(value: number | null | undefined) {
   return value == null ? null : new Prisma.Decimal(value);
@@ -28,6 +29,56 @@ function incrementalStart(lastActivityDate: Date) {
   return d;
 }
 
+async function upsertActivity(
+  tenantId: string,
+  accountId: string,
+  normalized: ReturnType<typeof normalizeActivity>,
+  raw: unknown
+) {
+  if (!normalized) return false;
+  await prisma.snapTradeActivity.upsert({
+    where: { snapTradeActivityId: normalized.snapTradeActivityId },
+    update: {
+      tenantId,
+      accountId,
+      type: normalized.type,
+      symbol: normalized.symbol,
+      description: normalized.description,
+      units: decimal(normalized.units),
+      price: decimal(normalized.price),
+      amount: decimal(normalized.amount),
+      fee: decimal(normalized.fee),
+      currency: normalized.currency,
+      fxRate: decimal(normalized.fxRate),
+      tradeDate: normalized.tradeDate,
+      settlementDate: normalized.settlementDate,
+      externalReferenceId: normalized.externalReferenceId,
+      institution: normalized.institution,
+      raw: raw as Prisma.InputJsonValue,
+    },
+    create: {
+      tenantId,
+      accountId,
+      snapTradeActivityId: normalized.snapTradeActivityId,
+      type: normalized.type,
+      symbol: normalized.symbol,
+      description: normalized.description,
+      units: decimal(normalized.units),
+      price: decimal(normalized.price),
+      amount: decimal(normalized.amount),
+      fee: decimal(normalized.fee),
+      currency: normalized.currency,
+      fxRate: decimal(normalized.fxRate),
+      tradeDate: normalized.tradeDate,
+      settlementDate: normalized.settlementDate,
+      externalReferenceId: normalized.externalReferenceId,
+      institution: normalized.institution,
+      raw: raw as Prisma.InputJsonValue,
+    },
+  });
+  return true;
+}
+
 export async function syncActivitiesForAccount(input: {
   tenantId: string;
   account: SnapTradeAccount;
@@ -42,76 +93,49 @@ export async function syncActivitiesForAccount(input: {
       ? incrementalStart(account.lastActivityDate)
       : backfillStart(now);
 
-  let response;
+  let savedCount = 0;
+  let maxTradeDate: Date | null = account.lastActivityDate ?? null;
+  let offset = 0;
+  let total: number | null = null;
+
   try {
-    response = await client.transactionsAndReporting.getActivities({
-      userId,
-      userSecret,
-      accounts: account.snapTradeAccountId,
-      startDate: isoDate(start),
-      endDate: isoDate(now),
-    });
+    do {
+      const response = await client.accountInformation.getAccountActivities({
+        accountId: account.snapTradeAccountId,
+        userId,
+        userSecret,
+        startDate: isoDate(start),
+        endDate: isoDate(now),
+        offset,
+        limit: PAGE_LIMIT,
+      });
+
+      const page = response.data?.data ?? [];
+      if (total === null) {
+        total = response.data?.pagination?.total ?? page.length;
+      }
+
+      for (const raw of page) {
+        const normalized = normalizeActivity(raw);
+        if (!normalized) continue;
+        const saved = await upsertActivity(tenantId, account.id, normalized, raw);
+        if (saved) {
+          savedCount += 1;
+          if (normalized.tradeDate && (!maxTradeDate || normalized.tradeDate > maxTradeDate)) {
+            maxTradeDate = normalized.tradeDate;
+          }
+        }
+      }
+
+      offset += page.length;
+      if (page.length < PAGE_LIMIT) break;
+    } while (offset < (total ?? 0));
   } catch (error) {
     logger.warn(
       { accountId: account.id, error: safeError(error) },
       "snaptrade activities fetch failed (non-fatal)"
     );
     return 0;
-  }
-
-  const activities = response.data ?? [];
-  let savedCount = 0;
-  let maxTradeDate: Date | null = account.lastActivityDate ?? null;
-
-  for (const raw of activities) {
-    const normalized = normalizeActivity(raw);
-    if (!normalized) continue;
-
-    await prisma.snapTradeActivity.upsert({
-      where: { snapTradeActivityId: normalized.snapTradeActivityId },
-      update: {
-        tenantId,
-        accountId: account.id,
-        type: normalized.type,
-        symbol: normalized.symbol,
-        description: normalized.description,
-        units: decimal(normalized.units),
-        price: decimal(normalized.price),
-        amount: decimal(normalized.amount),
-        fee: decimal(normalized.fee),
-        currency: normalized.currency,
-        fxRate: decimal(normalized.fxRate),
-        tradeDate: normalized.tradeDate,
-        settlementDate: normalized.settlementDate,
-        externalReferenceId: normalized.externalReferenceId,
-        institution: normalized.institution,
-        raw: raw as unknown as Prisma.InputJsonValue,
-      },
-      create: {
-        tenantId,
-        accountId: account.id,
-        snapTradeActivityId: normalized.snapTradeActivityId,
-        type: normalized.type,
-        symbol: normalized.symbol,
-        description: normalized.description,
-        units: decimal(normalized.units),
-        price: decimal(normalized.price),
-        amount: decimal(normalized.amount),
-        fee: decimal(normalized.fee),
-        currency: normalized.currency,
-        fxRate: decimal(normalized.fxRate),
-        tradeDate: normalized.tradeDate,
-        settlementDate: normalized.settlementDate,
-        externalReferenceId: normalized.externalReferenceId,
-        institution: normalized.institution,
-        raw: raw as unknown as Prisma.InputJsonValue,
-      },
-    });
-
-    savedCount += 1;
-    if (normalized.tradeDate && (!maxTradeDate || normalized.tradeDate > maxTradeDate)) {
-      maxTradeDate = normalized.tradeDate;
-    }
   }
 
   await prisma.snapTradeAccount.update({
