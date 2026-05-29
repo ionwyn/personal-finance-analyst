@@ -1,5 +1,6 @@
 import type {
   Account,
+  AccountUniversalActivity,
   Balance,
   BrokerageAuthorization,
   Position,
@@ -38,6 +39,23 @@ export type NormalizedBalance = {
   currency: string;
   cash: number;
   buyingPower: number | null;
+};
+
+export type NormalizedActivity = {
+  snapTradeActivityId: string;
+  type: string;
+  symbol: string | null;
+  description: string | null;
+  units: number | null;
+  price: number | null;
+  amount: number | null;
+  fee: number | null;
+  currency: string;
+  fxRate: number | null;
+  tradeDate: Date | null;
+  settlementDate: Date | null;
+  externalReferenceId: string | null;
+  institution: string | null;
 };
 
 export type NormalizedPosition = {
@@ -165,6 +183,38 @@ export function normalizeBalance(balance: Balance): NormalizedBalance | null {
     currency,
     cash: numberOrNull(balance.cash) ?? 0,
     buyingPower: numberOrNull(balance.buying_power),
+  };
+}
+
+export function normalizeActivity(activity: AccountUniversalActivity): NormalizedActivity | null {
+  if (!activity.id) return null;
+
+  const activitySymbol = activity.symbol as
+    | { symbol?: { symbol?: unknown }; description?: unknown }
+    | null
+    | undefined;
+  const ticker =
+    stringOrNull(activitySymbol?.symbol?.symbol) ??
+    stringOrNull(activitySymbol?.description) ??
+    null;
+
+  const currency = upperCurrency(activity.currency?.code) ?? "CAD";
+
+  return {
+    snapTradeActivityId: activity.id,
+    type: stringOrNull(activity.type)?.toUpperCase() ?? "UNKNOWN",
+    symbol: ticker,
+    description: stringOrNull(activity.description),
+    units: numberOrNull(activity.units),
+    price: numberOrNull(activity.price),
+    amount: numberOrNull(activity.amount),
+    fee: numberOrNull(activity.fee),
+    currency,
+    fxRate: numberOrNull(activity.fx_rate),
+    tradeDate: dateOrNull(activity.trade_date),
+    settlementDate: dateOrNull(activity.settlement_date),
+    externalReferenceId: stringOrNull(activity.external_reference_id),
+    institution: stringOrNull(activity.institution),
   };
 }
 

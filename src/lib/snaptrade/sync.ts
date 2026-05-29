@@ -3,6 +3,7 @@ import type { Account, Balance, BrokerageAuthorization, Position } from "snaptra
 
 import { prisma } from "@/lib/prisma";
 import { getFxRate } from "@/lib/fx/rates";
+import { syncActivitiesForAccount } from "@/lib/snaptrade/activities";
 import { ensureLogoRecord } from "@/lib/snaptrade/logo";
 import {
   isClosedSnapTradeAccountStatus,
@@ -279,6 +280,7 @@ async function syncConnection(input: {
       accountsCount: 0,
       balancesCount: 0,
       positionsCount: 0,
+      activitiesCount: 0,
       omittedPositionsCount: 0,
       skipped: false,
     };
@@ -304,6 +306,7 @@ async function syncConnection(input: {
       accountsCount: 0,
       balancesCount: 0,
       positionsCount: 0,
+      activitiesCount: 0,
       omittedPositionsCount: 0,
       skipped: false,
     };
@@ -338,6 +341,7 @@ async function syncConnection(input: {
       accountsCount: 0,
       balancesCount: 0,
       positionsCount: 0,
+      activitiesCount: 0,
       omittedPositionsCount: 0,
       skipped: true,
     };
@@ -368,6 +372,7 @@ async function syncConnection(input: {
     let accountsCount = 0;
     let balancesCount = 0;
     let positionsCount = 0;
+    let activitiesCount = 0;
     let omittedPositionsCount = 0;
     const seenAccountIds: string[] = [];
 
@@ -408,6 +413,11 @@ async function syncConnection(input: {
       });
       positionsCount += positionCounts.positionsCount;
       omittedPositionsCount += positionCounts.omittedPositionsCount;
+
+      activitiesCount += await syncActivitiesForAccount({
+        tenantId: input.tenantId,
+        account: savedAccount,
+      });
     }
 
     await prisma.snapTradeAccount.deleteMany({
@@ -434,11 +444,19 @@ async function syncConnection(input: {
         accountsCount,
         balancesCount,
         positionsCount,
+        activitiesCount,
         omittedPositionsCount,
       },
       "snaptrade connection sync completed"
     );
-    return { accountsCount, balancesCount, positionsCount, omittedPositionsCount, skipped: false };
+    return {
+      accountsCount,
+      balancesCount,
+      positionsCount,
+      activitiesCount,
+      omittedPositionsCount,
+      skipped: false,
+    };
   } catch (error) {
     await prisma.snapTradeConnection.update({
       where: { id: connection.id },
@@ -522,6 +540,7 @@ async function syncSnapTradeTenantWithContext(tenantId: string, source: SyncSour
   let accountsCount = 0;
   let balancesCount = 0;
   let positionsCount = 0;
+  let activitiesCount = 0;
   let omittedPositionsCount = 0;
   let skippedConnections = 0;
 
@@ -542,6 +561,7 @@ async function syncSnapTradeTenantWithContext(tenantId: string, source: SyncSour
       accountsCount += counts.accountsCount;
       balancesCount += counts.balancesCount;
       positionsCount += counts.positionsCount;
+      activitiesCount += counts.activitiesCount;
       omittedPositionsCount += counts.omittedPositionsCount;
       if (counts.skipped) skippedConnections += 1;
     }
@@ -566,6 +586,7 @@ async function syncSnapTradeTenantWithContext(tenantId: string, source: SyncSour
         accountsCount,
         balancesCount,
         positionsCount,
+        activitiesCount,
         omittedPositionsCount,
         errorMessage: skippedConnections
           ? `${skippedConnections} connection(s) skipped: another sync was in progress.`
@@ -580,6 +601,7 @@ async function syncSnapTradeTenantWithContext(tenantId: string, source: SyncSour
         accountsCount,
         balancesCount,
         positionsCount,
+        activitiesCount,
         omittedPositionsCount,
         skippedConnections,
       },
@@ -596,6 +618,7 @@ async function syncSnapTradeTenantWithContext(tenantId: string, source: SyncSour
         accountsCount,
         balancesCount,
         positionsCount,
+        activitiesCount,
         omittedPositionsCount,
         errorCode: "SNAPTRADE_SYNC_ERROR",
         errorMessage: errorMessage(error),
@@ -609,6 +632,7 @@ async function syncSnapTradeTenantWithContext(tenantId: string, source: SyncSour
         accountsCount,
         balancesCount,
         positionsCount,
+        activitiesCount,
         omittedPositionsCount,
         errorCode: "SNAPTRADE_SYNC_ERROR",
         error: safeError(error),
