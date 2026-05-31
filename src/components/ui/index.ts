@@ -2,6 +2,7 @@ export { Button, IconButton } from "./button";
 export type { ButtonProps, IconButtonProps } from "./button";
 export { DateRangePicker } from "./date-range-picker";
 export type { DateRangePickerProps } from "./date-range-picker";
+export { DeferredOverlay } from "./deferred-overlay";
 export { EmptyPanelMessage } from "./empty-panel-message";
 export { DropdownMenu } from "./menu";
 export type { DropdownMenuProps, MenuItemDef } from "./menu";

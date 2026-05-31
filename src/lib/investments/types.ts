@@ -1,3 +1,5 @@
+import type { ActivityGroupKey } from "./activity-types";
+
 export type AssetType = string;
 export type Currency = string;
 
@@ -101,4 +103,92 @@ export type InvestmentDashboardData = {
   cashBalances: InvestmentCashBalance[];
   allocByType: Allocation[];
   allocByCcy: Allocation[];
+};
+
+// ─── Position detail page (single holding drill-down) ──────────────────────
+
+// One brokerage account in which the symbol is held (the design calls these "lots").
+export type PositionLot = {
+  accountId: string;
+  accountLabel: string; // registration, e.g. TFSA / RRSP
+  institution: string;
+  institutionLogoBg: string;
+  institutionLogoText: string;
+  currency: Currency;
+  units: number;
+  avg: number | null; // avg cost, native
+  costNative: number | null;
+  costCad: number | null;
+  mvNative: number;
+  mvCad: number;
+  uplCad: number | null;
+  uplPct: number | null;
+  weight: number; // % of this position's market value
+  openedAt: string | null;
+  since: string | null; // "May 2024"
+};
+
+export type PositionActivityRow = {
+  id: string;
+  type: string;
+  group: ActivityGroupKey;
+  accountLabel: string;
+  description: string | null;
+  units: number | null;
+  price: number | null;
+  amountNative: number | null;
+  amountCad: number | null;
+  fee: number;
+  currency: string;
+  fxRate: number | null;
+  tradeDate: string | null;
+};
+
+export type PositionPerformance = {
+  openPlCad: number | null;
+  openPlPct: number | null;
+  realizedCad: number | null; // null in Phase 1 — needs lot matching
+  dividendsCad: number;
+  dividendCount: number;
+  feesCad: number;
+  totalReturnCad: number | null;
+  totalReturnPct: number | null;
+};
+
+export type PositionExposure = {
+  weight: number; // portfolio weight %
+  currencyShare: number; // % of holdings in this currency
+  currencyShareDelta: number; // pts this position contributes
+  contribPnlPct: number; // contribution to total open P&L
+  rank: number;
+  count: number;
+};
+
+export type PositionDetail = {
+  symbol: string;
+  name: string;
+  type: AssetType;
+  isFund: boolean;
+  exchange: string;
+  currency: Currency;
+  logoBg: string;
+  logoId: string | null;
+  price: number; // last price, native
+  fxUSDtoCAD: number | null;
+  totalUnits: number;
+  avgNative: number | null;
+  costNative: number | null;
+  costCad: number | null;
+  mvNative: number;
+  mvCad: number;
+  uplCad: number | null;
+  uplPct: number | null;
+  weight: number;
+  lots: PositionLot[];
+  activity: PositionActivityRow[];
+  performance: PositionPerformance;
+  exposure: PositionExposure;
+  lastSync: string | null;
+  syncIsFresh: boolean;
+  holdLabel: string | null; // longest holding duration, e.g. "2.3 yrs"
 };

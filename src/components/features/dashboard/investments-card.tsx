@@ -76,7 +76,13 @@ export function InvestmentsCard({ data }: { data: InvestmentDashboardData }) {
         {top3.map((h) => {
           const plPos2 = (h.plPct ?? 0) >= 0;
           return (
-            <div className="hld-row" key={h.id}>
+            <Link
+              className="hld-row tick-link"
+              key={h.id}
+              href={`/app/investments/${encodeURIComponent(h.symbol)}` as never}
+              title={`Open ${h.symbol} position`}
+              style={{ color: "inherit", textDecoration: "none" }}
+            >
               <SymLogo symbol={h.symbol} bg={h.logoBg} logoId={h.logoId} />
               <div className="sym">{h.symbol}</div>
               <div className="desc">{h.description}</div>
@@ -94,7 +100,7 @@ export function InvestmentsCard({ data }: { data: InvestmentDashboardData }) {
                   {Math.abs(h.plPct).toFixed(1)}%
                 </div>
               )}
-            </div>
+            </Link>
           );
         })}
       </div>

@@ -405,11 +405,18 @@ export function InvestmentsView({ data }: { data: InvestmentDashboardData }) {
                         ? null
                         : h.mvNative - h.units * h.avgCost;
                 return (
-                  <tr key={h.id}>
+                  <tr key={h.id} className="tick-link">
                     <td>
                       <div className="sym-cell">
                         <SymLogo symbol={h.symbol} bg={h.logoBg} logoId={h.logoId} />
-                        <span className="ticker">{h.symbol}</span>
+                        <Link
+                          href={`/app/investments/${encodeURIComponent(h.symbol)}` as never}
+                          className="ticker"
+                          title={`Open ${h.symbol} position`}
+                          style={{ color: "inherit", textDecoration: "none" }}
+                        >
+                          {h.symbol}
+                        </Link>
                         <span
                           className="ccy-tag"
                           style={{

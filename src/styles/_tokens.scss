@@ -54,6 +54,8 @@
   --font-sans:
     var(--font-geist-sans), "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --font-mono: var(--font-geist-mono), "JetBrains Mono", "SF Mono", ui-monospace, monospace;
+  /* Condensed — used by the position detail page for eyebrows/labels */
+  --font-cond: var(--font-cond-family), "IBM Plex Sans Condensed", "IBM Plex Sans", var(--font-sans);
 
   /* Sizing */
   --sidebar-w: 220px;
