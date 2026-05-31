@@ -735,9 +735,21 @@ model MarketNews {
   source      String?
   url         String?   @db.Text
   summary     String?   @db.Text
+  tag         String?   // derived category: DIVIDEND, ANALYST, EARNINGS, ...
+  relevance   String?   // high | med | low (relatedTickers-based)
   publishedAt DateTime?
   fetchedAt   DateTime  @default(now())
 
   @@index([symbol, publishedAt(sort: Desc)])
   @@index([symbol, fetchedAt(sort: Desc)])
+}
+
+model MarketEvents {
+  symbol       String   @id
+  provider     String   @default("yahoo")
+  nextEarnings DateTime?
+  exDividend   DateTime?
+  dividendDate DateTime?
+  fetchedAt    DateTime
+  updatedAt    DateTime @updatedAt
 }
