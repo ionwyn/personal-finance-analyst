@@ -663,3 +663,81 @@ model UserSettings {
 
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 }
+
+// ─── Market data cache (provider-neutral) ─────────────────────────────────
+// Populated by MarketDataService on first position-page load, refreshed on a
+// staleness TTL. The provider field records which API sourced the row so stale
+// rows can be selectively re-fetched if a provider is swapped.
+
+model MarketQuote {
+  symbol     String   @id
+  provider   String   @default("yahoo")
+  currency   String?
+  price      Decimal? @db.Decimal(18, 6)
+  change     Decimal? @db.Decimal(18, 6)
+  changePct  Decimal? @db.Decimal(10, 6)
+  open       Decimal? @db.Decimal(18, 6)
+  high52w    Decimal? @db.Decimal(18, 6)
+  low52w     Decimal? @db.Decimal(18, 6)
+  volume     BigInt?
+  marketCap  Decimal? @db.Decimal(24, 2)
+  fetchedAt  DateTime
+  updatedAt  DateTime @updatedAt
+}
+
+model MarketProfile {
+  symbol          String   @id
+  provider        String   @default("yahoo")
+  name            String?
+  sector          String?
+  industry        String?
+  country         String?
+  description     String?  @db.Text
+  isFund          Boolean  @default(false)
+  peRatio         Decimal? @db.Decimal(10, 4)
+  forwardPe       Decimal? @db.Decimal(10, 4)
+  pbRatio         Decimal? @db.Decimal(10, 4)
+  evEbitda        Decimal? @db.Decimal(10, 4)
+  revenueGrowthPct   Decimal? @db.Decimal(10, 4)
+  epsGrowthPct       Decimal? @db.Decimal(10, 4)
+  grossMarginPct     Decimal? @db.Decimal(10, 4)
+  operatingMarginPct Decimal? @db.Decimal(10, 4)
+  freeCashFlow    Decimal? @db.Decimal(24, 2)
+  dividendYieldPct   Decimal? @db.Decimal(10, 4)
+  expenseRatioPct    Decimal? @db.Decimal(10, 4)
+  aum             Decimal? @db.Decimal(24, 2)
+  holdingsCount   Int?
+  fetchedAt       DateTime
+  updatedAt       DateTime @updatedAt
+}
+
+model MarketPriceDay {
+  id        String   @id @default(cuid())
+  symbol    String
+  provider  String   @default("yahoo")
+  date      String   // YYYY-MM-DD — stored as string to avoid timezone drift
+  close     Decimal  @db.Decimal(18, 6)
+  open      Decimal? @db.Decimal(18, 6)
+  high      Decimal? @db.Decimal(18, 6)
+  low       Decimal? @db.Decimal(18, 6)
+  volume    BigInt?
+  fetchedAt DateTime @default(now())
+
+  @@unique([symbol, date])
+  @@index([symbol, date(sort: Desc)])
+}
+
+model MarketNews {
+  id          String    @id @default(cuid())
+  symbol      String
+  provider    String    @default("yahoo")
+  title       String
+  source      String?
+  url         String?   @db.Text
+  summary     String?   @db.Text
+  publishedAt DateTime?
+  fetchedAt   DateTime  @default(now())
+
+  @@index([symbol, publishedAt(sort: Desc)])
+  @@index([symbol, fetchedAt(sort: Desc)])
+}

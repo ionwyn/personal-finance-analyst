@@ -7,11 +7,12 @@ import type { PositionDetail } from "@/lib/investments/types";
 import { SECTIONS } from "./format";
 import {
   DecisionDeferred,
-  FundamentalsDeferred,
-  NewsDeferred,
-  PriceChartDeferred,
-  TechnicalsDeferred,
-} from "./position-deferred";
+  FundamentalsLive,
+  NewsList,
+  PriceChart,
+  ReturnPeriods,
+  TechnicalsPanel,
+} from "./position-market";
 import { Activity } from "./sections/activity";
 import { Exposure } from "./sections/exposure";
 import { Hero } from "./sections/hero";
@@ -20,6 +21,21 @@ import { Ownership } from "./sections/ownership";
 import { Performance } from "./sections/performance";
 import { Rail } from "./sections/rail";
 import { Section } from "./sections/section";
+
+// ─── tiny formatters (mirror the prototype's local helpers) ────────────────
+const money = (n: number, dp = 2) =>
+  "$" +
+  Math.abs(n).toLocaleString("en-US", { minimumFractionDigits: dp, maximumFractionDigits: dp });
+const signMoney = (n: number, dp = 2) => (n >= 0 ? "+" : "−") + money(n, dp);
+const pct = (n: number, dp = 2) => (n >= 0 ? "+" : "−") + Math.abs(n).toFixed(dp) + "%";
+const dash = (v: string | null | undefined) => (v == null ? "—" : v);
+
+function fmtDate(iso: string | null) {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "—";
+  return d.toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" });
+}
 
 export function PositionView({ data: p }: { data: PositionDetail }) {
   const [active, setActive] = useState("overview");
@@ -63,11 +79,15 @@ export function PositionView({ data: p }: { data: PositionDetail }) {
             id="overview"
             eyebrow="01 · OVERVIEW"
             title="Price, my cost basis & trades"
-            meta="market chart activates once a price feed is connected"
+            meta={
+              p.marketData?.series.length
+                ? `${p.marketData.series.length} trading days of history`
+                : "market chart activates once a price feed is connected"
+            }
           >
             <div className="panel">
               <div className="panel-body" style={{ padding: "8px 4px 8px" }}>
-                <PriceChartDeferred p={p} />
+                <PriceChart p={p} />
               </div>
             </div>
           </Section>
@@ -78,7 +98,7 @@ export function PositionView({ data: p }: { data: PositionDetail }) {
             title="How this position has performed for me"
             meta="all amounts CAD · open + dividends − fees"
           >
-            <Performance p={p} />
+            <Performance p={p} periods={p.marketData?.periods ?? null} />
           </Section>
 
           <Section
@@ -114,7 +134,7 @@ export function PositionView({ data: p }: { data: PositionDetail }) {
             eyebrow="06 · FUNDAMENTALS"
             title={p.isFund ? "Fund profile & costs" : "Business & valuation"}
           >
-            <FundamentalsDeferred p={p} />
+            <FundamentalsLive p={p} />
           </Section>
 
           <Section
@@ -123,11 +143,11 @@ export function PositionView({ data: p }: { data: PositionDetail }) {
             title="Optional context"
             meta="secondary for long-hold investors"
           >
-            <TechnicalsDeferred />
+            <TechnicalsPanel p={p} />
           </Section>
 
           <Section id="news" eyebrow="08 · NEWS & EVENTS" title="Curated, relevance-weighted">
-            <NewsDeferred p={p} />
+            <NewsList p={p} />
           </Section>
 
           <Section
