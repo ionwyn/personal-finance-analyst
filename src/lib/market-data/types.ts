@@ -61,6 +61,35 @@ export type NewsItem = {
   url: string | null;
   publishedAt: string | null; // ISO
   summary: string | null;
+  relatedTickers: string[]; // tickers the provider associates with the story
+};
+
+// Deterministic category derived from the headline (no AI — keyword rules).
+export type NewsTag =
+  | "DIVIDEND"
+  | "ANALYST"
+  | "EARNINGS"
+  | "REGULATORY"
+  | "M&A"
+  | "PRODUCT"
+  | "SECTOR"
+  | "NEWS";
+
+// Relevance to the holding, derived from relatedTickers membership.
+export type NewsRelevance = "high" | "med" | "low";
+
+export type RankedNewsItem = NewsItem & {
+  tag: NewsTag;
+  relevance: NewsRelevance;
+};
+
+// Upcoming corporate calendar (stocks only; ETFs return null).
+export type MarketEvents = {
+  symbol: string;
+  nextEarnings: string | null; // ISO
+  exDividend: string | null; // ISO
+  dividendDate: string | null; // ISO
+  fetchedAt: string;
 };
 
 // ─── Provider interface ────────────────────────────────────────────────────
@@ -94,6 +123,13 @@ export interface MarketDataProvider {
 
   /**
    * Recent news headlines, ordered newest-first. Empty array on failure.
+   * Each item carries `relatedTickers` so the service can score relevance.
    */
   getNews(symbol: string, count?: number): Promise<NewsItem[]>;
+
+  /**
+   * Upcoming corporate calendar (earnings, ex-dividend, dividend dates).
+   * Returns null when not available (ETFs, or provider failure).
+   */
+  getEvents(symbol: string): Promise<MarketEvents | null>;
 }

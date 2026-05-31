@@ -462,64 +462,118 @@ export function TechnicalsPanel({ p }: { p: PositionDetail }) {
   );
 }
 
-// ─── News ─────────────────────────────────────────────────────────────────
+// ─── News & events ─────────────────────────────────────────────────────────
 
 const TAG_COLOR: Record<string, string> = {
-  SUPPLY: "var(--info)",
-  REGULATORY: "var(--neg)",
   DIVIDEND: "var(--accent)",
   ANALYST: "var(--cat-4)",
-  FUNDAMENTALS: "var(--invest)",
   EARNINGS: "var(--invest)",
-  SECTOR: "var(--cat-2)",
-  OPINION: "var(--text-3)",
+  REGULATORY: "var(--neg)",
+  "M&A": "var(--cat-2)",
+  PRODUCT: "var(--cat-3)",
+  SECTOR: "var(--info)",
+  NEWS: "var(--text-3)",
 };
+
+const RELEVANCE_LABEL: Record<string, string> = {
+  high: "● HIGH RELEVANCE",
+  med: "● MEDIUM",
+  low: "○ LOW",
+};
+
+function eventLabel(iso: string): { label: string; soon: boolean } {
+  const d = new Date(iso);
+  const days = Math.round((d.getTime() - Date.now()) / (24 * 60 * 60 * 1000));
+  const label = d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  return { label, soon: days >= 0 && days <= 21 };
+}
+
+function EventsRail({ events }: { events: NonNullable<PositionDetail["marketData"]>["events"] }) {
+  if (!events) return null;
+  const rows: { lbl: string; iso: string | null }[] = [
+    { lbl: "Next earnings", iso: events.nextEarnings },
+    { lbl: "Ex-dividend", iso: events.exDividend },
+    { lbl: "Dividend paid", iso: events.dividendDate },
+  ].filter((r) => r.iso != null);
+  if (rows.length === 0) return null;
+  return (
+    <div className="pos-events-rail">
+      {rows.map((r) => {
+        const { label, soon } = eventLabel(r.iso!);
+        return (
+          <div key={r.lbl} className={"pos-event " + (soon ? "soon" : "")}>
+            <span className="pos-event-lbl">{r.lbl}</span>
+            <span className="pos-event-date">{label}</span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
 
 export function NewsList({ p }: { p: PositionDetail }) {
   const news = p.marketData?.news ?? [];
-  if (news.length === 0) return <NewsDeferred p={p} />;
+  const events = p.marketData?.events ?? null;
+  if (news.length === 0 && !events) return <NewsDeferred p={p} />;
 
   return (
     <div className="panel">
       <div className="panel-head">
         <div className="panel-title">News &amp; events</div>
-        <div className="panel-meta">VIA YAHOO FINANCE · {news.length} ITEMS</div>
+        <div className="panel-meta">VIA YAHOO FINANCE · RELEVANCE-RANKED</div>
       </div>
-      <div className="panel-body flush">
-        <div className="pos-news-list">
-          {news.map((n, i) => {
-            const dateStr = n.publishedAt
-              ? new Date(n.publishedAt).toLocaleDateString("en-US", {
-                  month: "short",
-                  day: "2-digit",
-                })
-              : "—";
-            return (
-              <a
-                key={i}
-                className="pos-news-row"
-                href={n.url ?? "#"}
-                target={n.url ? "_blank" : undefined}
-                rel="noopener noreferrer"
-                onClick={n.url ? undefined : (e) => e.preventDefault()}
-              >
-                <div className="pos-news-date">
-                  <span className="d">{dateStr}</span>
-                  <span className="s">{n.source ?? "NEWS"}</span>
-                </div>
-                <div className="pos-news-body">
-                  <div className="pos-news-title">{n.title}</div>
-                  <div className="pos-news-meta">
-                    <span className="pos-news-tag" style={{ color: TAG_COLOR["FUNDAMENTALS"] }}>
-                      NEWS
-                    </span>
-                  </div>
-                </div>
-                <span style={{ width: 12, height: 12, color: "var(--text-4)" }}>›</span>
-              </a>
-            );
-          })}
+      {events ? (
+        <div className="panel-body" style={{ paddingBottom: 0 }}>
+          <EventsRail events={events} />
         </div>
+      ) : null}
+      <div className="panel-body flush">
+        {news.length === 0 ? (
+          <div style={{ padding: "20px 16px", color: "var(--text-3)", fontSize: 12 }}>
+            No relevant headlines found for this holding.
+          </div>
+        ) : (
+          <div className="pos-news-list">
+            {news.map((n, i) => {
+              const dateStr = n.publishedAt
+                ? new Date(n.publishedAt).toLocaleDateString("en-US", {
+                    month: "short",
+                    day: "2-digit",
+                  })
+                : "—";
+              return (
+                <a
+                  key={i}
+                  className="pos-news-row"
+                  href={n.url ?? "#"}
+                  target={n.url ? "_blank" : undefined}
+                  rel="noopener noreferrer"
+                  onClick={n.url ? undefined : (e) => e.preventDefault()}
+                >
+                  <div className="pos-news-date">
+                    <span className="d">{dateStr}</span>
+                    <span className="s">{n.source ?? "NEWS"}</span>
+                  </div>
+                  <div className="pos-news-body">
+                    <div className="pos-news-title">{n.title}</div>
+                    <div className="pos-news-meta">
+                      <span
+                        className="pos-news-tag"
+                        style={{ color: TAG_COLOR[n.tag] ?? "var(--text-3)" }}
+                      >
+                        {n.tag}
+                      </span>
+                      <span className={"pos-news-rel " + n.relevance}>
+                        {RELEVANCE_LABEL[n.relevance]}
+                      </span>
+                    </div>
+                  </div>
+                  <span style={{ width: 12, height: 12, color: "var(--text-4)" }}>›</span>
+                </a>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );

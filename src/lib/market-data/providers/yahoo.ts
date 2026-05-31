@@ -2,6 +2,7 @@ import YahooFinance from "yahoo-finance2";
 
 import type {
   MarketDataProvider,
+  MarketEvents,
   MarketQuote,
   NewsItem,
   PricePoint,
@@ -166,16 +167,47 @@ export class YahooFinanceProvider implements MarketDataProvider {
       return news.slice(0, count).map((n) => {
         const item = n as Record<string, unknown>;
         const rawTs = item.providerPublishTime as number | undefined;
+        const related = Array.isArray(item.relatedTickers)
+          ? (item.relatedTickers as unknown[]).filter((t): t is string => typeof t === "string")
+          : [];
         return {
           title: (item.title as string | undefined) ?? "",
           source: (item.publisher as string | undefined) ?? null,
           url: (item.link as string | undefined) ?? null,
           publishedAt: rawTs ? toISO(new Date(rawTs * 1000)) : null,
           summary: null,
+          relatedTickers: related,
         };
       });
     } catch {
       return [];
+    }
+  }
+
+  async getEvents(symbol: string): Promise<MarketEvents | null> {
+    try {
+      const s = await yf.quoteSummary(toYahoo(symbol), { modules: ["calendarEvents"] });
+      const c = s.calendarEvents as
+        | {
+            earnings?: { earningsDate?: Date[] };
+            exDividendDate?: Date;
+            dividendDate?: Date;
+          }
+        | undefined;
+      if (!c) return null;
+      const earnings = c.earnings?.earningsDate?.[0];
+      const events: MarketEvents = {
+        symbol,
+        nextEarnings: toISO(earnings),
+        exDividend: toISO(c.exDividendDate),
+        dividendDate: toISO(c.dividendDate),
+        fetchedAt: new Date().toISOString(),
+      };
+      // Return null when the calendar is entirely empty (common for ETFs).
+      if (!events.nextEarnings && !events.exDividend && !events.dividendDate) return null;
+      return events;
+    } catch {
+      return null;
     }
   }
 }

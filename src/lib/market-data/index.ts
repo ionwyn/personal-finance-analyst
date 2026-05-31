@@ -8,9 +8,13 @@ import { MarketDataService } from "./service";
 
 export type { MarketDataProvider } from "./types";
 export type {
+  MarketEvents,
   MarketQuote,
   NewsItem,
+  NewsRelevance,
+  NewsTag,
   PricePoint,
+  RankedNewsItem,
   SecurityFundamentals,
   SecurityProfile,
 } from "./types";

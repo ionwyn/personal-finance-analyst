@@ -1,9 +1,13 @@
 import { prisma } from "@/lib/prisma";
 import type {
   MarketDataProvider,
+  MarketEvents,
   MarketQuote,
   NewsItem,
+  NewsRelevance,
+  NewsTag,
   PricePoint,
+  RankedNewsItem,
   SecurityFundamentals,
   SecurityProfile,
 } from "./types";
@@ -14,6 +18,7 @@ const TTL = {
   profile: 7 * 24 * 60 * 60 * 1000, // 7 days  — sector/industry/fundamentals
   series: 4 * 60 * 60 * 1000, // 4 hours — add today's close when market closed
   news: 30 * 60 * 1000, // 30 min  — headlines
+  events: 24 * 60 * 60 * 1000, // 24 hours — earnings/dividend dates
 } as const;
 
 function isStale(fetchedAt: Date, ttlMs: number): boolean {
@@ -106,6 +111,62 @@ function computePeriods(series: PricePoint[]): ReturnPeriod[] {
   ];
 }
 
+// ─── News classification (deterministic — keyword rules, no AI) ───────────
+
+function classifyTag(title: string): NewsTag {
+  const t = title.toLowerCase();
+  if (/\b(dividend|distribution|payout|yield)\b/.test(t)) return "DIVIDEND";
+  if (
+    /\b(upgrade|downgrade|price target|analyst|rating|overweight|underweight|outperform|buy rating)\b/.test(
+      t
+    )
+  )
+    return "ANALYST";
+  if (/\b(earnings|revenue|eps|profit|guidance|quarter|q[1-4]\b|results)\b/.test(t))
+    return "EARNINGS";
+  if (/\b(lawsuit|antitrust|regulat|sec\b|probe|investigat|fine|settlement|subpoena)\b/.test(t))
+    return "REGULATORY";
+  if (/\b(acqui|merger|takeover|buyout|deal|stake|spinoff)\b/.test(t)) return "M&A";
+  if (/\b(launch|unveil|product|release|chip|iphone|model|feature|rollout)\b/.test(t))
+    return "PRODUCT";
+  if (/\b(sector|industry|market|index|s&p|nasdaq|stocks)\b/.test(t)) return "SECTOR";
+  return "NEWS";
+}
+
+// Normalise ticker shapes across providers (BRK-B vs BRK.B, VFV.TO).
+function normTicker(s: string): string {
+  return s.toUpperCase().replace(/[.\-]/g, "");
+}
+
+function scoreRelevance(symbol: string, related: string[]): NewsRelevance | null {
+  const target = normTicker(symbol);
+  const idx = related.findIndex((r) => normTicker(r) === target);
+  if (idx === -1) return null; // ticker absent → noise, filter out
+  if (related.length === 1 || idx === 0) return "high";
+  if (related.length <= 4) return "med";
+  return "low";
+}
+
+const RELEVANCE_WEIGHT: Record<NewsRelevance, number> = { high: 3, med: 2, low: 1 };
+
+/** Classify, drop noise (ticker absent), and sort by relevance then recency. */
+function rankNews(symbol: string, items: NewsItem[]): RankedNewsItem[] {
+  const ranked: RankedNewsItem[] = [];
+  for (const item of items) {
+    const relevance = scoreRelevance(symbol, item.relatedTickers);
+    if (relevance == null) continue; // filtered as irrelevant
+    ranked.push({ ...item, tag: classifyTag(item.title), relevance });
+  }
+  ranked.sort((a, b) => {
+    const w = RELEVANCE_WEIGHT[b.relevance] - RELEVANCE_WEIGHT[a.relevance];
+    if (w !== 0) return w;
+    const ta = a.publishedAt ? Date.parse(a.publishedAt) : 0;
+    const tb = b.publishedAt ? Date.parse(b.publishedAt) : 0;
+    return tb - ta;
+  });
+  return ranked;
+}
+
 // ─── Combined payload for the position page ───────────────────────────────
 
 export type PositionMarketData = {
@@ -113,7 +174,8 @@ export type PositionMarketData = {
   profile: SecurityProfile | null;
   fundamentals: SecurityFundamentals | null;
   series: PricePoint[];
-  news: NewsItem[];
+  news: RankedNewsItem[];
+  events: MarketEvents | null;
   technicals: Technicals;
   periods: ReturnPeriod[];
 };
@@ -344,31 +406,43 @@ export class MarketDataService {
     );
   }
 
-  // ── News ─────────────────────────────────────────────────────────────
+  // ── News (classified + relevance-ranked) ─────────────────────────────
 
-  async getNews(symbol: string, count = 6): Promise<NewsItem[]> {
+  async getNews(symbol: string, count = 6): Promise<RankedNewsItem[]> {
     const cached = await prisma.marketNews.findMany({
       where: { symbol },
       orderBy: { publishedAt: "desc" },
-      take: count,
     });
     const newest = cached[0];
     if (newest && !isStale(newest.fetchedAt, TTL.news)) {
-      return cached.map((n) => ({
-        title: n.title,
-        source: n.source,
-        url: n.url,
-        publishedAt: n.publishedAt?.toISOString() ?? null,
-        summary: n.summary,
+      // Stored rows are already filtered & classified — just re-rank and cap.
+      const items: RankedNewsItem[] = cached.map((c) => ({
+        title: c.title,
+        source: c.source,
+        url: c.url,
+        publishedAt: c.publishedAt?.toISOString() ?? null,
+        summary: c.summary,
+        relatedTickers: [],
+        tag: (c.tag as RankedNewsItem["tag"]) ?? "NEWS",
+        relevance: (c.relevance as RankedNewsItem["relevance"]) ?? "low",
       }));
+      const weight: Record<string, number> = { high: 3, med: 2, low: 1 };
+      items.sort((a, b) => {
+        const w = (weight[b.relevance] ?? 0) - (weight[a.relevance] ?? 0);
+        if (w !== 0) return w;
+        return Date.parse(b.publishedAt ?? "0") - Date.parse(a.publishedAt ?? "0");
+      });
+      return items.slice(0, count);
     }
-    const fresh = await this.provider.getNews(symbol, count);
-    if (fresh.length > 0) await this.saveNews(symbol, fresh);
-    return fresh;
+    // Fetch extra so relevance filtering still leaves a full set.
+    const fresh = await this.provider.getNews(symbol, count * 3);
+    const ranked = rankNews(symbol, fresh).slice(0, count);
+    if (ranked.length > 0) await this.saveNews(symbol, ranked);
+    return ranked;
   }
 
-  private async saveNews(symbol: string, items: NewsItem[]) {
-    // Replace all news for this symbol with the fresh batch.
+  private async saveNews(symbol: string, items: RankedNewsItem[]) {
+    // Replace all news for this symbol with the fresh, ranked batch.
     await prisma.$transaction([
       prisma.marketNews.deleteMany({ where: { symbol } }),
       prisma.marketNews.createMany({
@@ -378,6 +452,8 @@ export class MarketDataService {
           source: n.source,
           url: n.url,
           summary: n.summary,
+          tag: n.tag,
+          relevance: n.relevance,
           publishedAt: n.publishedAt ? new Date(n.publishedAt) : null,
         })),
         skipDuplicates: true,
@@ -385,15 +461,51 @@ export class MarketDataService {
     ]);
   }
 
+  // ── Events (earnings / dividend calendar) ────────────────────────────
+
+  async getEvents(symbol: string): Promise<MarketEvents | null> {
+    const cached = await prisma.marketEvents.findUnique({ where: { symbol } });
+    if (cached && !isStale(cached.updatedAt, TTL.events)) {
+      return {
+        symbol,
+        nextEarnings: cached.nextEarnings?.toISOString() ?? null,
+        exDividend: cached.exDividend?.toISOString() ?? null,
+        dividendDate: cached.dividendDate?.toISOString() ?? null,
+        fetchedAt: cached.fetchedAt.toISOString(),
+      };
+    }
+    const fresh = await this.provider.getEvents(symbol);
+    if (fresh) {
+      await prisma.marketEvents.upsert({
+        where: { symbol },
+        create: {
+          symbol,
+          nextEarnings: fresh.nextEarnings ? new Date(fresh.nextEarnings) : null,
+          exDividend: fresh.exDividend ? new Date(fresh.exDividend) : null,
+          dividendDate: fresh.dividendDate ? new Date(fresh.dividendDate) : null,
+          fetchedAt: new Date(fresh.fetchedAt),
+        },
+        update: {
+          nextEarnings: fresh.nextEarnings ? new Date(fresh.nextEarnings) : null,
+          exDividend: fresh.exDividend ? new Date(fresh.exDividend) : null,
+          dividendDate: fresh.dividendDate ? new Date(fresh.dividendDate) : null,
+          fetchedAt: new Date(fresh.fetchedAt),
+        },
+      });
+    }
+    return fresh;
+  }
+
   // ── Combined fetch for the position page ─────────────────────────────
 
   async getPositionMarketData(symbol: string): Promise<PositionMarketData> {
-    const [quote, profile, fundamentals, series, news] = await Promise.all([
+    const [quote, profile, fundamentals, series, news, events] = await Promise.all([
       this.getQuote(symbol).catch(() => null),
       this.getProfile(symbol).catch(() => null),
       this.getFundamentals(symbol).catch(() => null),
       this.getTimeSeries(symbol, 400).catch(() => [] as PricePoint[]),
-      this.getNews(symbol, 6).catch(() => [] as NewsItem[]),
+      this.getNews(symbol, 6).catch(() => [] as RankedNewsItem[]),
+      this.getEvents(symbol).catch(() => null),
     ]);
     return {
       quote,
@@ -401,6 +513,7 @@ export class MarketDataService {
       fundamentals,
       series,
       news,
+      events,
       technicals: computeTechnicals(series),
       periods: computePeriods(series),
     };
