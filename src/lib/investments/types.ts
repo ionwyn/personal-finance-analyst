@@ -1,4 +1,5 @@
 import type { ActivityGroupKey } from "./activity-types";
+import type { PositionMarketData } from "@/lib/market-data";
 
 export type AssetType = string;
 export type Currency = string;
@@ -222,4 +223,5 @@ export type PositionDetail = {
   lastSync: string | null;
   syncIsFresh: boolean;
   holdLabel: string | null; // longest holding duration, e.g. "2.3 yrs"
+  marketData: PositionMarketData | null;
 };
