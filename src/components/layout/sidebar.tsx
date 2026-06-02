@@ -17,6 +17,7 @@ import {
   Network,
   PieChart,
   Settings,
+  Sparkles,
   Target,
   TrendingUp,
   Wallet,
@@ -136,6 +137,12 @@ export function Sidebar({ mode, user }: { mode: "private" | "demo"; user?: Sideb
       label: "Supply Chain",
       href: "/app/supply-chain",
       icon: <Network size={ICON_SIZE} />,
+    },
+    {
+      key: "assistant",
+      label: "Assistant",
+      href: "/app/assistant",
+      icon: <Sparkles size={ICON_SIZE} />,
     },
   ];
 

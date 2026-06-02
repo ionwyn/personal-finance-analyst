@@ -1,0 +1,234 @@
+import { endOfMonth, format, startOfMonth, startOfYear, subDays, subMonths } from "date-fns";
+import { z } from "zod";
+
+import { getTransactionsForTenant } from "@/lib/analytics";
+import { prisma } from "@/lib/prisma";
+import { formatCategoryName } from "@/lib/spending/category";
+
+// ─── Constrained transaction-row lookup ────────────────────────────────────
+// For row-level questions the model does NOT get free DB access. It emits a
+// structured plan (validated here) describing which transactions it needs; the
+// server runs the existing tenant-scoped query, then HARD-CAPS and projects the
+// result before it ever reaches the model. This is the single enforcement point
+// for "bounded exposure — never dump the table".
+
+export const MAX_ROWS = 50;
+
+const isoDate = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/)
+  .optional();
+
+// Named relative windows. A small model converts "the past month" into one of
+// these far more reliably than into a pair of ISO dates — so date arithmetic
+// happens here, in TypeScript, against a known `now`. Explicit `from`/`to` (an
+// actual calendar range the user named) still take precedence over a period.
+export const PERIODS = [
+  "this_month",
+  "last_month",
+  "last_30_days",
+  "last_90_days",
+  "this_year",
+  "all_time",
+] as const;
+export type Period = (typeof PERIODS)[number];
+
+/** Resolve a named period to an inclusive ISO date range against `now`. */
+export function resolvePeriod(period: Period, now: Date): { from?: string; to?: string } {
+  const iso = (d: Date) => format(d, "yyyy-MM-dd");
+  switch (period) {
+    case "this_month":
+      return { from: iso(startOfMonth(now)), to: iso(now) };
+    case "last_month": {
+      const prev = subMonths(now, 1);
+      return { from: iso(startOfMonth(prev)), to: iso(endOfMonth(prev)) };
+    }
+    case "last_30_days":
+      return { from: iso(subDays(now, 30)), to: iso(now) };
+    case "last_90_days":
+      return { from: iso(subDays(now, 90)), to: iso(now) };
+    case "this_year":
+      return { from: iso(startOfYear(now)), to: iso(now) };
+    case "all_time":
+      return {};
+  }
+}
+
+// Filters the model is allowed to express — a safe subset of
+// getTransactionsForTenant. Unknown keys are stripped (not rejected) so a small
+// model that nests or invents a stray field still yields a usable filter.
+// `q` is a free-text substring match (merchant/name); `category` is a natural
+// category name (e.g. "Food and Drink") that we resolve to Plaid's taxonomy
+// server-side — see resolveCategory.
+export const filtersSchema = z.object({
+  q: z.string().max(80).optional(),
+  category: z.string().max(80).optional(),
+  period: z.enum(PERIODS).optional(),
+  from: isoDate,
+  to: isoDate,
+  bucket: z.enum(["spending", "income"]).optional(),
+  amountMin: z.number().nonnegative().optional(),
+  amountMax: z.number().nonnegative().optional(),
+});
+
+/** The plan-step output schema the model must produce as JSON. */
+export const planSchema = z.object({
+  needsTransactions: z.boolean(),
+  filters: filtersSchema.optional(),
+});
+
+/** Drop blank/whitespace-only string filters the model sometimes emits. */
+function clean(value: string | undefined): string | undefined {
+  const t = value?.trim();
+  return t ? t : undefined;
+}
+
+export type AssistantPlan = z.infer<typeof planSchema>;
+export type ScopedFilters = z.infer<typeof filtersSchema>;
+
+export type ScopedRow = {
+  date: string;
+  name: string;
+  amount: number;
+  category: string;
+};
+
+export type ScopedResult = {
+  rows: ScopedRow[];
+  total: number;
+  truncated: boolean;
+  sumAmount: number;
+  resolvedCategory: string | null;
+};
+
+const CATEGORY_STOPWORDS = new Set(["and", "the", "of", "or", "a", "to"]);
+
+/** Tokenise a label into a set of meaningful lowercase words. */
+function tokenize(s: string): Set<string> {
+  return new Set(
+    s
+      .toLowerCase()
+      .split(/[^a-z0-9]+/)
+      .filter((t) => t && !CATEGORY_STOPWORDS.has(t))
+  );
+}
+
+/**
+ * Map a free-text category term ("Food and Drink", "food drink") to the tenant's
+ * actual Plaid `categoryPrimary` (e.g. "FOOD_AND_DRINK") by token overlap. This
+ * is what makes category questions reliable despite the model paraphrasing —
+ * substring matching on `q` can't bridge "food and drink" vs "FOOD_AND_DRINK".
+ */
+export async function resolveCategory(tenantSlug: string, term: string): Promise<string | null> {
+  const want = tokenize(term);
+  if (want.size === 0) return null;
+
+  const cats = await prisma.plaidTransaction.findMany({
+    where: { tenant: { slug: tenantSlug }, removed: false, categoryPrimary: { not: null } },
+    distinct: ["categoryPrimary"],
+    select: { categoryPrimary: true },
+  });
+
+  let best: string | null = null;
+  let bestScore = 0;
+  for (const { categoryPrimary } of cats) {
+    if (!categoryPrimary) continue;
+    const have = tokenize(categoryPrimary);
+    const overlap = [...want].filter((t) => have.has(t)).length;
+    if (overlap === 0) continue;
+    // Prefer categories that contain ALL requested tokens.
+    const score = (overlap === want.size ? 100 : 0) + overlap;
+    if (score > bestScore) {
+      bestScore = score;
+      best = categoryPrimary;
+    }
+  }
+  return best;
+}
+
+/**
+ * Run the constrained lookup. Returns at most MAX_ROWS rows, projected to a
+ * minimal shape, plus a server-computed sum so the model never has to add up
+ * dozens of figures itself.
+ */
+export async function fetchScopedTransactions(
+  tenantSlug: string,
+  filters: ScopedFilters,
+  now: Date = new Date()
+): Promise<ScopedResult> {
+  let categoryArg: string | undefined;
+  let qArg = clean(filters.q);
+  let resolvedCategory: string | null = null;
+
+  const categoryTerm = clean(filters.category);
+  if (categoryTerm) {
+    resolvedCategory = await resolveCategory(tenantSlug, categoryTerm);
+    if (resolvedCategory) {
+      categoryArg = resolvedCategory;
+    } else if (!qArg) {
+      // No taxonomy match — fall back to a keyword search on the raw term.
+      qArg = categoryTerm;
+    }
+  }
+
+  // A named period sets the date window; an explicit from/to the model emitted
+  // overrides it (the user named real calendar dates).
+  const periodRange = filters.period ? resolvePeriod(filters.period, now) : {};
+  const from = clean(filters.from) ?? periodRange.from;
+  const to = clean(filters.to) ?? periodRange.to;
+
+  const { rows } = await getTransactionsForTenant({
+    tenantSlug,
+    q: qArg,
+    category: categoryArg,
+    from,
+    to,
+    bucket: filters.bucket,
+    amountMin: filters.amountMin == null ? undefined : String(filters.amountMin),
+    amountMax: filters.amountMax == null ? undefined : String(filters.amountMax),
+  });
+
+  // Sum and count over the full MATCHED set — i.e. rows that passed every filter
+  // (getTransactionsForTenant applies amount/bucket filters in memory and caps at
+  // 500). We deliberately do NOT use its `total`, which is a DB count taken before
+  // the amount/bucket filter and would overstate the match for "over $X" queries.
+  const sumAmount = Math.round(rows.reduce((s, r) => s + r.amount, 0) * 100) / 100;
+  const total = rows.length;
+
+  const capped = rows.slice(0, MAX_ROWS).map((r) => ({
+    date: r.date.slice(0, 10),
+    name: r.name,
+    amount: r.amount,
+    category: formatCategoryName(r.category),
+  }));
+
+  return {
+    rows: capped,
+    total,
+    truncated: rows.length > MAX_ROWS,
+    sumAmount,
+    resolvedCategory,
+  };
+}
+
+/** Serialise scoped rows into a compact block for the narration prompt. */
+export function serializeRows(result: ScopedResult, currency = "CAD"): string {
+  const label = result.resolvedCategory
+    ? `category ${formatCategoryName(result.resolvedCategory)}`
+    : "that query";
+
+  if (result.rows.length === 0) {
+    return `MATCHING TRANSACTIONS: none found for ${label}.`;
+  }
+
+  const header =
+    `MATCHING TRANSACTIONS for ${label} — each line is one individual transaction ` +
+    `(showing ${result.rows.length} of ${result.total}${result.truncated ? `, capped at ${MAX_ROWS}` : ""}; ` +
+    `combined total of all ${result.total} = ${currency} ${result.sumAmount.toLocaleString("en-CA")}):`;
+
+  const lines = [header];
+  for (const r of result.rows) {
+    lines.push(`- ${r.date} | ${r.name} | ${currency} ${r.amount} | ${r.category}`);
+  }
+  return lines.join("\n");
+}

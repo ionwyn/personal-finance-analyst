@@ -80,6 +80,32 @@ export function getEdgarUserAgent(): string {
   return `personal-finance-dashboard/1.0 (${contact})`;
 }
 
+/** Base URL of the local Ollama server. Defaults to the standard local port. */
+export function getOllamaBaseUrl(): string {
+  return (process.env.OLLAMA_BASE_URL ?? "http://localhost:11434").replace(/\/$/, "");
+}
+
+/** Ollama model used by the local AI assistant. */
+export function getOllamaModel(): string {
+  return process.env.OLLAMA_MODEL ?? "qwen2.5:7b";
+}
+
+/**
+ * Fact-mode model: fast, grounded answers. Defaults to a lighter model in dev
+ * (llama3.2:3b) and a stronger one in prod (qwen2.5:7b).
+ */
+export function getOllamaModelFact(): string {
+  return (
+    process.env.OLLAMA_MODEL_FACT ??
+    (process.env.NODE_ENV === "development" ? "llama3.2:3b" : "qwen2.5:7b")
+  );
+}
+
+/** Reasoning-mode model: analytical answers with a visible chain-of-thought. */
+export function getOllamaModelReasoning(): string {
+  return process.env.OLLAMA_MODEL_REASONING ?? "deepseek-r1:7b";
+}
+
 export function getBaseUrl(): string {
   if (process.env.NEXTAUTH_URL) {
     return process.env.NEXTAUTH_URL.replace(/\/$/, "");

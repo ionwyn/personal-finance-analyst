@@ -11,3 +11,4 @@ prisma/dev.db-journal
 .vscode/
 .playwright-mcp/
 .vercel
+assistant-config.json

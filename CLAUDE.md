@@ -205,6 +205,8 @@ PLAID_SECRET=
 TOKEN_ENCRYPTION_KEY=          # 32-byte key for AES-256-GCM
 CRON_SECRET=                   # Bearer token for cron endpoint
 VALAFI_API_KEY=                # Vala-Fi supply-chain API (optional; free tier)
+OLLAMA_BASE_URL=               # Local Ollama server (default http://localhost:11434)
+OLLAMA_MODEL=                  # Assistant model (default qwen2.5:7b)
 ```
 
 ## Supply Chain (Vala-Fi)
@@ -230,6 +232,24 @@ Chain tab on position detail pages and a risk teaser on the dashboard.
   with `/dev/usage` reads to report its real quota cost.
 - All access goes through `lib/valafi/service.ts` → `/api/valafi/*`; the API key
   never reaches the client.
+
+## Local AI Assistant (`/app/assistant`)
+
+A chat assistant that answers questions about the user's own finances using a
+**local** Ollama model — no financial data leaves the machine. The model never
+calculates and never invents: the server is the source of truth.
+
+- `lib/assistant/context.ts` — `buildFinancialContext()` builds a compact,
+  server-computed _facts block_ (reuses `getDashboardData` + `getSpendingInsight`).
+  All derived figures (YTD, annualised pace) are computed here in TypeScript.
+- `lib/assistant/query.ts` — for row-level questions the model emits a constrained
+  JSON plan (Zod-validated); the server runs `getTransactionsForTenant`, then
+  **hard-caps to ≤50 projected rows** before they reach the model.
+- `lib/assistant/prompt.ts` — plan prompt + narration prompt (anti-hallucination
+  contract: cite only provided data; say "I don't have that" otherwise).
+- `lib/assistant/ollama.ts` — thin Ollama client (`/api/chat`, streaming).
+- `app/api/assistant/chat/route.ts` — 2-step flow (plan → optional row fetch →
+  streamed narration); returns 503 if Ollama is unreachable.
 
 ## Development Notes
 
