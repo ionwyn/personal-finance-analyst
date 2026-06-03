@@ -1,5 +1,15 @@
 import { NextResponse, type NextRequest } from "next/server";
 
+import { rateLimitRequest } from "@/lib/rate-limit";
+
+// Generous global cap applied to every /api/* request as a safety net. It sits
+// above the stricter per-route limits (10–30/min on sensitive endpoints), so
+// those still bite first for their own paths, while routes without a dedicated
+// limit (settings, cycles, metrics, export) still get baseline abuse
+// protection. 300/min comfortably clears a heavy page load's burst of calls.
+const GLOBAL_API_LIMIT = 300;
+const GLOBAL_API_WINDOW_MS = 60_000;
+
 // Per-request nonce-based Content-Security-Policy.
 //
 // The nonce is generated here, injected into the request headers (so Next.js
@@ -48,6 +58,20 @@ function generateNonce(): string {
 }
 
 export function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+
+  // API routes: enforce the global rate-limit envelope (skip health probes),
+  // then pass through. CSP nonces are page-only, so no further work here.
+  if (pathname.startsWith("/api")) {
+    if (pathname.startsWith("/api/health")) return NextResponse.next();
+    const limited = rateLimitRequest(request, {
+      keyPrefix: "global",
+      limit: GLOBAL_API_LIMIT,
+      windowMs: GLOBAL_API_WINDOW_MS,
+    });
+    return limited ?? NextResponse.next();
+  }
+
   const nonce = generateNonce();
   const csp = buildCsp(nonce);
 
