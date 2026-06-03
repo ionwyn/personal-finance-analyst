@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Figtree, Manrope, IBM_Plex_Sans_Condensed } from "next/font/google";
+import { headers } from "next/headers";
 
 import { Providers } from "@/components/providers";
 import "@/app/globals.scss";
@@ -25,7 +26,12 @@ export const metadata: Metadata = {
   description: "See every bank, card, and brokerage account in one read-only dashboard.",
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  // Read the per-request nonce set by middleware. This also opts every route
+  // into dynamic rendering, so the strict nonce-based CSP applies everywhere
+  // (static prerenders can't carry a per-request nonce).
+  const nonce = (await headers()).get("x-nonce") ?? undefined;
+
   return (
     <html
       lang="en"
@@ -33,7 +39,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       suppressHydrationWarning
     >
       <body>
-        <Providers>{children}</Providers>
+        <Providers nonce={nonce}>{children}</Providers>
       </body>
     </html>
   );

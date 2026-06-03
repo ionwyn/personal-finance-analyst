@@ -1,19 +1,9 @@
 import type { NextConfig } from "next";
 
-const contentSecurityPolicy = [
-  "default-src 'self'",
-  "base-uri 'self'",
-  "form-action 'self'",
-  "frame-ancestors 'none'",
-  "object-src 'none'",
-  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.plaid.com",
-  "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: blob: https://avatars.githubusercontent.com",
-  "font-src 'self'",
-  "connect-src 'self' https://*.plaid.com https://*.snaptrade.com https://api.github.com",
-  "frame-src https://*.plaid.com https://*.snaptrade.com",
-].join("; ");
-
+// Content-Security-Policy is set per-request in src/middleware.ts so it can
+// carry a unique nonce (enabling a strict, no-'unsafe-inline' script-src).
+// The static headers below still apply to all responses, including the static
+// assets that the middleware matcher excludes.
 const nextConfig: NextConfig = {
   typedRoutes: true,
   sassOptions: {
@@ -24,10 +14,6 @@ const nextConfig: NextConfig = {
       {
         source: "/(.*)",
         headers: [
-          {
-            key: "Content-Security-Policy",
-            value: contentSecurityPolicy,
-          },
           {
             key: "Referrer-Policy",
             value: "strict-origin-when-cross-origin",
