@@ -65,6 +65,7 @@ model Tenant {
   incomeSources         IncomeSource[]
   budgets               Budget[]
   savingsGoals          SavingsGoal[]
+  committedSettlements  CommittedSettlement[]
   userSettings          UserSettings?
 
   @@index([kind])
@@ -218,6 +219,7 @@ model PlaidTransaction {
   cycle        PayCycle?         @relation(fields: [cycleId], references: [id], onDelete: SetNull)
   supersededBy PlaidTransaction? @relation("ManualSweepSupersession", fields: [supersededById], references: [id], onDelete: SetNull)
   supersedes   PlaidTransaction? @relation("ManualSweepSupersession")
+  settlements  CommittedSettlement[]
 
   @@index([tenantId, date])
   @@index([accountId, date])
@@ -492,6 +494,7 @@ model PayCycle {
 
   tenant       Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   transactions PlaidTransaction[]
+  settlements  CommittedSettlement[]
 
   @@unique([tenantId, startDate])
   @@index([tenantId, startDate, endDate])
@@ -512,9 +515,34 @@ model RecurringExpense {
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
-  tenant   Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenant      Tenant                @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  settlements CommittedSettlement[]
 
   @@index([tenantId, active])
+}
+
+// A per-cycle record that a RecurringExpense has been settled. Persists what the
+// derived status alone cannot: "this expense was paid this cycle." A linked
+// transactionId means a real charge covered it; null means the user manually
+// asserted payment (cash, cheque, or an out-of-system method). Either way the
+// expense stops accruing for the cycle. One settlement per expense per cycle.
+model CommittedSettlement {
+  id                 String   @id @default(cuid())
+  tenantId           String
+  recurringExpenseId String
+  cycleId            String
+  transactionId      String?
+  method             String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  tenant           Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  recurringExpense RecurringExpense  @relation(fields: [recurringExpenseId], references: [id], onDelete: Cascade)
+  cycle            PayCycle          @relation(fields: [cycleId], references: [id], onDelete: Cascade)
+  transaction      PlaidTransaction? @relation(fields: [transactionId], references: [id], onDelete: SetNull)
+
+  @@unique([recurringExpenseId, cycleId])
+  @@index([tenantId, cycleId])
 }
 
 model SavingsDestination {

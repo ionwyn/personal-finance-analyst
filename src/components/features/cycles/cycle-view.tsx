@@ -1,42 +1,18 @@
 import Link from "next/link";
-import { CheckCircle2, Clock, Hourglass } from "lucide-react";
 
 import { BigNumber } from "@/components/shared/big-number";
 import { CategoryBar } from "@/components/features/cycles/category-bar";
+import { CommittedTable, type CommittedRow } from "@/components/features/cycles/committed-table";
 import { DiscoveryPanel } from "@/components/features/cycles/discovery-panel";
 import { SweepPrompt } from "@/components/features/cycles/sweep-prompt";
 import { PageHeader } from "@/components/ui";
 import { formatMoney, formatUtcDate } from "@/lib/format";
-import type { CommittedItem, CurrentCycleData } from "@/lib/cycles/getCurrentCycle";
+import type { CurrentCycleData } from "@/lib/cycles/getCurrentCycle";
 import type { DiscoveryCandidate } from "@/lib/cycles/discovery";
 
 function toNumber(value: { toString(): string } | null | undefined): number {
   if (value == null) return 0;
   return Number(value.toString());
-}
-
-function StatusBadge({ status }: { status: CommittedItem["status"] }) {
-  const config = {
-    debited: { label: "Debited", Icon: CheckCircle2, color: "var(--pos)" },
-    accrued: { label: "Accrued", Icon: Hourglass, color: "var(--text-3)" },
-    upcoming: { label: "Upcoming", Icon: Clock, color: "var(--info)" },
-  } as const;
-  const { label, Icon, color } = config[status];
-  return (
-    <span
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        gap: 4,
-        fontSize: 11,
-        color,
-        fontFamily: "var(--font-mono)",
-      }}
-    >
-      <Icon size={11} />
-      {label}
-    </span>
-  );
 }
 
 export function CycleView({
@@ -75,6 +51,22 @@ export function CycleView({
   const sweepSpace = toNumber(safeToSweep.rawAmount);
   const sweepSuggestion = toNumber(safeToSweep.amount);
   const dailySpendBudget = daysRemaining > 0 ? Math.max(0, sweepSpace) / daysRemaining : 0;
+
+  const committedRows: CommittedRow[] = committed.map((c) => ({
+    id: c.id,
+    name: c.name,
+    frequency: c.frequency,
+    status: c.status,
+    settled: c.settled,
+    amount: toNumber(c.amount),
+    accrual: toNumber(c.accrualPerCycle),
+    dueDateMs: c.dueDate ? c.dueDate.getTime() : null,
+    settledMethod: c.settledMethod,
+    hasPattern: c.hasPattern,
+  }));
+  const unsettledAccrualTotal = committed
+    .filter((c) => !c.settled)
+    .reduce((sum, c) => sum + toNumber(c.accrualPerCycle), 0);
 
   return (
     <>
@@ -190,36 +182,7 @@ export function CycleView({
               </div>
             </div>
             <div className="panel-body flush">
-              {committed.length === 0 ? (
-                <div style={{ padding: 14, color: "var(--text-3)", fontSize: 12 }}>
-                  No active recurring expenses. Add them in Settings → Recurring expenses.
-                </div>
-              ) : (
-                <table className="table" style={{ width: "100%" }}>
-                  <thead>
-                    <tr>
-                      <th>Name</th>
-                      <th>Frequency</th>
-                      <th>Status</th>
-                      <th className="num">Amount</th>
-                      <th className="num">Accrual</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {committed.map((c) => (
-                      <tr key={c.id}>
-                        <td>{c.name}</td>
-                        <td style={{ color: "var(--text-3)", fontSize: 11 }}>{c.frequency}</td>
-                        <td>
-                          <StatusBadge status={c.status} />
-                        </td>
-                        <td className="num mono">{formatMoney(toNumber(c.amount))}</td>
-                        <td className="num mono">{formatMoney(toNumber(c.accrualPerCycle))}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
+              <CommittedTable rows={committedRows} />
             </div>
           </div>
 
@@ -233,9 +196,7 @@ export function CycleView({
               <BreakdownRow label="Pending expenses" value={pending} sign="−" />
               <BreakdownRow
                 label="Unsettled recurring accruals"
-                value={committed
-                  .filter((c) => c.status !== "debited")
-                  .reduce((sum, c) => sum + toNumber(c.accrualPerCycle), 0)}
+                value={unsettledAccrualTotal}
                 sign="−"
               />
               <BreakdownRow

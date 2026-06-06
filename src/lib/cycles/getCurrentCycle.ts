@@ -11,7 +11,7 @@ import {
 } from "@/lib/cycles/getSpendingBreakdown";
 import { SPENDING_FILTER } from "@/lib/spending/classify";
 
-export type CommittedStatus = "debited" | "accrued" | "upcoming";
+export type CommittedStatus = "debited" | "accrued" | "upcoming" | "paid";
 
 export type CommittedItem = {
   id: string;
@@ -20,7 +20,16 @@ export type CommittedItem = {
   accrualPerCycle: Prisma.Decimal;
   frequency: string;
   status: CommittedStatus;
+  /** True when the item no longer accrues this cycle: auto-debited or manually settled. */
+  settled: boolean;
+  /** The scheduled date this expense lands in the cycle (from anchorDate), if any. */
+  dueDate: Date | null;
+  /** For a manual "Paid" settlement: the recorded method (e.g. "e-transfer", "cash"). */
+  settledMethod: string | null;
+  /** The transaction covering this item: auto-matched, manually linked, or null (cash/cheque). */
   matchedTransactionId: string | null;
+  /** Whether an auto-match merchantPattern is already configured (drives the rule nudge). */
+  hasPattern: boolean;
 };
 
 export type CurrentCycleData = {
@@ -51,11 +60,11 @@ export type CurrentCycleData = {
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-function startOfUtcDay(date: Date) {
+export function startOfUtcDay(date: Date) {
   return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
 }
 
-function dayOfMonthInCycle(
+export function dayOfMonthInCycle(
   start: Date,
   end: Date,
   dayOfMonth: number | null | undefined
@@ -145,10 +154,39 @@ export async function getCurrentCycleData(
     select: { id: true, merchantName: true, name: true },
   });
 
+  // Manual settlements recorded for this cycle (one per recurring expense).
+  // A row means the user settled it: linked to a transaction or "Paid" (cash/cheque).
+  const settlements = await prisma.committedSettlement.findMany({
+    where: { tenantId, cycleId: cycle.id },
+    select: { recurringExpenseId: true, transactionId: true, method: true },
+  });
+  const settlementByExpense = new Map(settlements.map((s) => [s.recurringExpenseId, s]));
+
   const today = startOfUtcDay(now);
   const cycleEnd = startOfUtcDay(cycle.endDate);
 
   const committed: CommittedItem[] = recurring.map((rec) => {
+    const anchorOccurrence = dayOfMonthInCycle(cycle.startDate, cycle.endDate, rec.anchorDate);
+    const hasPattern = Boolean(rec.merchantPattern);
+    const manual = settlementByExpense.get(rec.id);
+
+    // A manual settlement always wins: the user has asserted this is handled.
+    if (manual) {
+      return {
+        id: rec.id,
+        name: rec.name,
+        amount: rec.amount,
+        accrualPerCycle: rec.accrualPerCycle,
+        frequency: rec.frequency,
+        status: "paid",
+        settled: true,
+        dueDate: anchorOccurrence,
+        settledMethod: manual.method,
+        matchedTransactionId: manual.transactionId,
+        hasPattern,
+      };
+    }
+
     const pattern = (rec.merchantPattern ?? "").toUpperCase();
     let matched: { id: string } | null = null;
     if (pattern) {
@@ -158,8 +196,6 @@ export async function getCurrentCycleData(
           return merchant.includes(pattern);
         }) ?? null;
     }
-
-    const anchorOccurrence = dayOfMonthInCycle(cycle.startDate, cycle.endDate, rec.anchorDate);
 
     let status: CommittedStatus;
     if (matched) status = "debited";
@@ -173,12 +209,16 @@ export async function getCurrentCycleData(
       accrualPerCycle: rec.accrualPerCycle,
       frequency: rec.frequency,
       status,
+      settled: status === "debited",
+      dueDate: anchorOccurrence,
+      settledMethod: null,
       matchedTransactionId: matched?.id ?? null,
+      hasPattern,
     };
   });
 
   const unsettledAccruals = committed
-    .filter((c) => c.status !== "debited")
+    .filter((c) => !c.settled)
     .reduce((sum, c) => sum.add(c.accrualPerCycle), new Prisma.Decimal(0));
   const committedTotalAccrued = committed.reduce(
     (sum, c) => sum.add(c.accrualPerCycle),
