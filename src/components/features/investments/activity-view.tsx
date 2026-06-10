@@ -6,7 +6,7 @@ import { ChevronDown, Filter, Search, X } from "lucide-react";
 import { SnapTradeSyncButton } from "@/components/actions/snaptrade-actions";
 import { SymLogo } from "@/components/shared/sym-logo";
 import { SegmentedControl } from "@/components/ui";
-import { formatRelativeTime } from "@/lib/format";
+import { formatMoney, formatRelativeTime } from "@/lib/format";
 import {
   ACTIVITY_GROUPS,
   groupOf,
@@ -26,9 +26,6 @@ type Props = {
   connections: InvestmentConnection[];
   lastSyncAt: string | null;
 };
-
-const fmt2 = (v: number) =>
-  v.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 const MONTH_NAMES = [
   "Jan",
@@ -213,7 +210,7 @@ export function ActivityView({
                 className="val"
                 style={{ color: summary.net >= 0 ? "var(--pos)" : "var(--neg)" }}
               >
-                {summary.net >= 0 ? "+" : "−"}${fmt2(Math.abs(summary.net))}
+                {formatMoney(summary.net, { sign: true })}
               </div>
             </div>
             <div className="cell">
@@ -222,13 +219,13 @@ export function ActivityView({
                 className="val"
                 style={{ color: summary.fees > 0 ? "var(--neg)" : "var(--text)" }}
               >
-                {summary.fees > 0 ? "−" : ""}${fmt2(summary.fees)}
+                {formatMoney(-summary.fees)}
               </div>
             </div>
             <div className="cell">
               <div className="lbl">Dividend income</div>
               <div className="val" style={{ color: "var(--pos)" }}>
-                +${fmt2(Math.abs(summary.divs))}
+                {formatMoney(Math.abs(summary.divs), { sign: true })}
               </div>
             </div>
             <div className="cell">
@@ -476,10 +473,9 @@ function FmtAmount({ value, ccy }: { value: number | null; ccy?: string }) {
     return <span style={{ color: "var(--text-4)" }}>—</span>;
   }
   const pos = value > 0;
-  const abs = fmt2(Math.abs(value));
   return (
     <span className={pos ? "amt-pos" : "amt-neg"}>
-      {pos ? "+" : "−"}${abs}
+      {formatMoney(value, { sign: true })}
       {ccy ? <span className="ccy-suffix"> {ccy}</span> : null}
     </span>
   );

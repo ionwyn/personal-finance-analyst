@@ -7,7 +7,7 @@ import { Search } from "lucide-react";
 import { SnapTradeLinkButton, SnapTradeSyncButton } from "@/components/actions/snaptrade-actions";
 import { SymLogo } from "@/components/shared/sym-logo";
 import { SegmentedControl } from "@/components/ui";
-import { formatRelativeTime, formatYearMonth } from "@/lib/format";
+import { formatMoney, formatPercent, formatRelativeTime, formatYearMonth } from "@/lib/format";
 import type {
   InvestmentConnection,
   InvestmentDashboardData,
@@ -36,9 +36,6 @@ function connectionPill(connection: InvestmentConnection): ConnectionPill {
 type SortKey = "symbol" | "units" | "avgCost" | "price" | "mvCAD" | "plCAD" | "plPct";
 
 type SortDir = "asc" | "desc";
-
-const fmt2 = (v: number) =>
-  v.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 export function InvestmentsView({ data }: { data: InvestmentDashboardData }) {
   const { summary, accounts, connections, holdings, allocByType, allocByCcy } = data;
@@ -99,24 +96,23 @@ export function InvestmentsView({ data }: { data: InvestmentDashboardData }) {
       <div className="summary-bar">
         <div className="cell">
           <div className="lbl">Portfolio · CAD</div>
-          <div className="val">${fmt2(summary.portfolioCAD)}</div>
+          <div className="val">{formatMoney(summary.portfolioCAD)}</div>
         </div>
         <div className="cell">
           <div className="lbl">Open P&amp;L</div>
           <div className="val" style={{ color: plPos ? "var(--pos)" : "var(--neg)" }}>
-            {plPos ? "+" : "−"}${fmt2(Math.abs(summary.plCAD))}
+            {formatMoney(summary.plCAD, { sign: true })}
           </div>
         </div>
         <div className="cell">
           <div className="lbl">Open P&amp;L %</div>
           <div className="val" style={{ color: plPos ? "var(--pos)" : "var(--neg)" }}>
-            {plPos ? "+" : "−"}
-            {Math.abs(summary.plPct).toFixed(2)}%
+            {formatPercent(summary.plPct)}
           </div>
         </div>
         <div className="cell">
           <div className="lbl">Cash · CAD-eq.</div>
-          <div className="val">${fmt2(summary.cashCAD)}</div>
+          <div className="val">{formatMoney(summary.cashCAD)}</div>
         </div>
       </div>
 
@@ -299,7 +295,7 @@ export function InvestmentsView({ data }: { data: InvestmentDashboardData }) {
                   <span className="opened">
                     opened {a.openedAt ? formatYearMonth(a.openedAt) : "—"}
                   </span>
-                  <span className="val">${fmt2(a.totalValue)}</span>
+                  <span className="val">{formatMoney(a.totalValue)}</span>
                 </div>
               );
             })}
@@ -441,18 +437,17 @@ export function InvestmentsView({ data }: { data: InvestmentDashboardData }) {
                     </td>
                     <td className="num">{h.price.toFixed(2)}</td>
                     <td className="num" style={{ fontWeight: 500 }}>
-                      ${fmt2(mv)}
+                      {formatMoney(mv)}
                     </td>
                     <td className={`num ${plPos2 ? "pl-pos" : "pl-neg"}`}>
-                      {plDollar == null ? "—" : `${plPos2 ? "+" : "−"}$${fmt2(Math.abs(plDollar))}`}
+                      {plDollar == null ? "—" : formatMoney(plDollar, { sign: true })}
                     </td>
                     <td className="num">
                       {h.plPct == null ? (
                         "—"
                       ) : (
                         <span className={`pl-chip ${plPos2 ? "pos" : "neg"}`}>
-                          {plPos2 ? "+" : "−"}
-                          {Math.abs(h.plPct).toFixed(2)}%
+                          {formatPercent(h.plPct)}
                         </span>
                       )}
                     </td>
@@ -488,11 +483,11 @@ export function InvestmentsView({ data }: { data: InvestmentDashboardData }) {
                   <td>
                     <span className="ccy-tag">{c.currency}</span>
                   </td>
-                  <td className="num">${fmt2(c.value)}</td>
+                  <td className="num">{formatMoney(c.value)}</td>
                   <td className="num" style={{ color: "var(--text-3)" }}>
-                    ${fmt2(c.valueCAD)}
+                    {formatMoney(c.valueCAD)}
                   </td>
-                  <td className="num">${fmt2(c.buyingPower)}</td>
+                  <td className="num">{formatMoney(c.buyingPower)}</td>
                 </tr>
               ))}
             </tbody>

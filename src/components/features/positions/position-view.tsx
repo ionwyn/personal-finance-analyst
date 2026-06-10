@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 
-import { formatRelativeTime } from "@/lib/format";
+import { formatMoney, formatPercent, formatRelativeTime } from "@/lib/format";
 import { shortLabel } from "@/lib/investments/activity-types";
 import type { PositionActivityRow, PositionDetail } from "@/lib/investments/types";
 
@@ -18,12 +18,9 @@ import {
   TechnicalsDeferred,
 } from "./position-deferred";
 
-// ─── tiny formatters (mirror the prototype's local helpers) ────────────────
-const money = (n: number, dp = 2) =>
-  "$" +
-  Math.abs(n).toLocaleString("en-US", { minimumFractionDigits: dp, maximumFractionDigits: dp });
-const signMoney = (n: number, dp = 2) => (n >= 0 ? "+" : "−") + money(n, dp);
-const pct = (n: number, dp = 2) => (n >= 0 ? "+" : "−") + Math.abs(n).toFixed(dp) + "%";
+const money = (n: number) => formatMoney(Math.abs(n));
+const signMoney = (n: number) => formatMoney(n, { sign: true });
+const pct = (n: number) => formatPercent(n);
 const dash = (v: string | null | undefined) => (v == null ? "—" : v);
 
 function fmtDate(iso: string | null) {

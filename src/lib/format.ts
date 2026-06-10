@@ -39,6 +39,12 @@ export function formatMoney(value: number, opts: { sign?: boolean; ccy?: boolean
   return `${ccy ? "$" : ""}${prefix}${str}`;
 }
 
+export function formatPercent(value: number, opts: { sign?: boolean; digits?: number } = {}) {
+  const { sign = true, digits = 2 } = opts;
+  const prefix = sign ? (value >= 0 ? "+" : "−") : value < 0 ? "−" : "";
+  return `${prefix}${Math.abs(value).toFixed(digits)}%`;
+}
+
 export function formatCompactMoney(value: number) {
   const abs = Math.abs(value);
   if (abs >= 1000) return `$${(value / 1000).toFixed(1)}k`;
@@ -54,16 +60,6 @@ export function formatYearMonth(value: Date | string) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
 }
 
-export function formatPlaidDate(value?: Date | string | null) {
-  if (!value) return "Never";
-  return new Intl.DateTimeFormat("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-    timeZone: "UTC",
-  }).format(new Date(value));
-}
-
 export function formatUtcDate(value?: Date | string | null) {
   if (!value) return "Never";
   return new Intl.DateTimeFormat("en-US", {
@@ -73,6 +69,8 @@ export function formatUtcDate(value?: Date | string | null) {
     timeZone: "UTC",
   }).format(new Date(value));
 }
+
+export const formatPlaidDate = formatUtcDate;
 
 export function formatDateTime(value?: Date | string | null) {
   if (!value) return "Never";
