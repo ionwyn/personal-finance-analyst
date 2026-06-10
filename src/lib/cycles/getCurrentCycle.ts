@@ -149,8 +149,16 @@ export async function getCurrentCycleData(
     },
   });
 
+  // Broader than SPENDING_FILTER: loan payments (e.g. Affirm BNPL) are excluded
+  // from spending stats but must still be matchable as committed expenses.
   const cycleMatches = await prisma.plaidTransaction.findMany({
-    where: { ...SPENDING_FILTER, tenantId, cycleId: cycle.id },
+    where: {
+      removed: false,
+      supersededById: null,
+      tenantId,
+      cycleId: cycle.id,
+      amount: { gt: 0 },
+    },
     select: { id: true, merchantName: true, name: true },
   });
 
