@@ -310,6 +310,11 @@ model SnapTradeAccount {
   institutionName             String?
   rawType                     String?
   accountCategory             String?
+  // SnapTrade meta.unified_account_type, e.g. CREDIT_CARD,
+  // SELF_DIRECTED_NON_REGISTERED_MARGIN, CASH. This is the only field that
+  // reliably distinguishes credit cards / margin / cash from one another —
+  // rawType collapses both margin and plain non-registered to "PERSONAL".
+  unifiedAccountType          String?
   currency                    String?
   totalValue                  Decimal?  @db.Decimal(24, 8)
   openedAt                    DateTime?

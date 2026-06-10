@@ -2,12 +2,14 @@ import { formatMoney, formatYearMonth } from "@/lib/format";
 import type { InvestmentDashboardData } from "@/lib/investments/types";
 
 export function AccountsPanel({ accounts }: { accounts: InvestmentDashboardData["accounts"] }) {
+  const netWorth = accounts.reduce((s, a) => s + a.totalValue, 0);
+  const liabilities = accounts.reduce((s, a) => s + a.liabilityCAD, 0);
   return (
     <div className="panel" style={{ marginBottom: 16 }}>
       <div className="panel-head">
         <div className="panel-title">Accounts</div>
         <div className="panel-meta">
-          {accounts.length} {accounts.length === 1 ? "REGISTERED" : "ACCOUNTS"}
+          {accounts.length} {accounts.length === 1 ? "ACCOUNT" : "ACCOUNTS"}
         </div>
       </div>
       <div className="panel-body flush">
@@ -18,6 +20,15 @@ export function AccountsPanel({ accounts }: { accounts: InvestmentDashboardData[
               : a.isStale
                 ? { cls: "warn", label: "STALE" }
                 : null;
+            // For a credit card we show the carried balance as the debt owed
+            // (negative); other accounts show their net value.
+            const displayValue = a.isLiability ? -a.liabilityCAD : a.totalValue;
+            const subline =
+              a.isMargin && a.liabilityCAD > 0
+                ? `${a.positionCount} positions · ${formatMoney(a.liabilityCAD)} margin loan`
+                : a.isLiability
+                  ? "balance to pay off"
+                  : `${a.positionCount} positions`;
             return (
               <div className="brok-row" key={a.id}>
                 <div
@@ -33,10 +44,10 @@ export function AccountsPanel({ accounts }: { accounts: InvestmentDashboardData[
                 </div>
                 <div>
                   <div className="nm">{a.name}</div>
-                  <div className="meta">{a.positionCount} positions</div>
+                  <div className="meta">{subline}</div>
                 </div>
                 <span className="reg-cell">
-                  <span className="status reg">
+                  <span className={`status ${a.isLiability ? "warn" : "reg"}`}>
                     <i className="pulse" />
                     {a.registration}
                   </span>
@@ -51,10 +62,24 @@ export function AccountsPanel({ accounts }: { accounts: InvestmentDashboardData[
                 <span className="opened">
                   opened {a.openedAt ? formatYearMonth(a.openedAt) : "—"}
                 </span>
-                <span className="val">{formatMoney(a.totalValue)}</span>
+                <span
+                  className="val"
+                  style={displayValue < 0 ? { color: "var(--neg)" } : undefined}
+                >
+                  {formatMoney(displayValue)}
+                </span>
               </div>
             );
           })}
+        </div>
+        <div className="brok-foot">
+          <span className="lbl">Net worth</span>
+          {liabilities > 0 ? (
+            <span className="meta" style={{ color: "var(--neg)" }}>
+              {formatMoney(-liabilities)} liabilities
+            </span>
+          ) : null}
+          <span className="val">{formatMoney(netWorth)}</span>
         </div>
       </div>
     </div>

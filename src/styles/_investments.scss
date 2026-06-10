@@ -337,6 +337,32 @@
   text-align: right;
   min-width: 110px;
 }
+.brok-foot {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  padding: 11px 16px;
+  border-top: 1px solid var(--border);
+}
+.brok-foot .lbl {
+  color: var(--text-4);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.brok-foot .meta {
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+.brok-foot .val {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 14px;
+  font-weight: 600;
+  text-align: right;
+}
 
 @include respond-to("lg") {
   .alloc-grid {

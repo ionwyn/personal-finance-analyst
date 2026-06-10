@@ -128,4 +128,29 @@ describe("SnapTrade normalization", () => {
     expect(isClosedSnapTradeAccountStatus("open")).toBe(false);
     expect(isClosedSnapTradeAccountStatus(null)).toBe(false);
   });
+
+  it("classifies liability and margin accounts from unifiedAccountType", async () => {
+    const { classifySnapTradeAccount } = await import("@/lib/snaptrade/normalize");
+
+    expect(classifySnapTradeAccount("CREDIT_CARD", "CARD")).toMatchObject({
+      kind: "CREDIT_CARD",
+      isLiability: true,
+      isMargin: false,
+    });
+    // A carried Wealthsimple credit card with no unifiedAccountType still
+    // classifies as a liability from its raw_type.
+    expect(classifySnapTradeAccount(null, "CARD").isLiability).toBe(true);
+
+    expect(
+      classifySnapTradeAccount("SELF_DIRECTED_NON_REGISTERED_MARGIN", "PERSONAL")
+    ).toMatchObject({ kind: "MARGIN", isLiability: false, isMargin: true });
+    // Plain non-registered must NOT be confused with margin, even though both
+    // share raw_type "PERSONAL".
+    expect(classifySnapTradeAccount("SELF_DIRECTED_NON_REGISTERED", "PERSONAL").isMargin).toBe(
+      false
+    );
+
+    expect(classifySnapTradeAccount("MANAGED_TFSA", "TFSA").label).toBe("TFSA");
+    expect(classifySnapTradeAccount("CASH", "MSB").kind).toBe("CASH");
+  });
 });

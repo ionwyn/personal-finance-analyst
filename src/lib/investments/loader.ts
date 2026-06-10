@@ -1,7 +1,10 @@
 import { SnapTradeConnectionStatus } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
-import { isClosedSnapTradeAccountStatus } from "@/lib/snaptrade/normalize";
+import {
+  classifySnapTradeAccount,
+  isClosedSnapTradeAccountStatus,
+} from "@/lib/snaptrade/normalize";
 import type {
   ConnectionStatus,
   InvestmentAccount,
@@ -163,17 +166,28 @@ export async function loadInvestments(tenantId?: string | null): Promise<LoadedI
       account.lastHoldingsSyncAt?.toISOString() ??
       null;
 
+    const klass = classifySnapTradeAccount(account.unifiedAccountType, account.rawType);
+    const netValue = holdingsCAD + cashCAD;
+    // A credit card's whole owed balance is a debt; for any other account, a
+    // negative cash balance is a loan (e.g. a margin loan). SnapTrade reports
+    // both as negative numbers, which we surface here as a positive debt.
+    const liabilityCAD = klass.isLiability ? Math.max(0, -netValue) : Math.max(0, -cashCAD);
+
     return {
       id: account.id,
       connectionId: account.connectionId,
       name: account.name,
-      registration: (account.rawType ?? account.accountCategory ?? "Brokerage").toUpperCase(),
+      registration: klass.label,
       institution,
       institutionLogoBg: hashColor(institution),
       institutionLogoText: logoText(institution),
       currency: account.currency ?? "CAD",
-      totalValue: holdingsCAD + cashCAD,
+      totalValue: netValue,
       cash: cashCAD,
+      kind: klass.kind,
+      isLiability: klass.isLiability,
+      isMargin: klass.isMargin,
+      liabilityCAD,
       openedAt:
         account.openedAt?.toISOString() ?? account.snapTradeCreatedAt?.toISOString() ?? null,
       lastSyncAt,

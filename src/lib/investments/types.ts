@@ -12,8 +12,20 @@ export type InvestmentAccount = {
   institutionLogoBg: string;
   institutionLogoText: string;
   currency: Currency;
+  // Signed net value of the account (holdings + cash). For a liability account
+  // (credit card) carrying a balance this is negative.
   totalValue: number;
   cash: number;
+  // Coarse account class derived from SnapTrade's unifiedAccountType.
+  kind: AccountKind;
+  // True for credit cards / lines of credit — debts to be paid down.
+  isLiability: boolean;
+  // True for margin accounts (asset accounts that may carry a margin loan).
+  isMargin: boolean;
+  // Debt owed on this account in CAD, as a positive number: the amount owed on
+  // a credit card, or the margin loan (negative cash) on a margin account. 0
+  // for ordinary asset accounts.
+  liabilityCAD: number;
   openedAt: string | null;
   lastSyncAt: string | null;
   positionCount: number;
@@ -21,6 +33,15 @@ export type InvestmentAccount = {
   isStale: boolean;
   initialSyncComplete: boolean;
 };
+
+export type AccountKind =
+  | "CREDIT_CARD"
+  | "LINE_OF_CREDIT"
+  | "MARGIN"
+  | "CRYPTO"
+  | "REGISTERED"
+  | "CASH"
+  | "INVESTMENT";
 
 export type InvestmentConnection = {
   id: string;
@@ -80,6 +101,13 @@ export type InvestmentSummary = {
   accountCount: number;
   positionCount: number;
   portfolioCAD: number;
+  // Total assets (investment holdings + positive cash) in CAD.
+  assetsCAD: number;
+  // Total debt (credit card balances + margin loans + any negative cash) in
+  // CAD, as a positive number.
+  liabilitiesCAD: number;
+  // Net worth across linked accounts = assetsCAD − liabilitiesCAD.
+  netWorthCAD: number;
   costCAD: number;
   plCAD: number;
   plPct: number;

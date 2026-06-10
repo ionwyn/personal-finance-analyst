@@ -25,6 +25,7 @@ export type NormalizedAccount = {
   institutionName: string | null;
   rawType: string | null;
   accountCategory: string | null;
+  unifiedAccountType: string | null;
   currency: string | null;
   totalValue: number | null;
   openedAt: Date | null;
@@ -76,6 +77,67 @@ export type NormalizedPosition = {
   cashEquivalent: boolean;
   logoUrl: string | null;
 };
+
+// A coarse classification of a SnapTrade account, derived from its
+// unifiedAccountType. `isLiability` accounts (credit cards, lines of credit)
+// are debts whose balance must be paid down; their value subtracts from net
+// worth. `isMargin` accounts are asset accounts that may carry a margin loan
+// (reported by SnapTrade as a negative cash balance) — the account itself is
+// not a liability but the loan portion is.
+export type SnapTradeAccountKind =
+  | "CREDIT_CARD"
+  | "LINE_OF_CREDIT"
+  | "MARGIN"
+  | "CRYPTO"
+  | "REGISTERED"
+  | "CASH"
+  | "INVESTMENT";
+
+export type SnapTradeAccountClass = {
+  kind: SnapTradeAccountKind;
+  label: string;
+  isLiability: boolean;
+  isMargin: boolean;
+};
+
+const REGISTERED_TOKENS = ["TFSA", "RRSP", "FHSA", "RESP", "RRIF", "LIRA", "LRSP", "RDSP"];
+
+export function classifySnapTradeAccount(
+  unifiedAccountType: string | null | undefined,
+  rawType: string | null | undefined
+): SnapTradeAccountClass {
+  const u = (unifiedAccountType ?? "").toUpperCase();
+  const r = (rawType ?? "").toUpperCase();
+
+  if (u.includes("CREDIT_CARD") || r === "CARD") {
+    return { kind: "CREDIT_CARD", label: "CREDIT CARD", isLiability: true, isMargin: false };
+  }
+  if (u.includes("LINE_OF_CREDIT")) {
+    return { kind: "LINE_OF_CREDIT", label: "LINE OF CREDIT", isLiability: true, isMargin: false };
+  }
+  if (u.includes("MARGIN")) {
+    return { kind: "MARGIN", label: "MARGIN", isLiability: false, isMargin: true };
+  }
+  if (u.includes("CRYPTO") || r === "CRYPTO") {
+    return { kind: "CRYPTO", label: "CRYPTO", isLiability: false, isMargin: false };
+  }
+
+  const registeredToken = REGISTERED_TOKENS.find((token) => u.includes(token) || r === token);
+  if (registeredToken) {
+    return { kind: "REGISTERED", label: registeredToken, isLiability: false, isMargin: false };
+  }
+
+  if (u.includes("HISA") || u.includes("SAVE") || u === "CASH" || u === "CASH_USD" || r === "MSB") {
+    return { kind: "CASH", label: "CASH", isLiability: false, isMargin: false };
+  }
+
+  return {
+    kind: "INVESTMENT",
+    label: r || u || "BROKERAGE",
+    isLiability: false,
+    isMargin: false,
+  };
+}
 
 export function isClosedSnapTradeAccountStatus(status: string | null | undefined) {
   const normalized = status
@@ -159,12 +221,14 @@ export function normalizeConnection(
 
 export function normalizeAccount(account: Account): NormalizedAccount {
   const holdingsStatus = account.sync_status?.holdings;
+  const meta = account.meta as Record<string, unknown> | undefined;
   return {
     snapTradeAccountId: account.id,
     name: account.name ?? account.institution_name ?? "Brokerage account",
     institutionName: account.institution_name ?? null,
     rawType: account.raw_type ?? null,
     accountCategory: account.account_category ?? null,
+    unifiedAccountType: stringOrNull(meta?.unifiedAccountType ?? meta?.unified_account_type),
     currency: upperCurrency(account.balance?.total?.currency ?? account.meta?.currency),
     totalValue: numberOrNull(account.balance?.total?.amount),
     openedAt: dateOrNull(account.opening_date),
