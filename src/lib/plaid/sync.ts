@@ -26,9 +26,9 @@ import {
   safeError,
   withLogContext,
 } from "@/lib/logger";
+import { ACTIVE_LOCK_MS, recoverStuckSyncEntities } from "@/lib/sync/lifecycle";
 
 const PAGE_SIZE = 500;
-const ACTIVE_LOCK_MS = 15 * 60 * 1000;
 
 type CycleSyncState = {
   context: ClassifyContext;
@@ -431,25 +431,12 @@ function shouldRefreshBalance(input: {
 }
 
 async function recoverStuckSyncRuns() {
-  const cutoff = new Date(Date.now() - ACTIVE_LOCK_MS);
-
-  await prisma.syncRun.updateMany({
-    where: { status: SyncRunStatus.RUNNING, startedAt: { lt: cutoff } },
-    data: {
-      status: SyncRunStatus.ERROR,
-      completedAt: new Date(),
-      errorCode: "STUCK_SYNC_RECOVERY",
-      errorMessage: "Sync run was stuck in RUNNING state and was reset by the watchdog.",
-    },
-  });
-
-  await prisma.plaidItem.updateMany({
-    where: { status: PlaidItemStatus.SYNCING, updatedAt: { lt: cutoff } },
-    data: {
-      status: PlaidItemStatus.ERROR,
-      errorCode: "STUCK_SYNC_RECOVERY",
-      errorMessage: "PlaidItem was stuck in SYNCING state and was reset by the watchdog.",
-    },
+  await recoverStuckSyncEntities({
+    runDelegate: prisma.syncRun,
+    entityDelegate: prisma.plaidItem,
+    entityStuckStatus: PlaidItemStatus.SYNCING,
+    entityResetStatus: PlaidItemStatus.ERROR,
+    entityResetMessage: "PlaidItem was stuck in SYNCING state and was reset by the watchdog.",
   });
 }
 

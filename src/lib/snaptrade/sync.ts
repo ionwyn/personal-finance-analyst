@@ -21,8 +21,7 @@ import {
   safeError,
   withLogContext,
 } from "@/lib/logger";
-
-const ACTIVE_LOCK_MS = 15 * 60 * 1000;
+import { ACTIVE_LOCK_MS, recoverStuckSyncEntities } from "@/lib/sync/lifecycle";
 
 function decimal(value: number | null | undefined) {
   return value == null ? null : new Prisma.Decimal(value);
@@ -67,26 +66,14 @@ async function ensureConnectionRecord(input: {
 }
 
 async function recoverStuckSnapTradeSyncRuns() {
-  const cutoff = new Date(Date.now() - ACTIVE_LOCK_MS);
-
-  await prisma.snapTradeSyncRun.updateMany({
-    where: { status: SyncRunStatus.RUNNING, startedAt: { lt: cutoff } },
-    data: {
-      status: SyncRunStatus.ERROR,
-      completedAt: new Date(),
-      errorCode: "STUCK_SYNC_RECOVERY",
-      errorMessage: "SnapTrade sync run was stuck in RUNNING state and was reset by the watchdog.",
-    },
-  });
-
-  await prisma.snapTradeConnection.updateMany({
-    where: { status: SnapTradeConnectionStatus.SYNCING, updatedAt: { lt: cutoff } },
-    data: {
-      status: SnapTradeConnectionStatus.ERROR,
-      errorCode: "STUCK_SYNC_RECOVERY",
-      errorMessage:
-        "SnapTrade connection was stuck in SYNCING state and was reset by the watchdog.",
-    },
+  await recoverStuckSyncEntities({
+    runDelegate: prisma.snapTradeSyncRun,
+    entityDelegate: prisma.snapTradeConnection,
+    entityStuckStatus: SnapTradeConnectionStatus.SYNCING,
+    entityResetStatus: SnapTradeConnectionStatus.ERROR,
+    entityResetMessage:
+      "SnapTrade connection was stuck in SYNCING state and was reset by the watchdog.",
+    runResetMessage: "SnapTrade sync run was stuck in RUNNING state and was reset by the watchdog.",
   });
 }
 
