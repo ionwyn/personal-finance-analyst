@@ -9,51 +9,48 @@ import {
   hash,
   isLiabilityType,
   monthKey,
-  monthLabel,
   numberValue,
 } from "@/lib/analytics/dashboard-helpers";
+import {
+  buildBalanceByDay,
+  buildBalanceHistory,
+  buildBalanceSpark,
+  computeBalanceDelta,
+} from "@/lib/analytics/balance";
+import {
+  mapAccountSummary,
+  mapInstitutionSummary,
+  mapPlaidItemSummary,
+} from "@/lib/analytics/mappers";
+import {
+  aggregateTransactions,
+  buildCategorySpend,
+  buildMerchantSpend,
+} from "@/lib/analytics/transactions-aggregator";
+import type {
+  AccountSummary,
+  BalancePoint,
+  CategorySpend,
+  InstitutionSummary,
+  MerchantSpend,
+  MonthlyCashflow,
+  PlaidItemSummary,
+  TransactionSummary,
+} from "@/lib/analytics/types";
 import { getInvestmentDashboardData } from "@/lib/investments/analytics";
 import type { InvestmentDashboardData } from "@/lib/investments/types";
 import { categorizeForSpending } from "@/lib/spending/classify";
 
-const SUBSCRIPTION_HINTS = [
-  "netflix",
-  "spotify",
-  "hulu",
-  "apple",
-  "amazon prime",
-  "disney",
-  "youtube",
-  "patreon",
-  "github",
-  "openai",
-  "claude",
-  "vercel",
-  "figma",
-  "notion",
-  "1password",
-  "dropbox",
-  "icloud",
-  "adobe",
-  "ms365",
-  "office 365",
-  "linkedin",
-  "twitter",
-  "x premium",
-  "equinox",
-  "peloton",
-  "audible",
-  "kindle",
-  "new york times",
-  "wsj",
-];
-
-function isLikelySubscription(name: string, category: string | null) {
-  const lower = name.toLowerCase();
-  if (SUBSCRIPTION_HINTS.some((s) => lower.includes(s))) return true;
-  if (category && /subscription/i.test(category)) return true;
-  return false;
-}
+export type {
+  AccountSummary,
+  BalancePoint,
+  CategorySpend,
+  InstitutionSummary,
+  MerchantSpend,
+  MonthlyCashflow,
+  PlaidItemSummary,
+  TransactionSummary,
+};
 
 function emptyDashboardData(slug: string, investments: InvestmentDashboardData) {
   return {
@@ -111,67 +108,70 @@ function emptyDashboardData(slug: string, investments: InvestmentDashboardData) 
   };
 }
 
-export type AccountSummary = {
-  id: string;
-  itemId: string;
-  name: string;
-  officialName: string | null;
-  type: string;
-  subtype: string | null;
-  mask: string | null;
-  availableBalance: number;
-  currentBalance: number;
-  isoCurrencyCode: string;
-  lastBalanceAt: string | null;
-};
+function buildDateWindows(now: Date) {
+  const monthKeys: string[] = [];
+  for (let i = 5; i >= 0; i -= 1) {
+    monthKeys.push(monthKey(subMonths(now, i)));
+  }
+  return {
+    monthKeys,
+    sixMonthsAgo: startOfMonth(subMonths(now, 5)),
+    ninetyDaysAgo: subDays(now, 90),
+    thirtyDaysAgo: subDays(now, 30),
+    sevenDaysAgo: subDays(now, 7),
+    currentMonthStart: startOfMonth(now),
+    currentMonthEnd: endOfMonth(now),
+    prevMonthStart: startOfMonth(subMonths(now, 1)),
+    prevMonthEnd: endOfMonth(subMonths(now, 1)),
+  };
+}
 
-export type PlaidItemSummary = {
-  id: string;
-  institutionName: string;
-  institutionId: string | null;
-  status: string;
-  lastSyncAt: string | null;
-  lastBalanceRefreshAt: string | null;
-  errorCode: string | null;
-  errorMessage: string | null;
-};
+function computeNetTotals(
+  plaidAccounts: { type: string; currentBalance: Prisma.Decimal | null }[]
+) {
+  const totalAssets = plaidAccounts
+    .filter((a) => numberValue(a.currentBalance) > 0 && !isLiabilityType(a.type))
+    .reduce((s, a) => s + numberValue(a.currentBalance), 0);
+  const totalLiabilities = plaidAccounts
+    .filter((a) => isLiabilityType(a.type) || numberValue(a.currentBalance) < 0)
+    .reduce((s, a) => s + Math.abs(numberValue(a.currentBalance)), 0);
+  return { totalAssets, totalLiabilities, currentBalance: totalAssets - totalLiabilities };
+}
 
-export type InstitutionSummary = PlaidItemSummary & {
-  total: number;
-  accounts: AccountSummary[];
-};
-
-export type TransactionSummary = {
-  id: string;
-  name: string;
-  rawName: string;
-  amount: number;
-  date: string;
-  category: string;
-  categoryColor: string;
-  account: string;
-  pending: boolean;
-};
-
-export type MonthlyCashflow = { month: string; income: number; spending: number; net: number };
-export type CategorySpend = { category: string; amount: number; pct: number; color: string };
-export type MerchantSpend = { merchant: string; amount: number };
-export type BalancePoint = { date: string; balance: number };
+function buildInsights(input: {
+  now: Date;
+  monthlySpend: number;
+  monthlyIncome: number;
+  monthExpenseCount: number;
+  subscriptionMerchants: Map<string, number>;
+}) {
+  const dayOfMonth = input.now.getDate();
+  const daysInMonth = endOfMonth(input.now).getDate();
+  const daysRemaining = Math.max(0, daysInMonth - dayOfMonth);
+  const subscriptionsTotal = [...input.subscriptionMerchants.values()].reduce((s, v) => s + v, 0);
+  return {
+    avgDailySpend: dayOfMonth ? input.monthlySpend / dayOfMonth : 0,
+    subscriptionsTotal,
+    subscriptionsCount: input.subscriptionMerchants.size,
+    savingsRate:
+      input.monthlyIncome > 0
+        ? ((input.monthlyIncome - input.monthlySpend) / input.monthlyIncome) * 100
+        : null,
+    daysRemaining,
+    monthExpenseCount: input.monthExpenseCount,
+    daysElapsed: dayOfMonth,
+    daysInMonth,
+  };
+}
 
 export async function getDashboardData(tenantSlug: string) {
   const tenant = await prisma.tenant.findUnique({
     where: { slug: tenantSlug },
     include: {
-      plaidAccounts: {
-        orderBy: [{ type: "asc" }, { name: "asc" }],
-      },
+      plaidAccounts: { orderBy: [{ type: "asc" }, { name: "asc" }] },
       plaidItems: {
         orderBy: { createdAt: "desc" },
-        include: {
-          accounts: {
-            orderBy: [{ type: "asc" }, { name: "asc" }],
-          },
-        },
+        include: { accounts: { orderBy: [{ type: "asc" }, { name: "asc" }] } },
       },
     },
   });
@@ -180,21 +180,10 @@ export async function getDashboardData(tenantSlug: string) {
   if (!tenant) return emptyDashboardData(tenantSlug, investments);
 
   const now = new Date();
-  const sixMonthsAgo = startOfMonth(subMonths(now, 5));
-  const ninetyDaysAgo = subDays(now, 90);
-  const thirtyDaysAgo = subDays(now, 30);
-  const sevenDaysAgo = subDays(now, 7);
-  const currentMonthStart = startOfMonth(now);
-  const currentMonthEnd = endOfMonth(now);
-  const prevMonthStart = startOfMonth(subMonths(now, 1));
-  const prevMonthEnd = endOfMonth(subMonths(now, 1));
+  const windows = buildDateWindows(now);
 
   const transactions = await prisma.plaidTransaction.findMany({
-    where: {
-      tenantId: tenant.id,
-      removed: false,
-      date: { gte: sixMonthsAgo },
-    },
+    where: { tenantId: tenant.id, removed: false, date: { gte: windows.sixMonthsAgo } },
     orderBy: { date: "desc" },
     include: { account: true },
   });
@@ -214,239 +203,49 @@ export async function getDashboardData(tenantSlug: string) {
     };
   });
 
-  // Monthly cashflow buckets (6 months)
-  const monthlyMap = new Map<string, MonthlyCashflow>();
-  const monthKeys: string[] = [];
-  for (let i = 5; i >= 0; i -= 1) {
-    const date = subMonths(now, i);
-    const key = monthKey(date);
-    monthKeys.push(key);
-    monthlyMap.set(key, { month: monthLabel(key), income: 0, spending: 0, net: 0 });
-  }
-
-  const categoryMap = new Map<string, number>();
-  const categoryMap30 = new Map<string, number>();
-  const categoryMapMTD = new Map<string, number>();
-  const categoryMap7 = new Map<string, number>();
-  const merchantMap = new Map<string, number>();
-  let monthlySpend = 0;
-  let monthlyIncome = 0;
-  let prevMonthSpend = 0;
-  let prevMonthIncome = 0;
-  let largestExpense: TransactionSummary | null = null;
-  let monthExpenseCount = 0;
-  const subscriptionMerchants = new Map<string, number>();
-
-  for (const t of transactions) {
-    const amount = numberValue(t.amount);
-    const bucket = categorizeForSpending(t);
-    const isSpending = bucket === "spending";
-    const isIncome = bucket === "income";
-    const spendValue = isSpending ? amount : 0;
-    const incomeValue = isIncome ? Math.abs(amount) : 0;
-
-    const cashflow = monthlyMap.get(monthKey(t.date));
-    if (cashflow) {
-      cashflow.income += incomeValue;
-      cashflow.spending += spendValue;
-      cashflow.net = cashflow.income - cashflow.spending;
-    }
-
-    if (t.date >= currentMonthStart && t.date <= currentMonthEnd) {
-      if (isSpending) {
-        monthlySpend += amount;
-        monthExpenseCount += 1;
-        if (!largestExpense || amount > largestExpense.amount) {
-          largestExpense = {
-            id: t.id,
-            name: t.merchantName ?? t.name,
-            rawName: t.name,
-            amount,
-            date: t.date.toISOString(),
-            category: t.categoryPrimary ?? "Uncategorized",
-            categoryColor: "var(--cat-1)",
-            account: t.account.name,
-            pending: t.pending,
-          };
-        }
-
-        if (isLikelySubscription(t.merchantName ?? t.name, t.categoryPrimary)) {
-          const key = (t.merchantName ?? t.name).toLowerCase();
-          subscriptionMerchants.set(key, (subscriptionMerchants.get(key) ?? 0) + amount);
-        }
-      }
-      if (isIncome) monthlyIncome += incomeValue;
-    }
-
-    if (t.date >= prevMonthStart && t.date <= prevMonthEnd) {
-      if (isSpending) prevMonthSpend += amount;
-      if (isIncome) prevMonthIncome += incomeValue;
-    }
-
-    if (isSpending) {
-      const category = t.categoryPrimary ?? "Uncategorized";
-      const merchant = t.merchantName ?? t.name;
-      if (t.date >= ninetyDaysAgo) {
-        categoryMap.set(category, (categoryMap.get(category) ?? 0) + amount);
-        merchantMap.set(merchant, (merchantMap.get(merchant) ?? 0) + amount);
-      }
-      if (t.date >= thirtyDaysAgo) {
-        categoryMap30.set(category, (categoryMap30.get(category) ?? 0) + amount);
-      }
-      if (t.date >= currentMonthStart) {
-        categoryMapMTD.set(category, (categoryMapMTD.get(category) ?? 0) + amount);
-      }
-      if (t.date >= sevenDaysAgo) {
-        categoryMap7.set(category, (categoryMap7.get(category) ?? 0) + amount);
-      }
-    }
-  }
+  const agg = aggregateTransactions(transactions, windows);
 
   const balanceSnapshots = await prisma.balanceSnapshot.findMany({
-    where: { tenantId: tenant.id, capturedAt: { gte: sixMonthsAgo } },
+    where: { tenantId: tenant.id, capturedAt: { gte: windows.sixMonthsAgo } },
     include: { account: true },
     orderBy: { capturedAt: "asc" },
   });
 
-  const balanceByDay = new Map<string, { date: Date; balance: number }>();
-  for (const snapshot of balanceSnapshots) {
-    const key = format(snapshot.capturedAt, "MMM d");
-    const acctType = snapshot.account.type.toLowerCase();
-    const isLiability = acctType.includes("credit") || acctType.includes("loan");
-    const value = numberValue(snapshot.currentBalance);
-    const signed = isLiability ? -Math.abs(value) : value;
-    const existing = balanceByDay.get(key);
-    balanceByDay.set(key, {
-      date: existing?.date ?? snapshot.capturedAt,
-      balance: (existing?.balance ?? 0) + signed,
-    });
-  }
-  const balanceHistory: BalancePoint[] = [...balanceByDay.entries()].map(([date, info]) => ({
-    date,
-    balance: info.balance + investments.summary.portfolioCAD,
-  }));
+  const balanceByDay = buildBalanceByDay(balanceSnapshots);
+  const balanceHistory = buildBalanceHistory(balanceByDay, investments.summary.portfolioCAD);
 
-  const totalAssets = tenant.plaidAccounts
-    .filter((a) => numberValue(a.currentBalance) > 0 && !isLiabilityType(a.type))
-    .reduce((s, a) => s + numberValue(a.currentBalance), 0);
-  const totalLiabilities = tenant.plaidAccounts
-    .filter((a) => isLiabilityType(a.type) || numberValue(a.currentBalance) < 0)
-    .reduce((s, a) => s + Math.abs(numberValue(a.currentBalance)), 0);
-  const currentBalance = totalAssets - totalLiabilities;
+  const { totalAssets, totalLiabilities, currentBalance } = computeNetTotals(tenant.plaidAccounts);
 
-  // Sparkline series
-  const monthlySeries = monthKeys.map((k) => monthlyMap.get(k));
+  const monthlySeries = windows.monthKeys.map((k) => agg.monthlyMap.get(k));
   const incomeSpark = monthlySeries.map((m) => m?.income ?? 0);
   const spendSpark = monthlySeries.map((m) => m?.spending ?? 0);
   const cashflowSpark = monthlySeries.map((m) => (m?.income ?? 0) - (m?.spending ?? 0));
+  const balanceSparkSeries = buildBalanceSpark(balanceHistory);
 
-  const balanceSparkSeries = (() => {
-    if (balanceHistory.length <= 32) return balanceHistory.map((p) => p.balance);
-    const stride = Math.ceil(balanceHistory.length / 32);
-    return balanceHistory.filter((_, i) => i % stride === 0).map((p) => p.balance);
-  })();
+  const balanceDelta = computeBalanceDelta(
+    balanceHistory,
+    balanceByDay,
+    investments.summary.portfolioCAD,
+    now
+  );
 
-  // Deltas (vs last month)
-  const balanceDelta = (() => {
-    if (balanceHistory.length < 2) return null;
-    const entries = [...balanceByDay.values()];
-    const inv = investments.summary.portfolioCAD;
-    const last = entries[entries.length - 1].balance + inv;
-    const cutoff = subDays(now, 30);
-    const prior = entries.find((e) => e.date <= cutoff);
-    if (!prior) return null;
-    return delta(last, prior.balance + inv);
-  })();
+  const categorySpend = buildCategorySpend(agg.categoryMap);
+  const categorySpend30d = buildCategorySpend(agg.categoryMap30);
+  const categorySpendMTD = buildCategorySpend(agg.categoryMapMTD);
+  const categorySpend7d = buildCategorySpend(agg.categoryMap7);
+  const merchantSpend = buildMerchantSpend(agg.merchantMap);
 
-  function buildCategorySpend(map: Map<string, number>): CategorySpend[] {
-    const total = [...map.values()].reduce((s, v) => s + v, 0);
-    return [...map.entries()]
-      .map(([category, amount]) => ({ category, amount }))
-      .sort((a, b) => b.amount - a.amount)
-      .slice(0, 8)
-      .map((c, i) => ({
-        ...c,
-        pct: total ? (c.amount / total) * 100 : 0,
-        color: colorForCategory(c.category, i),
-      }));
-  }
+  const accounts: AccountSummary[] = tenant.plaidAccounts.map(mapAccountSummary);
+  const plaidItems: PlaidItemSummary[] = tenant.plaidItems.map(mapPlaidItemSummary);
+  const institutions: InstitutionSummary[] = tenant.plaidItems.map(mapInstitutionSummary);
 
-  const categorySpend = buildCategorySpend(categoryMap);
-  const categorySpend30d = buildCategorySpend(categoryMap30);
-  const categorySpendMTD = buildCategorySpend(categoryMapMTD);
-  const categorySpend7d = buildCategorySpend(categoryMap7);
-
-  const merchantSpend: MerchantSpend[] = [...merchantMap.entries()]
-    .map(([merchant, amount]) => ({ merchant, amount }))
-    .sort((a, b) => b.amount - a.amount)
-    .slice(0, 8);
-
-  const accounts: AccountSummary[] = tenant.plaidAccounts.map((a) => ({
-    id: a.id,
-    itemId: a.itemId,
-    name: a.name,
-    officialName: a.officialName,
-    type: a.type,
-    subtype: a.subtype,
-    mask: a.mask,
-    availableBalance: numberValue(a.availableBalance),
-    currentBalance: numberValue(a.currentBalance),
-    isoCurrencyCode: a.isoCurrencyCode ?? "USD",
-    lastBalanceAt: a.lastBalanceAt?.toISOString() ?? null,
-  }));
-
-  const plaidItems: PlaidItemSummary[] = tenant.plaidItems.map((item) => ({
-    id: item.id,
-    institutionName: item.institutionName ?? item.institutionId ?? "Linked institution",
-    institutionId: item.institutionId,
-    status: item.status,
-    lastSyncAt: item.lastSyncAt?.toISOString() ?? null,
-    lastBalanceRefreshAt: item.lastBalanceRefreshAt?.toISOString() ?? null,
-    errorCode: item.errorCode,
-    errorMessage: item.errorMessage,
-  }));
-
-  const institutions: InstitutionSummary[] = tenant.plaidItems.map((item) => {
-    const itemAccounts: AccountSummary[] = item.accounts.map((a) => ({
-      id: a.id,
-      itemId: a.itemId,
-      name: a.name,
-      officialName: a.officialName,
-      type: a.type,
-      subtype: a.subtype,
-      mask: a.mask,
-      availableBalance: numberValue(a.availableBalance),
-      currentBalance: numberValue(a.currentBalance),
-      isoCurrencyCode: a.isoCurrencyCode ?? "USD",
-      lastBalanceAt: a.lastBalanceAt?.toISOString() ?? null,
-    }));
-    const total = itemAccounts.reduce((s, a) => {
-      const sign = isLiabilityType(a.type) ? -1 : 1;
-      return s + sign * Math.abs(a.currentBalance);
-    }, 0);
-    return {
-      id: item.id,
-      institutionName: item.institutionName ?? item.institutionId ?? "Linked institution",
-      institutionId: item.institutionId,
-      status: item.status,
-      lastSyncAt: item.lastSyncAt?.toISOString() ?? null,
-      lastBalanceRefreshAt: item.lastBalanceRefreshAt?.toISOString() ?? null,
-      errorCode: item.errorCode,
-      errorMessage: item.errorMessage,
-      total,
-      accounts: itemAccounts,
-    };
+  const insights = buildInsights({
+    now,
+    monthlySpend: agg.monthlySpend,
+    monthlyIncome: agg.monthlyIncome,
+    monthExpenseCount: agg.monthExpenseCount,
+    subscriptionMerchants: agg.subscriptionMerchants,
   });
-
-  // Insights
-  const dayOfMonth = now.getDate();
-  const daysInMonth = endOfMonth(now).getDate();
-  const daysRemaining = Math.max(0, daysInMonth - dayOfMonth);
-  const avgDailySpend = dayOfMonth ? monthlySpend / dayOfMonth : 0;
-  const subscriptionsTotal = [...subscriptionMerchants.values()].reduce((s, v) => s + v, 0);
-  const subscriptionsCount = subscriptionMerchants.size;
-  const savingsRate =
-    monthlyIncome > 0 ? ((monthlyIncome - monthlySpend) / monthlyIncome) * 100 : null;
 
   const cashBalance = currentBalance;
   const investmentBalance = investments.summary.portfolioCAD;
@@ -463,15 +262,18 @@ export async function getDashboardData(tenantSlug: string) {
       investmentBalance,
       totalAssets: totalAssets + investmentBalance,
       totalLiabilities,
-      monthlySpend,
-      monthlyIncome,
-      netCashflow: monthlyIncome - monthlySpend,
+      monthlySpend: agg.monthlySpend,
+      monthlyIncome: agg.monthlyIncome,
+      netCashflow: agg.monthlyIncome - agg.monthlySpend,
     },
     deltas: {
       balance: balanceDelta,
-      income: delta(monthlyIncome, prevMonthIncome),
-      spend: delta(monthlySpend, prevMonthSpend),
-      cashflow: delta(monthlyIncome - monthlySpend, prevMonthIncome - prevMonthSpend),
+      income: delta(agg.monthlyIncome, agg.prevMonthIncome),
+      spend: delta(agg.monthlySpend, agg.prevMonthSpend),
+      cashflow: delta(
+        agg.monthlyIncome - agg.monthlySpend,
+        agg.prevMonthIncome - agg.prevMonthSpend
+      ),
     },
     sparks: {
       balance: balanceSparkSeries,
@@ -480,23 +282,20 @@ export async function getDashboardData(tenantSlug: string) {
       cashflow: cashflowSpark,
     },
     insights: {
-      avgDailySpend,
-      largestExpense: largestExpense
-        ? { name: largestExpense.name, amount: largestExpense.amount, date: largestExpense.date }
+      ...insights,
+      largestExpense: agg.largestExpense
+        ? {
+            name: agg.largestExpense.name,
+            amount: agg.largestExpense.amount,
+            date: agg.largestExpense.date,
+          }
         : null,
-      subscriptionsTotal,
-      subscriptionsCount,
-      savingsRate,
-      daysRemaining,
-      monthExpenseCount,
-      daysElapsed: dayOfMonth,
-      daysInMonth,
     },
     institutions,
     accounts,
     plaidItems,
     recentTransactions,
-    monthlyCashflow: [...monthlyMap.values()],
+    monthlyCashflow: [...agg.monthlyMap.values()],
     categorySpend,
     categorySpend30d,
     categorySpendMTD,
