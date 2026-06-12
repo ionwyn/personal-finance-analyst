@@ -11,6 +11,15 @@ import {
   PriceChart,
   TechnicalsPanel,
 } from "@/components/features/positions/position-market";
+import {
+  EarningsPanel,
+  FilingsPanel,
+  FinancialsPanel,
+  hasIntel,
+  InsiderPanel,
+  PeersPanel,
+  RecMomentumPanel,
+} from "@/components/features/positions/position-intel";
 import { AnalystPanel, DividendsPanel } from "@/components/features/positions/position-street";
 import { Section } from "@/components/features/positions/sections/section";
 import type { SymbolDetail } from "@/lib/investments/symbol-loader";
@@ -204,26 +213,44 @@ export function SymbolView({ data, canEdit }: { data: SymbolDetail; canEdit: boo
           >
             <div className="pos-stack">
               <FundamentalsLive md={md} isFund={data.isFund} />
+              {data.intel && <FinancialsPanel financials={data.intel.financials} />}
               <AnalystPanel md={md} />
               <DividendsPanel md={md} currency={data.currency} />
             </div>
           </Section>
 
+          {data.intel && hasIntel(data.intel) && (
+            <Section
+              id="intel"
+              eyebrow="03 · STREET INTELLIGENCE"
+              title="Earnings, analysts, insiders & filings"
+              meta="third-party data — not advice"
+            >
+              <div className="pos-stack">
+                <EarningsPanel earnings={data.intel.earnings} />
+                <RecMomentumPanel recTrends={data.intel.recTrends} />
+                <InsiderPanel insiders={data.intel.insiders} />
+                <PeersPanel peerRows={data.intel.peerRows} />
+                <FilingsPanel filings={data.intel.filings} />
+              </div>
+            </Section>
+          )}
+
           <Section
             id="technicals"
-            eyebrow="03 · TECHNICALS"
+            eyebrow="04 · TECHNICALS"
             title="Optional context"
             meta="secondary for long-hold investors"
           >
             <TechnicalsPanel md={md} />
           </Section>
 
-          <Section id="news" eyebrow="04 · NEWS & EVENTS" title="Curated, relevance-weighted">
+          <Section id="news" eyebrow="05 · NEWS & EVENTS" title="Curated, relevance-weighted">
             <NewsList md={md} symbol={data.symbol} name={data.name} />
           </Section>
 
           {profile?.description ? (
-            <Section id="about" eyebrow="05 · ABOUT" title={data.name ?? data.symbol}>
+            <Section id="about" eyebrow="06 · ABOUT" title={data.name ?? data.symbol}>
               <div className="panel">
                 <div className="panel-body">
                   <p className="sym-desc">{profile.description}</p>

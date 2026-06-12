@@ -1578,3 +1578,488 @@
   flex-direction: column;
   gap: 14px;
 }
+
+/* ── Street intelligence (earnings, recs, insiders, peers, filings, financials) ── */
+
+// Shared stat strip — same lbl/val grammar as .pos-divs-stats.
+.pos-earn-stats,
+.pos-insider-stats,
+.pos-fins-stats {
+  display: flex;
+  gap: 26px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+
+  > div {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .lbl {
+    font-size: 8.5px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    color: var(--text-4);
+  }
+  .val {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-size: 14px;
+    font-weight: 500;
+
+    &.pos { color: var(--pos); }
+    &.neg { color: var(--neg); }
+
+    em {
+      font-style: normal;
+      font-size: 9px;
+      color: var(--text-4);
+    }
+  }
+}
+
+/* Earnings vs street — surprise columns around a zero baseline */
+.pos-earn-chart {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(56px, 120px);
+  justify-content: start;
+  gap: 6px;
+}
+.pos-earn-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+
+  .surp {
+    font-family: var(--font-mono);
+    font-size: 9.5px;
+    font-weight: 600;
+
+    &.pos { color: var(--pos); }
+    &.neg { color: var(--neg); }
+  }
+  .well {
+    position: relative;
+    width: 100%;
+    height: 76px;
+    border-radius: 3px;
+    background: var(--surface-2);
+
+    i {
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 14px;
+      border-radius: 2px;
+
+      &.pos { background: var(--pos-dim); }
+      &.neg { background: var(--neg-dim); }
+    }
+    .baseline {
+      position: absolute;
+      left: 4px;
+      right: 4px;
+      top: 50%;
+      border-top: 1px dashed var(--border-strong);
+    }
+  }
+  .q {
+    font-size: 8.5px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    color: var(--text-4);
+  }
+  .eps {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-size: 9.5px;
+
+    b {
+      font-weight: 600;
+      color: var(--text-2);
+    }
+    em {
+      font-style: normal;
+      color: var(--text-4);
+    }
+  }
+}
+.pos-earn-foot {
+  margin-top: 10px;
+  font-size: 8.5px;
+  letter-spacing: 0.08em;
+  color: var(--text-4);
+}
+
+/* Recommendation momentum — monthly stacked distribution rows */
+.pos-recmo-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.pos-recmo-row {
+  display: grid;
+  grid-template-columns: 30px 1fr 26px;
+  align-items: center;
+  gap: 10px;
+
+  .mo {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    color: var(--text-4);
+  }
+  .bar {
+    display: flex;
+    height: 9px;
+    border-radius: 3px;
+    overflow: hidden;
+    gap: 1px;
+
+    i { display: block; min-width: 2px; }
+  }
+  .n {
+    font-family: var(--font-mono);
+    font-size: 9.5px;
+    color: var(--text-3);
+    text-align: right;
+  }
+}
+.pos-recmo-foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  margin-top: 12px;
+}
+.pos-recmo-delta {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--text-4);
+
+  b {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-2);
+
+    &.pos { color: var(--pos); }
+    &.neg { color: var(--neg); }
+  }
+  em {
+    font-style: normal;
+    font-weight: 400;
+    color: var(--text-4);
+  }
+}
+.pos-recmo-legend {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+
+  span {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 9px;
+    color: var(--text-3);
+  }
+  i {
+    width: 7px;
+    height: 7px;
+    border-radius: 2px;
+  }
+}
+
+/* Insider activity — dense ledger rows */
+.pos-insider-table {
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid var(--border-subtle);
+}
+.pos-insider-row {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr) 20px 70px 64px 64px;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border-subtle);
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 10px;
+
+  &:last-child { border-bottom: 0; }
+
+  .date { color: var(--text-4); }
+  .who {
+    font-family: var(--font-sans);
+    font-size: 10.5px;
+    color: var(--text-2);
+    text-transform: capitalize;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .code {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 14px;
+    border-radius: 3px;
+    font-size: 8.5px;
+    font-weight: 700;
+    border: 1px solid var(--border-strong);
+    color: var(--text-3);
+
+    &.buy {
+      color: var(--pos);
+      border-color: transparent;
+      background: var(--pos-bg);
+    }
+    &.sell {
+      color: var(--neg);
+      border-color: transparent;
+      background: var(--neg-bg);
+    }
+  }
+  .shares {
+    text-align: right;
+
+    &.pos { color: var(--pos); }
+    &.neg { color: var(--neg); }
+  }
+  .px {
+    text-align: right;
+    color: var(--text-4);
+  }
+  .usd {
+    text-align: right;
+    color: var(--text-2);
+
+    &.neg { color: var(--text-3); }
+  }
+}
+
+/* Peer tape — quote rows with 52-week range tracks */
+.pos-peers-table {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 10.5px;
+}
+.pos-peers-row {
+  display: grid;
+  grid-template-columns: 84px 70px 70px 78px minmax(60px, 1fr);
+  align-items: center;
+  gap: 12px;
+  padding: 7px 14px;
+  border-bottom: 1px solid var(--border-subtle);
+
+  &:last-child { border-bottom: 0; }
+
+  &.head {
+    font-family: var(--font-sans);
+    font-size: 8.5px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    color: var(--text-4);
+    background: var(--surface-2);
+  }
+  &.self {
+    background: var(--accent-bg);
+
+    .sym { color: var(--accent); }
+  }
+  .sym {
+    font-weight: 600;
+    color: var(--text-2);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+
+    em {
+      font-style: normal;
+      font-family: var(--font-sans);
+      font-size: 7.5px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      color: var(--accent);
+      border: 1px solid var(--accent-dim);
+      border-radius: 2px;
+      padding: 0 3px;
+    }
+  }
+  .num {
+    text-align: right;
+
+    &.pos { color: var(--pos); }
+    &.neg { color: var(--neg); }
+  }
+  .range .track {
+    position: relative;
+    display: block;
+    height: 5px;
+    border-radius: 2.5px;
+    background: var(--surface-3);
+    border: 1px solid var(--border);
+
+    i {
+      position: absolute;
+      top: -3px;
+      width: 2px;
+      height: 9px;
+      border-radius: 1px;
+      background: var(--accent);
+      transform: translateX(-50%);
+    }
+  }
+}
+
+/* SEC filings — linked disclosure rows */
+.pos-filings-list {
+  display: flex;
+  flex-direction: column;
+}
+.pos-filings-row {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr) 86px 12px;
+  align-items: center;
+  gap: 12px;
+  padding: 7px 14px;
+  border-bottom: 1px solid var(--border-subtle);
+  text-decoration: none;
+  transition: background 80ms;
+
+  &:hover {
+    background: var(--hover);
+
+    .ext { color: var(--text-2); }
+  }
+  &:last-child { border-bottom: 0; }
+
+  .form {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    font-weight: 600;
+    text-align: center;
+    border-radius: 3px;
+    padding: 2px 0;
+    border: 1px solid var(--border-strong);
+    color: var(--text-3);
+
+    &.annual {
+      color: var(--accent);
+      border-color: transparent;
+      background: var(--accent-bg);
+    }
+    &.quarterly {
+      color: var(--info);
+      border-color: transparent;
+      background: rgba(96, 165, 250, 0.08);
+    }
+    &.event {
+      color: var(--invest);
+      border-color: transparent;
+      background: var(--invest-bg);
+    }
+  }
+  .title {
+    font-size: 11px;
+    color: var(--text-2);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .date {
+    font-family: var(--font-mono);
+    font-size: 9.5px;
+    color: var(--text-4);
+    text-align: right;
+  }
+  .ext { color: var(--text-4); }
+}
+
+/* Annual financials — revenue bars + per-FY ledger */
+.pos-fins-chart {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  gap: 8px;
+}
+.pos-fins-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  min-width: 0;
+
+  .well {
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    width: 100%;
+    height: 60px;
+
+    i {
+      width: 22px;
+      border-radius: 2px 2px 0 0;
+      background: linear-gradient(180deg, var(--accent), var(--accent-dim));
+    }
+  }
+  .fy {
+    margin-top: 4px;
+    font-size: 8.5px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    color: var(--text-4);
+  }
+  .rev {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-size: 10.5px;
+    font-weight: 600;
+    color: var(--text-2);
+  }
+  .net {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-size: 9.5px;
+    color: var(--text-3);
+
+    &.neg { color: var(--neg); }
+
+    em {
+      font-style: normal;
+      margin-left: 4px;
+      color: var(--text-4);
+    }
+  }
+  .eps {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-size: 9.5px;
+    color: var(--text-4);
+  }
+}
+.pos-fins-foot {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 10px;
+  font-size: 8.5px;
+  letter-spacing: 0.08em;
+  color: var(--text-4);
+}
+
+@media (max-width: 760px) {
+  .pos-insider-row {
+    grid-template-columns: 56px minmax(0, 1fr) 18px 60px 56px;
+
+    .px { display: none; }
+  }
+  .pos-peers-row { grid-template-columns: 70px 60px 58px 64px minmax(48px, 1fr); }
+  .pos-earn-chart { grid-auto-columns: minmax(52px, 1fr); overflow-x: auto; }
+}
