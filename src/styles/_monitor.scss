@@ -1,0 +1,186 @@
+/* ── Desk monitor — cross-holdings intelligence sheet ───────────────────── */
+
+.mon-callouts {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.mon-callout {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+
+  .lbl {
+    font-size: 8.5px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    color: var(--text-4);
+  }
+  .val {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 12px;
+    align-items: baseline;
+    font-size: 13px;
+    color: var(--text-2);
+
+    &.mono {
+      font-family: var(--font-mono);
+      font-variant-numeric: tabular-nums;
+      font-weight: 500;
+    }
+    &.pos { color: var(--pos); }
+    &.neg { color: var(--neg); }
+
+    em {
+      font-style: normal;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-2);
+
+      b {
+        color: var(--accent);
+        font-weight: 600;
+        margin-left: 2px;
+      }
+      &.none {
+        color: var(--text-4);
+        font-size: 10px;
+      }
+    }
+    b.pos { color: var(--pos); }
+    b.neg { color: var(--neg); }
+  }
+}
+
+.mon-panel {
+  margin-bottom: 14px;
+}
+.mon-table {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 10.5px;
+}
+.mon-row {
+  display: grid;
+  grid-template-columns: 110px 64px 64px minmax(70px, 1fr) 64px 56px 48px 76px 72px;
+  align-items: center;
+  gap: 12px;
+  padding: 7px 14px;
+  border-bottom: 1px solid var(--border-subtle);
+  text-decoration: none;
+  color: inherit;
+  transition: background 80ms;
+
+  &:not(.head):hover {
+    background: var(--hover);
+  }
+  &:last-child { border-bottom: 0; }
+
+  &.head {
+    font-family: var(--font-sans);
+    font-size: 8.5px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    color: var(--text-4);
+    background: var(--surface-2);
+    position: sticky;
+    top: var(--topbar-h);
+    z-index: 2;
+  }
+
+  .sym {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 7px;
+    min-width: 0;
+
+    b {
+      font-weight: 600;
+      color: var(--text);
+    }
+    em {
+      font-style: normal;
+      font-size: 9px;
+      color: var(--text-4);
+
+      &.watch {
+        font-family: var(--font-sans);
+        font-size: 7.5px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        color: var(--info);
+        border: 1px solid var(--info);
+        border-radius: 2px;
+        padding: 0 3px;
+        opacity: 0.75;
+      }
+    }
+  }
+  .num {
+    text-align: right;
+    color: var(--text-2);
+
+    &.pos { color: var(--pos); }
+    &.neg { color: var(--neg); }
+  }
+  .earn {
+    color: var(--text-3);
+
+    &.soon {
+      color: var(--accent);
+      font-weight: 600;
+    }
+  }
+  .beats { color: var(--text-3); }
+  .recs em {
+    font-style: normal;
+    font-size: 9px;
+    margin-left: 5px;
+
+    &.pos { color: var(--pos); }
+    &.neg { color: var(--neg); }
+  }
+  .range .track {
+    position: relative;
+    display: block;
+    height: 5px;
+    border-radius: 2.5px;
+    background: var(--surface-3);
+    border: 1px solid var(--border);
+
+    i {
+      position: absolute;
+      top: -3px;
+      width: 2px;
+      height: 9px;
+      border-radius: 1px;
+      background: var(--accent);
+      transform: translateX(-50%);
+    }
+  }
+}
+
+@media (max-width: 1100px) {
+  .mon-callouts { grid-template-columns: repeat(2, 1fr); }
+  .mon-row {
+    grid-template-columns: 96px 60px 58px 60px 52px 64px 64px;
+
+    .range,
+    .beats { display: none; }
+  }
+}
+
+@media (max-width: 760px) {
+  .mon-row {
+    grid-template-columns: 84px 56px 54px 52px 60px;
+
+    .recs,
+    .num:nth-child(6) { display: none; }
+  }
+}
