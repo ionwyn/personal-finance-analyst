@@ -2,27 +2,28 @@
 
 import Link from "next/link";
 
-type TabKey = "holdings" | "activity";
+type TabKey = "holdings" | "activity" | "markets";
+
+const TABS: { key: TabKey; href: string; label: string }[] = [
+  { key: "holdings", href: "/app/investments", label: "Holdings" },
+  { key: "activity", href: "/app/investments/activity", label: "Activity" },
+  { key: "markets", href: "/app/investments/markets", label: "Markets" },
+];
 
 export function InvestmentsTabs({ active }: { active: TabKey }) {
   return (
     <div className="invest-tabs" role="tablist">
-      <Link
-        href="/app/investments"
-        role="tab"
-        aria-selected={active === "holdings"}
-        className={"invest-tab " + (active === "holdings" ? "on" : "")}
-      >
-        Holdings
-      </Link>
-      <Link
-        href="/app/investments/activity"
-        role="tab"
-        aria-selected={active === "activity"}
-        className={"invest-tab " + (active === "activity" ? "on" : "")}
-      >
-        Activity
-      </Link>
+      {TABS.map((t) => (
+        <Link
+          key={t.key}
+          href={t.href as never}
+          role="tab"
+          aria-selected={active === t.key}
+          className={"invest-tab " + (active === t.key ? "on" : "")}
+        >
+          {t.label}
+        </Link>
+      ))}
     </div>
   );
 }

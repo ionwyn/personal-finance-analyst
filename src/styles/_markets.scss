@@ -1,0 +1,445 @@
+// Markets tab — index tape, personal movers, treasury curve, macro dashboard.
+@use "breakpoints" as *;
+
+/* ── Index tape ─────────────────────────────────────────────────────────── */
+.mkt-tape {
+  display: grid;
+  grid-template-columns: repeat(9, 1fr);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  overflow: hidden;
+  margin-bottom: 14px;
+}
+.mkt-tape-cell {
+  padding: 9px 12px 8px;
+  border-right: 1px solid var(--border-subtle);
+  min-width: 0;
+  transition: background 0.12s ease;
+
+  &:last-child {
+    border-right: none;
+  }
+  &:hover {
+    background: var(--surface-2);
+  }
+}
+.mkt-tape-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 6px;
+
+  .lbl {
+    font-family: var(--font-cond);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    color: var(--text-2);
+    white-space: nowrap;
+  }
+  .kind {
+    font-size: 8px;
+    letter-spacing: 0.1em;
+    color: var(--text-4);
+    white-space: nowrap;
+  }
+}
+.mkt-tape-val {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  margin-top: 3px;
+  white-space: nowrap;
+}
+.mkt-tape-chg {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 10.5px;
+  margin-top: 2px;
+  white-space: nowrap;
+
+  .arrow {
+    font-size: 8px;
+    margin-right: 3px;
+    vertical-align: 1px;
+  }
+  .abs {
+    color: var(--text-4);
+    margin-left: 6px;
+  }
+  &.pos {
+    color: var(--pos);
+  }
+  &.neg {
+    color: var(--neg);
+  }
+  &.flat {
+    color: var(--text-4);
+  }
+}
+
+/* ── Layout grid ────────────────────────────────────────────────────────── */
+.mkt-grid {
+  display: grid;
+  grid-template-columns: 1.45fr 1fr;
+  gap: 14px;
+  margin-bottom: 14px;
+  align-items: start;
+}
+
+/* ── My movers ──────────────────────────────────────────────────────────── */
+.mkt-empty {
+  padding: 22px 4px;
+  color: var(--text-3);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.mkt-pulse {
+  display: flex;
+  align-items: stretch;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border-subtle);
+  background: linear-gradient(180deg, var(--surface-2) 0%, transparent 130%);
+}
+.mkt-pulse-main {
+  .lbl {
+    font-family: var(--font-cond);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    color: var(--text-4);
+  }
+  .val {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-size: 24px;
+    font-weight: 500;
+    letter-spacing: -0.03em;
+    line-height: 1.15;
+    margin-top: 2px;
+
+    &.pos {
+      color: var(--pos);
+    }
+    &.neg {
+      color: var(--neg);
+    }
+  }
+  .pct {
+    font-size: 12px;
+    margin-left: 8px;
+    padding: 2px 7px;
+    border-radius: 3px;
+    vertical-align: 3px;
+
+    &.pos {
+      background: var(--pos-bg);
+    }
+    &.neg {
+      background: var(--neg-bg);
+    }
+  }
+}
+.mkt-pulse-stats {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 6px;
+
+  > div {
+    display: flex;
+    justify-content: flex-end;
+    align-items: baseline;
+    gap: 10px;
+  }
+  .k {
+    font-size: 9px;
+    letter-spacing: 0.09em;
+    color: var(--text-4);
+  }
+  .v {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-size: 11.5px;
+    color: var(--text-2);
+
+    &.pos {
+      color: var(--pos);
+    }
+    &.neg {
+      color: var(--neg);
+    }
+  }
+}
+
+.mkt-mover-list {
+  display: flex;
+  flex-direction: column;
+}
+.mkt-mover-row {
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1fr) 110px 76px 84px 90px;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--border-subtle);
+  text-decoration: none;
+  color: inherit;
+  transition: background 0.1s ease;
+
+  &:last-child {
+    border-bottom: none;
+  }
+  &:hover {
+    background: var(--hover);
+  }
+}
+.mkt-mover-id {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+
+  .sym {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+  }
+  .name {
+    font-size: 10.5px;
+    color: var(--text-3);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+.mkt-mover-px {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 12px;
+  text-align: right;
+
+  .ccy {
+    font-size: 9px;
+    color: var(--text-4);
+    margin-left: 4px;
+  }
+}
+.mkt-mover-chg,
+.mkt-mover-pl {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 12px;
+  text-align: right;
+
+  &.pos {
+    color: var(--pos);
+  }
+  &.neg {
+    color: var(--neg);
+  }
+  &.flat {
+    color: var(--text-4);
+  }
+}
+.mkt-mover-wt {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+
+  i {
+    display: block;
+    height: 3px;
+    border-radius: 2px;
+    background: var(--invest);
+    opacity: 0.7;
+    min-width: 2px;
+  }
+  span {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-size: 10px;
+    color: var(--text-3);
+    white-space: nowrap;
+  }
+}
+.mkt-mover-foot {
+  padding: 8px 14px;
+  border-top: 1px solid var(--border-subtle);
+  font-size: 10px;
+  color: var(--text-4);
+}
+
+/* ── Treasury curve ─────────────────────────────────────────────────────── */
+.mkt-curve-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 6px 4px 8px;
+}
+.mkt-curve-legend {
+  display: flex;
+  gap: 14px;
+
+  span {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 10px;
+    color: var(--text-3);
+  }
+  i {
+    width: 12px;
+    height: 2px;
+    border-radius: 1px;
+  }
+}
+.mkt-curve-spread {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 11px;
+
+  &.pos {
+    color: var(--pos);
+  }
+  &.neg {
+    color: var(--neg);
+  }
+  .st {
+    font-size: 8.5px;
+    letter-spacing: 0.1em;
+    color: var(--text-4);
+    margin-left: 7px;
+  }
+}
+
+/* ── Macro dashboard ────────────────────────────────────────────────────── */
+.mkt-macro {
+  margin-bottom: 14px;
+}
+.mkt-macro-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+}
+.mkt-macro-cell {
+  padding: 11px 13px 10px;
+  border-right: 1px solid var(--border-subtle);
+  min-width: 0;
+
+  &:last-child {
+    border-right: none;
+  }
+
+  .head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+
+    .grp {
+      font-size: 8.5px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+    }
+    .asof {
+      font-size: 9px;
+      color: var(--text-4);
+    }
+  }
+  .lbl {
+    font-family: var(--font-cond);
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-2);
+    margin-top: 5px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .val {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-size: 17px;
+    font-weight: 500;
+    letter-spacing: -0.02em;
+    margin-top: 1px;
+  }
+  .spark {
+    margin-top: 6px;
+    opacity: 0.85;
+
+    svg {
+      width: 100%;
+      height: 26px;
+      display: block;
+    }
+  }
+  .delta {
+    margin-top: 6px;
+    min-height: 18px;
+
+    .chip {
+      font-family: var(--font-mono);
+      font-variant-numeric: tabular-nums;
+      font-size: 9.5px;
+      padding: 1px 6px;
+      border-radius: 3px;
+      background: var(--surface-2);
+      color: var(--text-3);
+
+      &.up {
+        color: var(--warn);
+      }
+      &.down {
+        color: var(--info);
+      }
+      .per {
+        color: var(--text-4);
+      }
+    }
+  }
+}
+
+/* ── Responsive ─────────────────────────────────────────────────────────── */
+@include respond-to("lg") {
+  .mkt-tape {
+    grid-template-columns: repeat(5, 1fr);
+
+    .mkt-tape-cell {
+      border-bottom: 1px solid var(--border-subtle);
+    }
+  }
+  .mkt-grid {
+    grid-template-columns: 1fr;
+  }
+  .mkt-macro-grid {
+    grid-template-columns: repeat(4, 1fr);
+
+    .mkt-macro-cell {
+      border-bottom: 1px solid var(--border-subtle);
+    }
+  }
+}
+
+@include respond-to("sm") {
+  .mkt-tape {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .mkt-macro-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .mkt-mover-row {
+    grid-template-columns: 26px minmax(0, 1fr) 76px 84px;
+
+    .mkt-mover-px,
+    .mkt-mover-wt {
+      display: none;
+    }
+  }
+}
