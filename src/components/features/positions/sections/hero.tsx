@@ -38,6 +38,8 @@ export function Hero({ p }: { p: PositionDetail }) {
   const uplPos = (p.uplCad ?? 0) >= 0;
   const trPos = (p.performance.totalReturnCad ?? 0) >= 0;
   const isUsd = p.currency.toUpperCase() === "USD";
+  const quote = p.marketData?.quote ?? null;
+  const livePrice = quote?.price ?? p.price;
   return (
     <div className="pos-hero">
       <div className="pos-hero-row">
@@ -70,11 +72,22 @@ export function Hero({ p }: { p: PositionDetail }) {
         <div className="pos-hero-px">
           <div className="pos-px-large">
             <span className="ccy">$</span>
-            {p.price.toFixed(2)}
+            {livePrice.toFixed(2)}
             <span className="px-ccy">{p.currency}</span>
           </div>
           <div className="pos-day-row">
-            <span className="pos-day-meta">LAST SYNCED PRICE · LIVE QUOTES NOT ACTIVE</span>
+            {quote ? (
+              <>
+                <span className={"sym-day " + (quote.changePct >= 0 ? "pos" : "neg")}>
+                  {(quote.changePct >= 0 ? "+" : "−") + Math.abs(quote.change).toFixed(2)} (
+                  {(quote.changePct >= 0 ? "+" : "−") + Math.abs(quote.changePct).toFixed(2)}%)
+                  today
+                </span>
+                <span className="pos-day-meta"> · DELAYED QUOTE</span>
+              </>
+            ) : (
+              <span className="pos-day-meta">LAST SYNCED PRICE</span>
+            )}
           </div>
         </div>
       </div>

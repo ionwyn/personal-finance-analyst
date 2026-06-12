@@ -11,6 +11,7 @@ import {
   PriceChart,
   TechnicalsPanel,
 } from "@/components/features/positions/position-market";
+import { AnalystPanel, DividendsPanel } from "@/components/features/positions/position-street";
 import { Section } from "@/components/features/positions/sections/section";
 import type { SymbolDetail } from "@/lib/investments/symbol-loader";
 
@@ -201,7 +202,11 @@ export function SymbolView({ data, canEdit }: { data: SymbolDetail; canEdit: boo
             eyebrow="02 · FUNDAMENTALS"
             title={data.isFund ? "Fund profile & costs" : "Business & valuation"}
           >
-            <FundamentalsLive md={md} isFund={data.isFund} />
+            <div className="pos-stack">
+              <FundamentalsLive md={md} isFund={data.isFund} />
+              <AnalystPanel md={md} />
+              <DividendsPanel md={md} currency={data.currency} />
+            </div>
           </Section>
 
           <Section

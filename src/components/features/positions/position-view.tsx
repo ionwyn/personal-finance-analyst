@@ -12,6 +12,7 @@ import {
   PriceChart,
   TechnicalsPanel,
 } from "./position-market";
+import { AnalystPanel, DividendsPanel } from "./position-street";
 import { Activity } from "./sections/activity";
 import { Exposure } from "./sections/exposure";
 import { Hero } from "./sections/hero";
@@ -118,7 +119,11 @@ export function PositionView({ data: p }: { data: PositionDetail }) {
             eyebrow="06 · FUNDAMENTALS"
             title={p.isFund ? "Fund profile & costs" : "Business & valuation"}
           >
-            <FundamentalsLive md={p.marketData} isFund={p.isFund} />
+            <div className="pos-stack">
+              <FundamentalsLive md={p.marketData} isFund={p.isFund} />
+              <AnalystPanel md={p.marketData} />
+              <DividendsPanel md={p.marketData} currency={p.currency} units={p.totalUnits} />
+            </div>
           </Section>
 
           <Section
