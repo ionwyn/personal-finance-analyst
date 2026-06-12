@@ -41,6 +41,17 @@ export function getAlphaVantageApiKey(): string | null {
   return process.env.ALPHA_VANTAGE_API_KEY || null;
 }
 
+/** Finnhub key (earnings surprises, rec trends, insider activity, peers). */
+export function getFinnhubApiKey(): string | null {
+  return process.env.FINNHUB_API_KEY || null;
+}
+
+/** Contact string for SEC EDGAR's required User-Agent header. */
+export function getEdgarUserAgent(): string {
+  const contact = optionalCsv("ADMIN_EMAILS")[0] ?? "unspecified-contact";
+  return `personal-finance-dashboard/1.0 (${contact})`;
+}
+
 export function getBaseUrl(): string {
   if (process.env.NEXTAUTH_URL) {
     return process.env.NEXTAUTH_URL.replace(/\/$/, "");
