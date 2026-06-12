@@ -8,6 +8,8 @@ import { MarketDataService } from "./service";
 
 export type { MarketDataProvider } from "./types";
 export type {
+  AnalystConsensus,
+  DividendPayment,
   MarketEvents,
   MarketQuote,
   NewsItem,
@@ -17,8 +19,11 @@ export type {
   RankedNewsItem,
   SecurityFundamentals,
   SecurityProfile,
+  SymbolSearchResult,
 } from "./types";
 export type { PositionMarketData, ReturnPeriod, Technicals } from "./service";
+export type { MacroGroup, MacroIndicator, YieldCurveData, YieldCurvePoint } from "./macro";
+export { getMacroOverview, getYieldCurve } from "./macro";
 
 // ─── Singleton ────────────────────────────────────────────────────────────
 // In Next.js (Node.js runtime), this module is evaluated once per worker

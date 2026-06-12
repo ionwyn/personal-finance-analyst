@@ -1,6 +1,8 @@
 import YahooFinance from "yahoo-finance2";
 
 import type {
+  AnalystConsensus,
+  DividendPayment,
   MarketDataProvider,
   MarketEvents,
   MarketQuote,
@@ -8,6 +10,7 @@ import type {
   PricePoint,
   SecurityFundamentals,
   SecurityProfile,
+  SymbolSearchResult,
 } from "../types";
 
 // ─── Singleton client ─────────────────────────────────────────────────────
@@ -62,9 +65,15 @@ export class YahooFinanceProvider implements MarketDataProvider {
         changePct:
           safeNum((q as { regularMarketChangePercent?: number }).regularMarketChangePercent) ?? 0,
         open: safeNum((q as { regularMarketOpen?: number }).regularMarketOpen),
+        prevClose: safeNum(
+          (q as { regularMarketPreviousClose?: number }).regularMarketPreviousClose
+        ),
+        dayHigh: safeNum((q as { regularMarketDayHigh?: number }).regularMarketDayHigh),
+        dayLow: safeNum((q as { regularMarketDayLow?: number }).regularMarketDayLow),
         high52w: safeNum((q as { fiftyTwoWeekHigh?: number }).fiftyTwoWeekHigh),
         low52w: safeNum((q as { fiftyTwoWeekLow?: number }).fiftyTwoWeekLow),
         volume: safeNum((q as { regularMarketVolume?: number }).regularMarketVolume),
+        avgVolume: safeNum((q as { averageDailyVolume3Month?: number }).averageDailyVolume3Month),
         marketCap: safeNum((q as { marketCap?: number }).marketCap),
         fetchedAt: new Date().toISOString(),
       };
@@ -131,6 +140,7 @@ export class YahooFinanceProvider implements MarketDataProvider {
         expenseRatioPct: null,
         aum: safeNum(ks?.netAssets),
         holdingsCount: null,
+        beta: safeNum(sd?.beta) ?? safeNum(ks?.beta),
         fetchedAt: new Date().toISOString(),
       };
     } catch {
@@ -208,6 +218,79 @@ export class YahooFinanceProvider implements MarketDataProvider {
       return events;
     } catch {
       return null;
+    }
+  }
+
+  async getAnalyst(symbol: string): Promise<AnalystConsensus | null> {
+    try {
+      const s = await yf.quoteSummary(toYahoo(symbol), {
+        modules: ["financialData", "recommendationTrend"],
+      });
+      const fd = s.financialData as Record<string, unknown> | undefined;
+      const trend = (
+        s.recommendationTrend as { trend?: Record<string, unknown>[] } | undefined
+      )?.trend?.find((t) => t.period === "0m");
+
+      const consensus: AnalystConsensus = {
+        symbol,
+        targetLow: safeNum(fd?.targetLowPrice),
+        targetMean: safeNum(fd?.targetMeanPrice),
+        targetHigh: safeNum(fd?.targetHighPrice),
+        analystCount: safeNum(fd?.numberOfAnalystOpinions),
+        recKey: (fd?.recommendationKey as string | undefined) ?? null,
+        recMean: safeNum(fd?.recommendationMean),
+        strongBuy: safeNum(trend?.strongBuy),
+        buy: safeNum(trend?.buy),
+        hold: safeNum(trend?.hold),
+        sell: safeNum(trend?.sell),
+        strongSell: safeNum(trend?.strongSell),
+        fetchedAt: new Date().toISOString(),
+      };
+      // No coverage at all (typical for ETFs) → null, not a row of dashes.
+      if (consensus.targetMean == null && consensus.analystCount == null) return null;
+      return consensus;
+    } catch {
+      return null;
+    }
+  }
+
+  async getDividends(symbol: string, days: number): Promise<DividendPayment[]> {
+    try {
+      const period1 = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+      const result = (await yf.chart(toYahoo(symbol), {
+        period1,
+        interval: "1mo",
+        events: "div",
+      })) as { events?: { dividends?: { date: Date; amount: number }[] } };
+      const divs = result.events?.dividends ?? [];
+      return divs
+        .map((d) => ({ date: toDateStr(d.date) ?? "", amount: d.amount }))
+        .filter((d) => d.date && Number.isFinite(d.amount) && d.amount > 0)
+        .sort((a, b) => (a.date < b.date ? -1 : 1));
+    } catch {
+      return [];
+    }
+  }
+
+  async searchSymbols(query: string, count = 8): Promise<SymbolSearchResult[]> {
+    try {
+      const result = await yf.search(query, { quotesCount: count, newsCount: 0 });
+      const quotes = (result as { quotes?: unknown[] }).quotes ?? [];
+      return quotes
+        .map((raw) => {
+          const q = raw as Record<string, unknown>;
+          const symbol = q.symbol as string | undefined;
+          if (!symbol) return null;
+          return {
+            symbol,
+            name: (q.longname as string | undefined) ?? (q.shortname as string | undefined) ?? null,
+            exchange: (q.exchDisp as string | undefined) ?? null,
+            type: (q.quoteType as string | undefined) ?? null,
+          };
+        })
+        .filter((q): q is SymbolSearchResult => q != null);
+    } catch {
+      return [];
     }
   }
 }
