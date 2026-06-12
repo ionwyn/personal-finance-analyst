@@ -32,7 +32,7 @@ export function MarketsView({ data, canEdit }: { data: MarketsOverview; canEdit:
           </div>
           <div className="page-sub">
             INDICES · RATES · MACRO · AS OF {asOfLabel(data.asOf).toUpperCase()} · YAHOO FINANCE +
-            FRED
+            FRED + STATCAN
           </div>
         </div>
       </div>
@@ -48,6 +48,13 @@ export function MarketsView({ data, canEdit }: { data: MarketsOverview; canEdit:
       </div>
 
       <MacroPanel macro={data.macro} />
+
+      <MacroPanel
+        macro={data.canada}
+        title="Canada macro"
+        meta="STATISTICS CANADA · 12H CACHE"
+        order={["CA_OVERNIGHT", "CA_CPI_YOY", "CA_UNEMP", "CA_GDP_YOY"]}
+      />
 
       <div className="foot-note">
         <span>Quotes delayed · cached 15 min · macro series cached 12 h</span>

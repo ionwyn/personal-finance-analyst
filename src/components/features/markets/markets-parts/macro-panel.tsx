@@ -10,6 +10,7 @@ const GROUP_LABEL: Record<MacroGroup, string> = {
   yields: "RATES",
   inflation: "INFLATION",
   labor: "LABOR",
+  growth: "GROWTH",
   fx: "FX",
 };
 
@@ -18,6 +19,7 @@ const GROUP_COLOR: Record<MacroGroup, string> = {
   yields: "var(--invest)",
   inflation: "var(--cat-5)",
   labor: "var(--info)",
+  growth: "var(--cat-3)",
   fx: "var(--cat-8)",
 };
 
@@ -43,21 +45,32 @@ function asOfLabel(iso: string | null): string {
   return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
-export function MacroPanel({ macro }: { macro: MacroIndicator[] }) {
-  // The curve panel already shows the full term structure — keep only the
-  // headline cells here, in a deliberate desk-sheet order.
-  const order = ["FEDFUNDS_U", "CPI_YOY", "UNRATE", "T10Y2Y", "UST10Y", "CA10Y", "USDCAD"];
+// Default order — the curve panel already shows the full term structure, so
+// only headline cells appear here, in a deliberate desk-sheet order.
+const US_ORDER = ["FEDFUNDS_U", "CPI_YOY", "UNRATE", "T10Y2Y", "UST10Y", "CA10Y", "USDCAD"];
+
+export function MacroPanel({
+  macro,
+  title = "Macro dashboard",
+  meta = "FRED · ST. LOUIS FED · 12H CACHE",
+  order = US_ORDER,
+}: {
+  macro: MacroIndicator[];
+  title?: string;
+  meta?: string;
+  order?: string[];
+}) {
   const cells = order
     .map((id) => macro.find((m) => m.id === id))
-    .filter((m): m is MacroIndicator => m != null);
+    .filter((m): m is MacroIndicator => m != null && m.value != null);
 
   if (cells.length === 0) return null;
 
   return (
     <div className="panel mkt-macro">
       <div className="panel-head">
-        <div className="panel-title">Macro dashboard</div>
-        <div className="panel-meta">FRED · ST. LOUIS FED · 12H CACHE</div>
+        <div className="panel-title">{title}</div>
+        <div className="panel-meta">{meta}</div>
       </div>
       <div className="panel-body" style={{ padding: 0 }}>
         <div className="mkt-macro-grid">

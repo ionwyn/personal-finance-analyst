@@ -8,7 +8,7 @@ import { prisma } from "@/lib/prisma";
 
 const MACRO_TTL_MS = 12 * 60 * 60 * 1000;
 
-export type MacroGroup = "policy" | "yields" | "inflation" | "labor" | "fx";
+export type MacroGroup = "policy" | "yields" | "inflation" | "labor" | "growth" | "fx";
 
 export type MacroSeriesDef = {
   /** Our cache key (MacroPoint.seriesId). Differs from fredId when a units
