@@ -12,6 +12,15 @@ import {
   PriceChart,
   TechnicalsPanel,
 } from "./position-market";
+import {
+  EarningsPanel,
+  FilingsPanel,
+  FinancialsPanel,
+  hasIntel,
+  InsiderPanel,
+  PeersPanel,
+  RecMomentumPanel,
+} from "./position-intel";
 import { AnalystPanel, DividendsPanel } from "./position-street";
 import { Activity } from "./sections/activity";
 import { Exposure } from "./sections/exposure";
@@ -24,6 +33,7 @@ import { Section } from "./sections/section";
 
 export function PositionView({ data: p }: { data: PositionDetail }) {
   const [active, setActive] = useState("overview");
+  const showIntel = p.intel != null && hasIntel(p.intel);
 
   const jump = (id: string) => {
     setActive(id);
@@ -56,7 +66,7 @@ export function PositionView({ data: p }: { data: PositionDetail }) {
     <div className="pos-page">
       <Hero p={p} />
       <div className="pos-nav-wrap">
-        <Nav active={active} onJump={jump} />
+        <Nav active={active} onJump={jump} exclude={showIntel ? undefined : ["intel"]} />
       </div>
       <div className="pos-grid">
         <div className="pos-main">
@@ -121,27 +131,45 @@ export function PositionView({ data: p }: { data: PositionDetail }) {
           >
             <div className="pos-stack">
               <FundamentalsLive md={p.marketData} isFund={p.isFund} />
+              {p.intel && <FinancialsPanel financials={p.intel.financials} />}
               <AnalystPanel md={p.marketData} />
               <DividendsPanel md={p.marketData} currency={p.currency} units={p.totalUnits} />
             </div>
           </Section>
 
+          {showIntel && p.intel && (
+            <Section
+              id="intel"
+              eyebrow="07 · STREET INTELLIGENCE"
+              title="Earnings, analysts, insiders & filings"
+              meta="third-party data — not advice"
+            >
+              <div className="pos-stack">
+                <EarningsPanel earnings={p.intel.earnings} />
+                <RecMomentumPanel recTrends={p.intel.recTrends} />
+                <InsiderPanel insiders={p.intel.insiders} />
+                <PeersPanel peerRows={p.intel.peerRows} />
+                <FilingsPanel filings={p.intel.filings} />
+              </div>
+            </Section>
+          )}
+
           <Section
             id="technicals"
-            eyebrow="07 · TECHNICALS"
+            eyebrow="08 · TECHNICALS"
             title="Optional context"
             meta="secondary for long-hold investors"
           >
             <TechnicalsPanel md={p.marketData} />
           </Section>
 
-          <Section id="news" eyebrow="08 · NEWS & EVENTS" title="Curated, relevance-weighted">
+          <Section id="news" eyebrow="09 · NEWS & EVENTS" title="Curated, relevance-weighted">
             <NewsList md={p.marketData} symbol={p.symbol} name={p.name} />
           </Section>
 
           <Section
             id="decision"
-            eyebrow="09 · DECISION SUPPORT"
+            eyebrow="10 · DECISION SUPPORT"
             title="Cases & scenarios"
             meta="analysis — not financial advice"
           >
