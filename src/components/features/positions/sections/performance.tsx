@@ -56,7 +56,7 @@ export function Performance({ p, periods }: { p: PositionDetail; periods: Return
           </div>
         ))}
       </div>
-      <ReturnPeriods p={p} periods={periods} />
+      <ReturnPeriods mvCad={p.mvCad} periods={periods} />
     </div>
   );
 }

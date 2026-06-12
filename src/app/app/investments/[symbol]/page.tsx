@@ -3,7 +3,9 @@ import { notFound } from "next/navigation";
 
 import { AppShell } from "@/components/layout/app-shell";
 import { PositionView } from "@/components/features/positions/position-view";
+import { SymbolView } from "@/components/features/symbols/symbol-view";
 import { getPositionDetail } from "@/lib/investments/position-loader";
+import { getSymbolDetail } from "@/lib/investments/symbol-loader";
 import { authOptions } from "@/lib/auth";
 import { resolveSessionTenant } from "@/lib/tenant";
 
@@ -15,7 +17,9 @@ export default async function PositionPage({ params }: { params: Promise<{ symbo
   const { tenantId, isDemo } = await resolveSessionTenant(session);
   const data = await getPositionDetail(tenantId, symbol);
 
-  if (!data) notFound();
+  // Not held anywhere → market-only research view (watchlist & searches).
+  const symbolData = data ? null : await getSymbolDetail(tenantId, symbol);
+  if (!data && !symbolData) notFound();
 
   return (
     <AppShell
@@ -31,7 +35,7 @@ export default async function PositionPage({ params }: { params: Promise<{ symbo
             }
       }
     >
-      <PositionView data={data} />
+      {data ? <PositionView data={data} /> : <SymbolView data={symbolData!} canEdit={!isDemo} />}
     </AppShell>
   );
 }

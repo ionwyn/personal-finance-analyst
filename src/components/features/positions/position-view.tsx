@@ -71,7 +71,7 @@ export function PositionView({ data: p }: { data: PositionDetail }) {
           >
             <div className="panel">
               <div className="panel-body" style={{ padding: "8px 4px 8px" }}>
-                <PriceChart p={p} />
+                <PriceChart md={p.marketData} avgNative={p.avgNative} activity={p.activity} />
               </div>
             </div>
           </Section>
@@ -118,7 +118,7 @@ export function PositionView({ data: p }: { data: PositionDetail }) {
             eyebrow="06 · FUNDAMENTALS"
             title={p.isFund ? "Fund profile & costs" : "Business & valuation"}
           >
-            <FundamentalsLive p={p} />
+            <FundamentalsLive md={p.marketData} isFund={p.isFund} />
           </Section>
 
           <Section
@@ -127,11 +127,11 @@ export function PositionView({ data: p }: { data: PositionDetail }) {
             title="Optional context"
             meta="secondary for long-hold investors"
           >
-            <TechnicalsPanel p={p} />
+            <TechnicalsPanel md={p.marketData} />
           </Section>
 
           <Section id="news" eyebrow="08 · NEWS & EVENTS" title="Curated, relevance-weighted">
-            <NewsList p={p} />
+            <NewsList md={p.marketData} symbol={p.symbol} name={p.name} />
           </Section>
 
           <Section

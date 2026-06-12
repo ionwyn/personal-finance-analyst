@@ -13,7 +13,7 @@ import {
   YAxis,
 } from "recharts";
 
-import type { ReturnPeriod } from "@/lib/market-data";
+import type { PositionMarketData, ReturnPeriod } from "@/lib/market-data";
 import type { PositionDetail } from "@/lib/investments/types";
 
 import {
@@ -25,6 +25,13 @@ import {
   ReturnPeriodsDeferred,
   TechnicalsDeferred,
 } from "./position-deferred";
+
+// A trade marker on the price chart (derived from synced activity).
+export type ChartTrade = {
+  type: string;
+  tradeDate: string | null;
+  price: number | null;
+};
 
 // Re-export AI/decision deferred so position-view only imports from here.
 export { AiInsightsDeferred, DecisionDeferred };
@@ -71,13 +78,20 @@ function ChartTooltip({
   );
 }
 
-export function PriceChart({ p }: { p: PositionDetail }) {
+export function PriceChart({
+  md,
+  avgNative,
+  activity = [],
+}: {
+  md: PositionMarketData | null;
+  avgNative: number | null;
+  activity?: ChartTrade[];
+}) {
   const [range, setRange] = useState("6M");
   const [showCost, setShowCost] = useState(true);
   const [showSma, setShowSma] = useState(false);
 
-  const md = p.marketData;
-  if (!md || md.series.length === 0) return <PriceChartDeferred p={p} />;
+  if (!md || md.series.length === 0) return <PriceChartDeferred hasCost={avgNative != null} />;
 
   const ranges = ["1M", "3M", "6M", "1Y", "All"];
   const cutDays = RANGE_DAYS[range] ?? 182;
@@ -88,8 +102,8 @@ export function PriceChart({ p }: { p: PositionDetail }) {
   const data = md.series.filter((s) => s.date >= cutDate);
 
   const prices = data.map((d) => d.close);
-  const minPx = Math.min(...prices, p.avgNative ?? Infinity);
-  const maxPx = Math.max(...prices, p.avgNative ?? -Infinity);
+  const minPx = Math.min(...prices, avgNative ?? Infinity);
+  const maxPx = Math.max(...prices, avgNative ?? -Infinity);
   const pad = (maxPx - minPx) * 0.08 || 1;
 
   const q = md.quote;
@@ -98,10 +112,10 @@ export function PriceChart({ p }: { p: PositionDetail }) {
   const low52w = q?.low52w;
   const fromHigh = high52w && q?.price ? ((q.price - high52w) / high52w) * 100 : null;
   const vsCost =
-    p.avgNative != null && q?.price != null ? ((q.price - p.avgNative) / p.avgNative) * 100 : null;
+    avgNative != null && q?.price != null ? ((q.price - avgNative) / avgNative) * 100 : null;
 
   // Map trade activity to chart markers.
-  const trades = p.activity
+  const trades = activity
     .filter((a) => a.type === "BUY" || a.type === "SELL")
     .filter((a) => a.tradeDate != null && a.tradeDate.slice(0, 10) >= cutDate)
     .map((a) => {
@@ -128,7 +142,7 @@ export function PriceChart({ p }: { p: PositionDetail }) {
         </div>
         <span style={{ flex: 1 }} />
         <div className="pos-overlays">
-          {p.avgNative != null && (
+          {avgNative != null && (
             <button
               type="button"
               className={"pos-toggle " + (showCost ? "on" : "")}
@@ -187,13 +201,13 @@ export function PriceChart({ p }: { p: PositionDetail }) {
               strokeWidth={1.6}
               dot={false}
             />
-            {showCost && p.avgNative != null && (
+            {showCost && avgNative != null && (
               <ReferenceLine
-                y={p.avgNative}
+                y={avgNative}
                 stroke="var(--accent)"
                 strokeDasharray="4 3"
                 label={{
-                  value: `MY COST $${p.avgNative.toFixed(2)}`,
+                  value: `MY COST $${avgNative.toFixed(2)}`,
                   position: "insideTopRight",
                   fill: "var(--accent)",
                   fontSize: 10,
@@ -264,10 +278,10 @@ export function PriceChart({ p }: { p: PositionDetail }) {
 // ─── Return by period ─────────────────────────────────────────────────────
 
 export function ReturnPeriods({
-  p,
+  mvCad,
   periods,
 }: {
-  p: PositionDetail;
+  mvCad: number;
   periods: ReturnPeriod[] | null;
 }) {
   if (!periods || periods.every((pd) => pd.returnPct == null)) return <ReturnPeriodsDeferred />;
@@ -281,8 +295,7 @@ export function ReturnPeriods({
       <div className="pos-perf-periods-row">
         {periods.map((pd) => {
           const pos = (pd.returnPct ?? 0) >= 0;
-          const nominalCad =
-            pd.returnPct != null ? p.mvCad - p.mvCad / (1 + pd.returnPct / 100) : null;
+          const nominalCad = pd.returnPct != null ? mvCad - mvCad / (1 + pd.returnPct / 100) : null;
           return (
             <div key={pd.label} className="pos-perf-pd">
               <div className="pd-lbl">{pd.label}</div>
@@ -309,16 +322,21 @@ export function ReturnPeriods({
 
 // ─── Fundamentals ─────────────────────────────────────────────────────────
 
-export function FundamentalsLive({ p }: { p: PositionDetail }) {
-  const md = p.marketData;
-  if (!md?.fundamentals) return <FundamentalsDeferred p={p} />;
+export function FundamentalsLive({
+  md,
+  isFund,
+}: {
+  md: PositionMarketData | null;
+  isFund: boolean;
+}) {
+  if (!md?.fundamentals) return <FundamentalsDeferred isFund={isFund} />;
   const f = md.fundamentals;
   const q = md.quote;
 
   const fmtPct = (v: number | null) => (v == null ? "—" : pct(v, 1));
   const fmtX = (v: number | null, dp = 1) => (v == null ? "—" : v.toFixed(dp) + "×");
 
-  const cells: [string, string, string][] = p.isFund
+  const cells: [string, string, string][] = isFund
     ? [
         ["Net assets", f.aum != null ? big(f.aum) : "—", "AUM"],
         [
@@ -354,12 +372,12 @@ export function FundamentalsLive({ p }: { p: PositionDetail }) {
         ],
       ];
 
-  const metaLabel = p.isFund ? "FUND DATA" : "VIA YAHOO FINANCE";
+  const metaLabel = isFund ? "FUND DATA" : "VIA YAHOO FINANCE";
 
   return (
     <div className="panel">
       <div className="panel-head">
-        <div className="panel-title">{p.isFund ? "Fund profile" : "Fundamentals"}</div>
+        <div className="panel-title">{isFund ? "Fund profile" : "Fundamentals"}</div>
         <div className="panel-meta">{metaLabel}</div>
       </div>
       <div className="panel-body" style={{ padding: 0 }}>
@@ -379,9 +397,8 @@ export function FundamentalsLive({ p }: { p: PositionDetail }) {
 
 // ─── Technicals ───────────────────────────────────────────────────────────
 
-export function TechnicalsPanel({ p }: { p: PositionDetail }) {
+export function TechnicalsPanel({ md }: { md: PositionMarketData | null }) {
   const [open, setOpen] = useState(false);
-  const md = p.marketData;
   const t = md?.technicals;
   const q = md?.quote;
 
@@ -511,10 +528,18 @@ function EventsRail({ events }: { events: NonNullable<PositionDetail["marketData
   );
 }
 
-export function NewsList({ p }: { p: PositionDetail }) {
-  const news = p.marketData?.news ?? [];
-  const events = p.marketData?.events ?? null;
-  if (news.length === 0 && !events) return <NewsDeferred p={p} />;
+export function NewsList({
+  md,
+  symbol,
+  name,
+}: {
+  md: PositionMarketData | null;
+  symbol: string;
+  name: string | null;
+}) {
+  const news = md?.news ?? [];
+  const events = md?.events ?? null;
+  if (news.length === 0 && !events) return <NewsDeferred symbol={symbol} name={name} />;
 
   return (
     <div className="panel">
