@@ -67,6 +67,7 @@ model Tenant {
   savingsGoals          SavingsGoal[]
   committedSettlements  CommittedSettlement[]
   userSettings          UserSettings?
+  watchlistItems        WatchlistItem[]
 
   @@index([kind])
 }
@@ -681,6 +682,10 @@ model MarketQuote {
   low52w     Decimal? @db.Decimal(18, 6)
   volume     BigInt?
   marketCap  Decimal? @db.Decimal(24, 2)
+  prevClose  Decimal? @db.Decimal(18, 6)
+  dayHigh    Decimal? @db.Decimal(18, 6)
+  dayLow     Decimal? @db.Decimal(18, 6)
+  avgVolume  BigInt?
   fetchedAt  DateTime
   updatedAt  DateTime @updatedAt
 }
@@ -707,6 +712,7 @@ model MarketProfile {
   expenseRatioPct    Decimal? @db.Decimal(10, 4)
   aum             Decimal? @db.Decimal(24, 2)
   holdingsCount   Int?
+  beta            Decimal? @db.Decimal(10, 4)
   fetchedAt       DateTime
   updatedAt       DateTime @updatedAt
 }
@@ -752,4 +758,59 @@ model MarketEvents {
   dividendDate DateTime?
   fetchedAt    DateTime
   updatedAt    DateTime @updatedAt
+}
+
+model MarketAnalyst {
+  symbol       String   @id
+  provider     String   @default("yahoo")
+  targetLow    Decimal? @db.Decimal(18, 6)
+  targetMean   Decimal? @db.Decimal(18, 6)
+  targetHigh   Decimal? @db.Decimal(18, 6)
+  analystCount Int?
+  recKey       String? // strong_buy | buy | hold | underperform | sell
+  recMean      Decimal? @db.Decimal(6, 3) // 1 (strong buy) … 5 (sell)
+  strongBuy    Int?
+  buy          Int?
+  hold         Int?
+  sell         Int?
+  strongSell   Int?
+  fetchedAt    DateTime
+  updatedAt    DateTime @updatedAt
+}
+
+model MarketDividend {
+  id        String   @id @default(cuid())
+  symbol    String
+  provider  String   @default("yahoo")
+  date      String // YYYY-MM-DD ex-date — string to avoid timezone drift
+  amount    Decimal  @db.Decimal(18, 8)
+  fetchedAt DateTime @default(now())
+
+  @@unique([symbol, date])
+  @@index([symbol, date(sort: Desc)])
+}
+
+model MacroPoint {
+  id        String   @id @default(cuid())
+  seriesId  String // FRED series id, e.g. DGS10
+  date      String // YYYY-MM-DD
+  value     Decimal  @db.Decimal(18, 6)
+  fetchedAt DateTime @default(now())
+
+  @@unique([seriesId, date])
+  @@index([seriesId, date(sort: Desc)])
+}
+
+model WatchlistItem {
+  id       String   @id @default(cuid())
+  tenantId String
+  symbol   String
+  name     String?
+  exchange String?
+  addedAt  DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, symbol])
+  @@index([tenantId])
 }

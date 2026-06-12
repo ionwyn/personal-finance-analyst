@@ -26,6 +26,21 @@ export function getTwelveDataApiKey(): string {
   return requireEnv("TWELVEDATA_API_KEY");
 }
 
+/** FRED API key (macro series: yields, CPI, policy rate). Throws when missing. */
+export function getFredApiKey(): string {
+  return requireEnv("FRED_API_KEY");
+}
+
+/** Financial Modeling Prep key (optional fallback provider). Null when unset. */
+export function getFmpApiKey(): string | null {
+  return process.env.FMP_API_KEY || null;
+}
+
+/** Alpha Vantage key (optional fallback provider). Null when unset. */
+export function getAlphaVantageApiKey(): string | null {
+  return process.env.ALPHA_VANTAGE_API_KEY || null;
+}
+
 export function getBaseUrl(): string {
   if (process.env.NEXTAUTH_URL) {
     return process.env.NEXTAUTH_URL.replace(/\/$/, "");
