@@ -8,9 +8,13 @@ export type MarketQuote = {
   change: number;
   changePct: number;
   open: number | null;
+  prevClose: number | null;
+  dayHigh: number | null;
+  dayLow: number | null;
   high52w: number | null;
   low52w: number | null;
   volume: number | null;
+  avgVolume: number | null; // 3-month average daily volume
   marketCap: number | null;
   fetchedAt: string; // ISO
 };
@@ -52,7 +56,39 @@ export type SecurityFundamentals = {
   expenseRatioPct: number | null;
   aum: number | null;
   holdingsCount: number | null;
+  beta: number | null; // vs benchmark, per provider (Yahoo: 5Y monthly)
   fetchedAt: string;
+};
+
+// Sell-side analyst consensus — third-party aggregate data, surfaced as-is.
+export type AnalystConsensus = {
+  symbol: string;
+  targetLow: number | null;
+  targetMean: number | null;
+  targetHigh: number | null;
+  analystCount: number | null;
+  recKey: string | null; // strong_buy | buy | hold | underperform | sell
+  recMean: number | null; // 1 (strong buy) … 5 (sell)
+  strongBuy: number | null;
+  buy: number | null;
+  hold: number | null;
+  sell: number | null;
+  strongSell: number | null;
+  fetchedAt: string;
+};
+
+// One historical per-share cash distribution (ex-date based).
+export type DividendPayment = {
+  date: string; // YYYY-MM-DD
+  amount: number; // per share, native currency
+};
+
+// Typeahead result for adding symbols to the watchlist.
+export type SymbolSearchResult = {
+  symbol: string;
+  name: string | null;
+  exchange: string | null;
+  type: string | null; // EQUITY | ETF | MUTUALFUND | INDEX | …
 };
 
 export type NewsItem = {
@@ -132,4 +168,21 @@ export interface MarketDataProvider {
    * Returns null when not available (ETFs, or provider failure).
    */
   getEvents(symbol: string): Promise<MarketEvents | null>;
+
+  /**
+   * Sell-side analyst price targets and recommendation distribution.
+   * Returns null when no coverage (ETFs, small caps) or provider failure.
+   */
+  getAnalyst(symbol: string): Promise<AnalystConsensus | null>;
+
+  /**
+   * Historical per-share dividends, oldest-first, up to `days` back.
+   * Empty array when none or on failure.
+   */
+  getDividends(symbol: string, days: number): Promise<DividendPayment[]>;
+
+  /**
+   * Symbol typeahead search. Empty array on failure.
+   */
+  searchSymbols(query: string, count?: number): Promise<SymbolSearchResult[]>;
 }

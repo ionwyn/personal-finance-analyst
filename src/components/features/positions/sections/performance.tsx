@@ -1,9 +1,10 @@
+import type { ReturnPeriod } from "@/lib/market-data";
 import type { PositionDetail } from "@/lib/investments/types";
 
 import { money, pct, signMoney } from "../format";
-import { ReturnPeriodsDeferred } from "../position-deferred";
+import { ReturnPeriods } from "../position-market";
 
-export function Performance({ p }: { p: PositionDetail }) {
+export function Performance({ p, periods }: { p: PositionDetail; periods: ReturnPeriod[] | null }) {
   const perf = p.performance;
   const cells = [
     {
@@ -55,7 +56,7 @@ export function Performance({ p }: { p: PositionDetail }) {
           </div>
         ))}
       </div>
-      <ReturnPeriodsDeferred />
+      <ReturnPeriods p={p} periods={periods} />
     </div>
   );
 }

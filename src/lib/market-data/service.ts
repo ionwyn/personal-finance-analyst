@@ -1,5 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import type {
+  AnalystConsensus,
+  DividendPayment,
   MarketDataProvider,
   MarketEvents,
   MarketQuote,
@@ -10,6 +12,7 @@ import type {
   RankedNewsItem,
   SecurityFundamentals,
   SecurityProfile,
+  SymbolSearchResult,
 } from "./types";
 
 // ─── Cache TTLs ───────────────────────────────────────────────────────────
@@ -19,7 +22,12 @@ const TTL = {
   series: 4 * 60 * 60 * 1000, // 4 hours — add today's close when market closed
   news: 30 * 60 * 1000, // 30 min  — headlines
   events: 24 * 60 * 60 * 1000, // 24 hours — earnings/dividend dates
+  analyst: 24 * 60 * 60 * 1000, // 24 hours — price targets & rec trend
+  dividends: 7 * 24 * 60 * 60 * 1000, // 7 days — per-share payout history
 } as const;
+
+/** How far back dividend history is fetched (5 years). */
+const DIVIDEND_LOOKBACK_DAYS = 5 * 365;
 
 function isStale(fetchedAt: Date, ttlMs: number): boolean {
   return Date.now() - fetchedAt.getTime() > ttlMs;
@@ -176,6 +184,8 @@ export type PositionMarketData = {
   series: PricePoint[];
   news: RankedNewsItem[];
   events: MarketEvents | null;
+  analyst: AnalystConsensus | null;
+  dividends: DividendPayment[];
   technicals: Technicals;
   periods: ReturnPeriod[];
 };
@@ -187,9 +197,9 @@ export class MarketDataService {
 
   // ── Quote ────────────────────────────────────────────────────────────
 
-  async getQuote(symbol: string): Promise<MarketQuote | null> {
+  async getQuote(symbol: string, maxAgeMs: number = TTL.quote): Promise<MarketQuote | null> {
     const cached = await prisma.marketQuote.findUnique({ where: { symbol } });
-    if (cached && !isStale(cached.updatedAt, TTL.quote)) {
+    if (cached && !isStale(cached.updatedAt, maxAgeMs)) {
       return {
         symbol,
         currency: cached.currency ?? "USD",
@@ -197,9 +207,13 @@ export class MarketDataService {
         change: n(cached.change) ?? 0,
         changePct: n(cached.changePct) ?? 0,
         open: n(cached.open),
+        prevClose: n(cached.prevClose),
+        dayHigh: n(cached.dayHigh),
+        dayLow: n(cached.dayLow),
         high52w: n(cached.high52w),
         low52w: n(cached.low52w),
         volume: cached.volume != null ? Number(cached.volume) : null,
+        avgVolume: cached.avgVolume != null ? Number(cached.avgVolume) : null,
         marketCap: n(cached.marketCap),
         fetchedAt: cached.fetchedAt.toISOString(),
       };
@@ -209,34 +223,35 @@ export class MarketDataService {
     return fresh;
   }
 
+  /** Batched getQuote — preserves input order; null for symbols that fail. */
+  async getQuotes(
+    symbols: string[],
+    maxAgeMs: number = TTL.quote
+  ): Promise<(MarketQuote | null)[]> {
+    return Promise.all(symbols.map((s) => this.getQuote(s, maxAgeMs).catch(() => null)));
+  }
+
   private async saveQuote(q: MarketQuote) {
+    const data = {
+      currency: q.currency,
+      price: q.price,
+      change: q.change,
+      changePct: q.changePct,
+      open: q.open,
+      prevClose: q.prevClose,
+      dayHigh: q.dayHigh,
+      dayLow: q.dayLow,
+      high52w: q.high52w,
+      low52w: q.low52w,
+      volume: q.volume != null ? BigInt(Math.round(q.volume)) : null,
+      avgVolume: q.avgVolume != null ? BigInt(Math.round(q.avgVolume)) : null,
+      marketCap: q.marketCap,
+      fetchedAt: new Date(q.fetchedAt),
+    };
     await prisma.marketQuote.upsert({
       where: { symbol: q.symbol },
-      create: {
-        symbol: q.symbol,
-        currency: q.currency,
-        price: q.price,
-        change: q.change,
-        changePct: q.changePct,
-        open: q.open,
-        high52w: q.high52w,
-        low52w: q.low52w,
-        volume: q.volume != null ? BigInt(Math.round(q.volume)) : null,
-        marketCap: q.marketCap,
-        fetchedAt: new Date(q.fetchedAt),
-      },
-      update: {
-        currency: q.currency,
-        price: q.price,
-        change: q.change,
-        changePct: q.changePct,
-        open: q.open,
-        high52w: q.high52w,
-        low52w: q.low52w,
-        volume: q.volume != null ? BigInt(Math.round(q.volume)) : null,
-        marketCap: q.marketCap,
-        fetchedAt: new Date(q.fetchedAt),
-      },
+      create: { symbol: q.symbol, ...data },
+      update: data,
     });
   }
 
@@ -279,6 +294,7 @@ export class MarketDataService {
         expenseRatioPct: n(cached.expenseRatioPct),
         aum: n(cached.aum),
         holdingsCount: cached.holdingsCount,
+        beta: n(cached.beta),
         fetchedAt: cached.fetchedAt.toISOString(),
       };
     }
@@ -317,6 +333,7 @@ export class MarketDataService {
         expenseRatioPct: f?.expenseRatioPct,
         aum: f?.aum,
         holdingsCount: f?.holdingsCount,
+        beta: f?.beta,
         fetchedAt: now,
       },
       update: {
@@ -342,6 +359,7 @@ export class MarketDataService {
           expenseRatioPct: f.expenseRatioPct,
           aum: f.aum,
           holdingsCount: f.holdingsCount,
+          beta: f.beta,
         }),
         fetchedAt: now,
       },
@@ -496,17 +514,97 @@ export class MarketDataService {
     return fresh;
   }
 
+  // ── Analyst consensus ─────────────────────────────────────────────────
+
+  async getAnalyst(symbol: string): Promise<AnalystConsensus | null> {
+    const cached = await prisma.marketAnalyst.findUnique({ where: { symbol } });
+    if (cached && !isStale(cached.updatedAt, TTL.analyst)) {
+      return {
+        symbol,
+        targetLow: n(cached.targetLow),
+        targetMean: n(cached.targetMean),
+        targetHigh: n(cached.targetHigh),
+        analystCount: cached.analystCount,
+        recKey: cached.recKey,
+        recMean: n(cached.recMean),
+        strongBuy: cached.strongBuy,
+        buy: cached.buy,
+        hold: cached.hold,
+        sell: cached.sell,
+        strongSell: cached.strongSell,
+        fetchedAt: cached.fetchedAt.toISOString(),
+      };
+    }
+    const fresh = await this.provider.getAnalyst(symbol);
+    if (fresh) {
+      const data = {
+        targetLow: fresh.targetLow,
+        targetMean: fresh.targetMean,
+        targetHigh: fresh.targetHigh,
+        analystCount: fresh.analystCount,
+        recKey: fresh.recKey,
+        recMean: fresh.recMean,
+        strongBuy: fresh.strongBuy,
+        buy: fresh.buy,
+        hold: fresh.hold,
+        sell: fresh.sell,
+        strongSell: fresh.strongSell,
+        fetchedAt: new Date(fresh.fetchedAt),
+      };
+      await prisma.marketAnalyst.upsert({
+        where: { symbol },
+        create: { symbol, ...data },
+        update: data,
+      });
+    }
+    return fresh;
+  }
+
+  // ── Dividend history ──────────────────────────────────────────────────
+
+  async getDividends(symbol: string): Promise<DividendPayment[]> {
+    const cached = await prisma.marketDividend.findMany({
+      where: { symbol },
+      orderBy: { date: "asc" },
+    });
+    const newest = cached.at(-1);
+    if (newest && !isStale(newest.fetchedAt, TTL.dividends)) {
+      return cached.map((d) => ({ date: d.date, amount: n(d.amount)! }));
+    }
+    const fresh = await this.provider.getDividends(symbol, DIVIDEND_LOOKBACK_DAYS);
+    if (fresh.length > 0) {
+      await prisma.$transaction([
+        prisma.marketDividend.deleteMany({ where: { symbol } }),
+        prisma.marketDividend.createMany({
+          data: fresh.map((d) => ({ symbol, date: d.date, amount: d.amount })),
+          skipDuplicates: true,
+        }),
+      ]);
+      return fresh;
+    }
+    return cached.map((d) => ({ date: d.date, amount: n(d.amount)! }));
+  }
+
+  // ── Symbol search (typeahead — no cache, user-initiated) ──────────────
+
+  async searchSymbols(query: string, count = 8): Promise<SymbolSearchResult[]> {
+    return this.provider.searchSymbols(query, count);
+  }
+
   // ── Combined fetch for the position page ─────────────────────────────
 
   async getPositionMarketData(symbol: string): Promise<PositionMarketData> {
-    const [quote, profile, fundamentals, series, news, events] = await Promise.all([
-      this.getQuote(symbol).catch(() => null),
-      this.getProfile(symbol).catch(() => null),
-      this.getFundamentals(symbol).catch(() => null),
-      this.getTimeSeries(symbol, 400).catch(() => [] as PricePoint[]),
-      this.getNews(symbol, 6).catch(() => [] as RankedNewsItem[]),
-      this.getEvents(symbol).catch(() => null),
-    ]);
+    const [quote, profile, fundamentals, series, news, events, analyst, dividends] =
+      await Promise.all([
+        this.getQuote(symbol).catch(() => null),
+        this.getProfile(symbol).catch(() => null),
+        this.getFundamentals(symbol).catch(() => null),
+        this.getTimeSeries(symbol, 400).catch(() => [] as PricePoint[]),
+        this.getNews(symbol, 6).catch(() => [] as RankedNewsItem[]),
+        this.getEvents(symbol).catch(() => null),
+        this.getAnalyst(symbol).catch(() => null),
+        this.getDividends(symbol).catch(() => [] as DividendPayment[]),
+      ]);
     return {
       quote,
       profile,
@@ -514,6 +612,8 @@ export class MarketDataService {
       series,
       news,
       events,
+      analyst,
+      dividends,
       technicals: computeTechnicals(series),
       periods: computePeriods(series),
     };
