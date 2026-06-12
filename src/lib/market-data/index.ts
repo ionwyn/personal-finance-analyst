@@ -24,6 +24,24 @@ export type {
 export type { PositionMarketData, ReturnPeriod, Technicals } from "./service";
 export type { MacroGroup, MacroIndicator, YieldCurveData, YieldCurvePoint } from "./macro";
 export { getMacroOverview, getYieldCurve } from "./macro";
+export type {
+  AnnualFinancials,
+  EarningsQuarter,
+  InsiderTx,
+  RecTrendMonth,
+  SecFiling,
+  SymbolIntel,
+} from "./intel";
+export {
+  getEarningsHistory,
+  getFilings,
+  getFinancials,
+  getInsiderTxs,
+  getPeers,
+  getRecTrends,
+  getSymbolIntel,
+  isUsListed,
+} from "./intel";
 
 // ─── Singleton ────────────────────────────────────────────────────────────
 // In Next.js (Node.js runtime), this module is evaluated once per worker
