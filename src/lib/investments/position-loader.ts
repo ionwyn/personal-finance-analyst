@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { getMarketDataService } from "@/lib/market-data";
 import { groupOf } from "./activity-types";
+import { loadSymbolIntel } from "./intel-loader";
 import { loadInvestments } from "./loader";
 import type { PositionActivityRow, PositionDetail, PositionLot } from "./types";
 
@@ -210,8 +211,16 @@ export async function getPositionDetail(
     lastSync,
     syncIsFresh,
     holdLabel,
-    marketData: await getMarketDataService()
-      .getPositionMarketData(base.symbol)
-      .catch(() => null),
+    ...(await marketAndIntel(base.symbol, isFundType(base.type))),
   };
+}
+
+async function marketAndIntel(symbol: string, isFund: boolean) {
+  const [marketData, intel] = await Promise.all([
+    getMarketDataService()
+      .getPositionMarketData(symbol)
+      .catch(() => null),
+    loadSymbolIntel(symbol, { isFund }).catch(() => null),
+  ]);
+  return { marketData, intel };
 }
