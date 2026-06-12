@@ -24,6 +24,7 @@ export type {
 export type { PositionMarketData, ReturnPeriod, Technicals } from "./service";
 export type { MacroGroup, MacroIndicator, YieldCurveData, YieldCurvePoint } from "./macro";
 export { getMacroOverview, getYieldCurve } from "./macro";
+export { getCanadaMacro } from "./statcan";
 export type {
   AnnualFinancials,
   EarningsQuarter,

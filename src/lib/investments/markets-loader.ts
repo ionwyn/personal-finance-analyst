@@ -1,4 +1,5 @@
 import {
+  getCanadaMacro,
   getMacroOverview,
   getMarketDataService,
   getYieldCurve,
@@ -89,6 +90,7 @@ export type MarketsOverview = {
   portfolio: MarketsPortfolioPulse | null;
   watchlist: WatchlistRow[];
   macro: MacroIndicator[];
+  canada: MacroIndicator[];
   curve: YieldCurveData;
   asOf: string; // ISO — page assembly time
 };
@@ -134,12 +136,13 @@ export async function getMarketsOverview(
 ): Promise<MarketsOverview> {
   const svc = getMarketDataService();
 
-  const [tapeQuotes, macro, curve, investments] = await Promise.all([
+  const [tapeQuotes, macro, canada, curve, investments] = await Promise.all([
     svc.getQuotes(
       TAPE.map((t) => t.symbol),
       TAPE_MAX_AGE_MS
     ),
     getMacroOverview().catch(() => [] as MacroIndicator[]),
+    getCanadaMacro().catch(() => [] as MacroIndicator[]),
     getYieldCurve().catch(() => ({ points: [], asOf: null }) as YieldCurveData),
     tenantId ? loadInvestments(tenantId).catch(() => null) : Promise.resolve(null),
   ]);
@@ -230,5 +233,5 @@ export async function getMarketsOverview(
   const heldSymbols = new Set(holdings.map((h) => h.symbol.toUpperCase()));
   const watchlist = await loadWatchlist(tenantId, heldSymbols);
 
-  return { tape, portfolio, watchlist, macro, curve, asOf: new Date().toISOString() };
+  return { tape, portfolio, watchlist, macro, canada, curve, asOf: new Date().toISOString() };
 }
