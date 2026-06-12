@@ -28,7 +28,7 @@ export default async function MarketsPage() {
             }
       }
     >
-      <MarketsView data={data} />
+      <MarketsView data={data} canEdit={!isDemo} />
     </AppShell>
   );
 }

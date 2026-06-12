@@ -5,6 +5,7 @@ import {
   type MacroIndicator,
   type YieldCurveData,
 } from "@/lib/market-data";
+import { prisma } from "@/lib/prisma";
 
 import { loadInvestments } from "./loader";
 
@@ -72,13 +73,61 @@ export type MarketsPortfolioPulse = {
   movers: MoverRow[];
 };
 
+export type WatchlistRow = {
+  symbol: string;
+  name: string | null;
+  exchange: string | null;
+  currency: string | null;
+  price: number | null;
+  changePct: number | null;
+  held: boolean; // also present in current holdings
+  spark: number[]; // ~30 trading days of closes, oldest → newest
+};
+
 export type MarketsOverview = {
   tape: TapeQuote[];
   portfolio: MarketsPortfolioPulse | null;
+  watchlist: WatchlistRow[];
   macro: MacroIndicator[];
   curve: YieldCurveData;
   asOf: string; // ISO — page assembly time
 };
+
+/** Watchlist rows with quotes and 30-day sparklines (all served from cache). */
+async function loadWatchlist(
+  tenantId: string | null | undefined,
+  heldSymbols: Set<string>
+): Promise<WatchlistRow[]> {
+  if (!tenantId) return [];
+  const svc = getMarketDataService();
+  const items = await prisma.watchlistItem.findMany({
+    where: { tenantId },
+    orderBy: { addedAt: "asc" },
+  });
+  if (items.length === 0) return [];
+
+  const [quotes, serieses] = await Promise.all([
+    svc.getQuotes(
+      items.map((i) => i.symbol),
+      HOLDINGS_QUOTE_MAX_AGE_MS
+    ),
+    Promise.all(items.map((i) => svc.getTimeSeries(i.symbol, 45).catch(() => []))),
+  ]);
+
+  return items.map((item, i) => {
+    const q = quotes[i];
+    return {
+      symbol: item.symbol,
+      name: item.name,
+      exchange: item.exchange,
+      currency: q?.currency ?? null,
+      price: q?.price ?? null,
+      changePct: q?.changePct ?? null,
+      held: heldSymbols.has(item.symbol.toUpperCase()),
+      spark: serieses[i].slice(-30).map((p) => p.close),
+    };
+  });
+}
 
 export async function getMarketsOverview(
   tenantId: string | null | undefined
@@ -178,5 +227,8 @@ export async function getMarketsOverview(
     };
   }
 
-  return { tape, portfolio, macro, curve, asOf: new Date().toISOString() };
+  const heldSymbols = new Set(holdings.map((h) => h.symbol.toUpperCase()));
+  const watchlist = await loadWatchlist(tenantId, heldSymbols);
+
+  return { tape, portfolio, watchlist, macro, curve, asOf: new Date().toISOString() };
 }
