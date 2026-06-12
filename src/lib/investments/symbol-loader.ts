@@ -1,6 +1,8 @@
 import { getMarketDataService, type PositionMarketData } from "@/lib/market-data";
 import { prisma } from "@/lib/prisma";
 
+import { loadSymbolIntel, type SymbolIntelBundle } from "./intel-loader";
+
 // ─── Market-only symbol view (not held in any account) ─────────────────────
 // Backs /app/investments/[symbol] when getPositionDetail finds no lots, so
 // any watchlist or searched ticker gets a research page.
@@ -12,6 +14,7 @@ export type SymbolDetail = {
   isFund: boolean;
   onWatchlist: boolean;
   marketData: PositionMarketData;
+  intel: SymbolIntelBundle | null;
 };
 
 export async function getSymbolDetail(
@@ -53,5 +56,6 @@ export async function getSymbolDetail(
     isFund,
     onWatchlist: watch != null,
     marketData,
+    intel: await loadSymbolIntel(symbol, { isFund }).catch(() => null),
   };
 }

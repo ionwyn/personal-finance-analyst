@@ -1,5 +1,6 @@
 import type { ActivityGroupKey } from "./activity-types";
 import type { PositionMarketData } from "@/lib/market-data";
+import type { SymbolIntelBundle } from "./intel-loader";
 
 export type AssetType = string;
 export type Currency = string;
@@ -224,4 +225,5 @@ export type PositionDetail = {
   syncIsFresh: boolean;
   holdLabel: string | null; // longest holding duration, e.g. "2.3 yrs"
   marketData: PositionMarketData | null;
+  intel: SymbolIntelBundle | null;
 };
