@@ -5,6 +5,9 @@ import { useState } from "react";
 import { DeferredOverlay } from "@/components/ui";
 import type { PositionDetail } from "@/lib/investments/types";
 
+// NB: market-facing shells take narrow props so the market-only symbol page
+// can render them without a full PositionDetail.
+
 // These sections render the real design at full fidelity but their data sources
 // (external market data, AI synthesis) aren't wired up in Phase 1. Each is shown
 // dimmed beneath a "not active yet" scrim via <DeferredOverlay>. The sample
@@ -38,7 +41,7 @@ export function ReturnPeriodsDeferred() {
   );
 }
 
-export function PriceChartDeferred({ p }: { p: PositionDetail }) {
+export function PriceChartDeferred({ hasCost }: { hasCost: boolean }) {
   const ranges = ["1M", "3M", "6M", "1Y", "All"];
   // A faint sample path so the plot area isn't empty under the scrim.
   const pts = Array.from({ length: 40 }, (_, i) => {
@@ -94,9 +97,7 @@ export function PriceChartDeferred({ p }: { p: PositionDetail }) {
             </span>
             <span>
               <span className="lbl">VS MY COST</span>{" "}
-              <span className="v">
-                {p.avgNative != null && p.price >= p.avgNative ? "in the money" : "vs cost"}
-              </span>
+              <span className="v">{hasCost ? "vs cost" : SAMPLE}</span>
             </span>
             <span>
               <span className="lbl">RSI(14)</span> <span className="v">{SAMPLE}</span>
@@ -108,8 +109,8 @@ export function PriceChartDeferred({ p }: { p: PositionDetail }) {
   );
 }
 
-export function FundamentalsDeferred({ p }: { p: PositionDetail }) {
-  const cells: [string, string][] = p.isFund
+export function FundamentalsDeferred({ isFund }: { isFund: boolean }) {
+  const cells: [string, string][] = isFund
     ? [
         ["Net assets", SAMPLE],
         ["Expense ratio", SAMPLE],
@@ -134,7 +135,7 @@ export function FundamentalsDeferred({ p }: { p: PositionDetail }) {
     <DeferredOverlay label="Fundamentals" hint="Needs market data provider">
       <div className="panel">
         <div className="panel-head">
-          <div className="panel-title">{p.isFund ? "Fund profile" : "Fundamentals"}</div>
+          <div className="panel-title">{isFund ? "Fund profile" : "Fundamentals"}</div>
           <div className="panel-meta">SOURCE PENDING</div>
         </div>
         <div className="panel-body" style={{ padding: 0 }}>
@@ -187,14 +188,14 @@ export function TechnicalsDeferred() {
   );
 }
 
-export function NewsDeferred({ p }: { p: PositionDetail }) {
+export function NewsDeferred({ symbol, name }: { symbol: string; name: string | null }) {
   const rows = [
     {
       tag: "FUNDAMENTALS",
-      title: `${p.name} — headlines will appear here once a news feed is connected`,
+      title: `${name ?? symbol} — headlines will appear here once a news feed is connected`,
     },
-    { tag: "ANALYST", title: `Analyst coverage for ${p.symbol}` },
-    { tag: "DIVIDEND", title: `Distribution & corporate actions for ${p.symbol}` },
+    { tag: "ANALYST", title: `Analyst coverage for ${symbol}` },
+    { tag: "DIVIDEND", title: `Distribution & corporate actions for ${symbol}` },
   ];
   return (
     <DeferredOverlay label="News & events" hint="Needs a news provider">

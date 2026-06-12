@@ -1355,3 +1355,55 @@
   .pos-thesis-cells { grid-template-columns: repeat(3, 1fr); }
   .pos-thesis-cells > div:nth-child(3n) { border-right: none; }
 }
+
+/* ── Market-only symbol page (not held) ─────────────────────────────────── */
+.pos-chip.ghost {
+  color: var(--text-4);
+  border-style: dashed;
+}
+.sym-grid {
+  grid-template-columns: 1fr; // no personal rail on the research view
+}
+.sym-day {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 12px;
+
+  &.pos { color: var(--pos); }
+  &.neg { color: var(--neg); }
+}
+.sym-watch-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 10px;
+  background: none;
+  border: 1px solid var(--border-strong);
+  border-radius: 3px;
+  color: var(--text-2);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.09em;
+  padding: 2px 7px;
+  cursor: pointer;
+  transition: color 0.12s ease, border-color 0.12s ease;
+
+  &:hover {
+    color: var(--accent);
+    border-color: var(--accent-dim);
+  }
+  &:disabled { opacity: 0.5; }
+}
+.sym-sector {
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sym-desc {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.65;
+  color: var(--text-2);
+  max-width: 72ch;
+}
