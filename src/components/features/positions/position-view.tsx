@@ -10,7 +10,6 @@ import {
   FundamentalsLive,
   NewsList,
   PriceChart,
-  ReturnPeriods,
   TechnicalsPanel,
 } from "./position-market";
 import { Activity } from "./sections/activity";
@@ -21,21 +20,6 @@ import { Ownership } from "./sections/ownership";
 import { Performance } from "./sections/performance";
 import { Rail } from "./sections/rail";
 import { Section } from "./sections/section";
-
-// ─── tiny formatters (mirror the prototype's local helpers) ────────────────
-const money = (n: number, dp = 2) =>
-  "$" +
-  Math.abs(n).toLocaleString("en-US", { minimumFractionDigits: dp, maximumFractionDigits: dp });
-const signMoney = (n: number, dp = 2) => (n >= 0 ? "+" : "−") + money(n, dp);
-const pct = (n: number, dp = 2) => (n >= 0 ? "+" : "−") + Math.abs(n).toFixed(dp) + "%";
-const dash = (v: string | null | undefined) => (v == null ? "—" : v);
-
-function fmtDate(iso: string | null) {
-  if (!iso) return "—";
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return "—";
-  return d.toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" });
-}
 
 export function PositionView({ data: p }: { data: PositionDetail }) {
   const [active, setActive] = useState("overview");
