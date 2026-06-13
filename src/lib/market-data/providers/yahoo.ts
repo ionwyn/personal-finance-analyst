@@ -18,10 +18,19 @@ import type {
 const yf = new YahooFinance({ suppressNotices: ["yahooSurvey", "ripHistorical"] });
 
 // ─── Symbol convention ────────────────────────────────────────────────────
-// SnapTrade stores TSX tickers as "VFV.TO"; Yahoo Finance uses the same
-// convention, so no transformation is needed. US symbols pass through unchanged.
-function toYahoo(symbol: string): string {
-  return symbol;
+// Yahoo uses a hyphen for share classes while SnapTrade commonly uses dots:
+// BRK.B -> BRK-B and HPS.A.TO -> HPS-A.TO. A single multi-letter suffix is an
+// exchange code and stays dotted (for example VFV.TO).
+export function toYahooSymbol(symbol: string): string {
+  const parts = symbol.toUpperCase().split(".");
+  if (parts.length >= 3) {
+    const exchange = parts.pop();
+    return `${parts.join("-")}.${exchange}`;
+  }
+  if (parts.length === 2 && parts[1]?.length === 1) {
+    return parts.join("-");
+  }
+  return parts.join(".");
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────
@@ -55,7 +64,7 @@ function toDateStr(d: Date | null | undefined): string | null {
 export class YahooFinanceProvider implements MarketDataProvider {
   async getQuote(symbol: string): Promise<MarketQuote | null> {
     try {
-      const q = await yf.quote(toYahoo(symbol));
+      const q = await yf.quote(toYahooSymbol(symbol));
       if (!q) return null;
       return {
         symbol,
@@ -86,7 +95,7 @@ export class YahooFinanceProvider implements MarketDataProvider {
     try {
       const period1 = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
       // Use chart() directly — historical() is deprecated in yahoo-finance2 v3.
-      const result = await yf.chart(toYahoo(symbol), { period1, interval: "1d" });
+      const result = await yf.chart(toYahooSymbol(symbol), { period1, interval: "1d" });
       const rows = (result.quotes ?? []) as Array<{
         date: Date;
         close: number | null;
@@ -114,7 +123,7 @@ export class YahooFinanceProvider implements MarketDataProvider {
 
   async getFundamentals(symbol: string): Promise<SecurityFundamentals | null> {
     try {
-      const s = await yf.quoteSummary(toYahoo(symbol), {
+      const s = await yf.quoteSummary(toYahooSymbol(symbol), {
         modules: ["summaryDetail", "financialData", "defaultKeyStatistics"],
       });
 
@@ -150,7 +159,7 @@ export class YahooFinanceProvider implements MarketDataProvider {
 
   async getProfile(symbol: string): Promise<SecurityProfile | null> {
     try {
-      const s = await yf.quoteSummary(toYahoo(symbol), { modules: ["assetProfile"] });
+      const s = await yf.quoteSummary(toYahooSymbol(symbol), { modules: ["assetProfile"] });
       const p = s.assetProfile as Record<string, unknown> | undefined;
       if (!p) return null;
       return {
@@ -169,7 +178,7 @@ export class YahooFinanceProvider implements MarketDataProvider {
 
   async getNews(symbol: string, count = 6): Promise<NewsItem[]> {
     try {
-      const result = await yf.search(toYahoo(symbol), {
+      const result = await yf.search(toYahooSymbol(symbol), {
         newsCount: count,
         quotesCount: 0,
       });
@@ -196,7 +205,7 @@ export class YahooFinanceProvider implements MarketDataProvider {
 
   async getEvents(symbol: string): Promise<MarketEvents | null> {
     try {
-      const s = await yf.quoteSummary(toYahoo(symbol), { modules: ["calendarEvents"] });
+      const s = await yf.quoteSummary(toYahooSymbol(symbol), { modules: ["calendarEvents"] });
       const c = s.calendarEvents as
         | {
             earnings?: { earningsDate?: Date[] };
@@ -223,7 +232,7 @@ export class YahooFinanceProvider implements MarketDataProvider {
 
   async getAnalyst(symbol: string): Promise<AnalystConsensus | null> {
     try {
-      const s = await yf.quoteSummary(toYahoo(symbol), {
+      const s = await yf.quoteSummary(toYahooSymbol(symbol), {
         modules: ["financialData", "recommendationTrend"],
       });
       const fd = s.financialData as Record<string, unknown> | undefined;
@@ -257,7 +266,7 @@ export class YahooFinanceProvider implements MarketDataProvider {
   async getDividends(symbol: string, days: number): Promise<DividendPayment[]> {
     try {
       const period1 = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
-      const result = (await yf.chart(toYahoo(symbol), {
+      const result = (await yf.chart(toYahooSymbol(symbol), {
         period1,
         interval: "1mo",
         events: "div",
