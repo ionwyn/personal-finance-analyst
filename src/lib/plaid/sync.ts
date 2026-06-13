@@ -47,7 +47,7 @@ async function applyAddedOrModified(input: {
   const normalized = normalizeTransaction(input.transaction);
   const account = await prisma.plaidAccount.findUnique({
     where: { plaidAccountId: normalized.plaidAccountId },
-    select: { id: true },
+    select: { id: true, tracked: true },
   });
 
   if (!account) {
@@ -55,6 +55,9 @@ async function applyAddedOrModified(input: {
       `Missing Plaid account ${normalized.plaidAccountId} for transaction ${normalized.plaidTransactionId}`
     );
   }
+
+  // Untracked accounts are excluded everywhere — do not store their transactions.
+  if (!account.tracked) return;
 
   const existing = await prisma.plaidTransaction.findUnique({
     where: { plaidTransactionId: normalized.plaidTransactionId },

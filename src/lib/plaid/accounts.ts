@@ -50,7 +50,7 @@ export async function upsertPlaidAccounts(input: {
       },
     });
 
-    if (input.captureSnapshot) {
+    if (input.captureSnapshot && saved.tracked) {
       await prisma.balanceSnapshot.create({
         data: {
           tenantId: input.tenantId,
