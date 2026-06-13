@@ -259,7 +259,7 @@ export class MarketDataService {
 
   async getProfile(symbol: string): Promise<SecurityProfile | null> {
     const cached = await prisma.marketProfile.findUnique({ where: { symbol } });
-    if (cached && !isStale(cached.updatedAt, TTL.profile)) {
+    if (cached?.profileFetchedAt && !isStale(cached.profileFetchedAt, TTL.profile)) {
       return {
         symbol,
         name: cached.name,
@@ -267,7 +267,7 @@ export class MarketDataService {
         industry: cached.industry,
         country: cached.country,
         description: cached.description,
-        fetchedAt: cached.fetchedAt.toISOString(),
+        fetchedAt: cached.profileFetchedAt.toISOString(),
       };
     }
     const fresh = await this.provider.getProfile(symbol);
@@ -277,7 +277,7 @@ export class MarketDataService {
 
   async getFundamentals(symbol: string): Promise<SecurityFundamentals | null> {
     const cached = await prisma.marketProfile.findUnique({ where: { symbol } });
-    if (cached && !isStale(cached.updatedAt, TTL.profile)) {
+    if (cached?.fundamentalsFetchedAt && !isStale(cached.fundamentalsFetchedAt, TTL.profile)) {
       return {
         symbol,
         isFund: cached.isFund,
@@ -295,7 +295,7 @@ export class MarketDataService {
         aum: n(cached.aum),
         holdingsCount: cached.holdingsCount,
         beta: n(cached.beta),
-        fetchedAt: cached.fetchedAt.toISOString(),
+        fetchedAt: cached.fundamentalsFetchedAt.toISOString(),
       };
     }
     const fresh = await this.provider.getFundamentals(symbol);
@@ -335,6 +335,8 @@ export class MarketDataService {
         holdingsCount: f?.holdingsCount,
         beta: f?.beta,
         fetchedAt: now,
+        profileFetchedAt: p ? now : null,
+        fundamentalsFetchedAt: f ? now : null,
       },
       update: {
         ...(p != null && {
@@ -343,6 +345,7 @@ export class MarketDataService {
           industry: p.industry,
           country: p.country,
           description: p.description,
+          profileFetchedAt: now,
         }),
         ...(f != null && {
           isFund: f.isFund,
@@ -360,6 +363,7 @@ export class MarketDataService {
           aum: f.aum,
           holdingsCount: f.holdingsCount,
           beta: f.beta,
+          fundamentalsFetchedAt: now,
         }),
         fetchedAt: now,
       },
