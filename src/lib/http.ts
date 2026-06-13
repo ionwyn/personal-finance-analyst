@@ -83,6 +83,24 @@ export async function requireOwnedPlaidItem(itemId: string) {
   return { ...auth, item };
 }
 
+export async function requireOwnedPlaidAccount(accountId: string) {
+  const auth = await requireUserTenant();
+  if ("error" in auth) return auth;
+
+  const account = await prisma.plaidAccount.findFirst({
+    where: {
+      id: accountId,
+      tenantId: auth.tenant.id,
+    },
+  });
+
+  if (!account) {
+    return { error: NextResponse.json({ error: "Plaid account not found" }, { status: 404 }) };
+  }
+
+  return { ...auth, account };
+}
+
 export async function requireOwnedSnapTradeConnection(connectionId: string) {
   const auth = await requireUserTenant();
   if ("error" in auth) return auth;
