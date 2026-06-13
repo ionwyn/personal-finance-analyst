@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { findDuplicatePlaidAccountIds, isInvestmentAccountType } from "@/lib/analytics/duplicates";
+import {
+  findDuplicatePlaidAccountIds,
+  institutionKeyMatches,
+  isInvestmentAccountType,
+} from "@/lib/analytics/duplicates";
 
 describe("isInvestmentAccountType", () => {
   it("treats investment/brokerage/retirement accounts as investments", () => {
@@ -45,5 +49,20 @@ describe("findDuplicatePlaidAccountIds", () => {
   it("does not flag investment accounts at an unrelated institution", () => {
     const dupes = findDuplicatePlaidAccountIds(items, ["Questrade"]);
     expect(dupes.size).toBe(0);
+  });
+});
+
+describe("institutionKeyMatches", () => {
+  const keys = new Set(["wealthsimple"]);
+
+  it("matches on equality and fuzzy containment", () => {
+    expect(institutionKeyMatches("Wealthsimple", keys)).toBe(true);
+    expect(institutionKeyMatches("Wealthsimple Trade", keys)).toBe(true);
+  });
+
+  it("does not match unrelated or empty institutions", () => {
+    expect(institutionKeyMatches("Questrade", keys)).toBe(false);
+    expect(institutionKeyMatches(null, keys)).toBe(false);
+    expect(institutionKeyMatches("Wealthsimple", new Set())).toBe(false);
   });
 });
