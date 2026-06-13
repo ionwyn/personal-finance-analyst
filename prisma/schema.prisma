@@ -170,6 +170,10 @@ model PlaidAccount {
   currentBalance         Decimal?  @db.Decimal(18, 2)
   limit                  Decimal?  @db.Decimal(18, 2)
   lastBalanceAt          DateTime?
+  // When false the account is "untracked": its transactions are not synced or
+  // stored, no balance snapshots are captured, and it is excluded from every
+  // total. User-controlled from the account's three-dots menu. Defaults true.
+  tracked                Boolean   @default(true)
   createdAt              DateTime  @default(now())
   updatedAt              DateTime  @updatedAt
 
