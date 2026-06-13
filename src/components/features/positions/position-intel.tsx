@@ -2,6 +2,7 @@
 
 import { ExternalLink } from "lucide-react";
 
+import { isOpenMarketInsiderTransaction, openMarketInsiderValue } from "@/lib/market-data/insiders";
 import type {
   AnnualFinancials,
   EarningsQuarter,
@@ -28,7 +29,7 @@ export function hasIntel(i: {
   return (
     i.earnings.some((e) => e.surprisePct != null) ||
     i.recTrends.length >= 2 ||
-    i.insiders.some((t) => !t.isDerivative && t.txDate != null) ||
+    i.insiders.some(isOpenMarketInsiderTransaction) ||
     i.peerRows.length >= 2 ||
     i.filings.length > 0
   );
@@ -216,16 +217,13 @@ const TX_CODE_LABEL: Record<string, string> = {
   C: "Conversion",
 };
 
-const txValue = (t: InsiderTx) =>
-  t.change != null && t.txPrice != null && t.txPrice > 0 ? t.change * t.txPrice : null;
-
 function summarizeInsiders(market: InsiderTx[]) {
   const cutoff = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
   const window90 = market.filter((t) => (t.txDate ?? "") >= cutoff);
   let boughtUsd = 0;
   let soldUsd = 0;
   for (const t of window90) {
-    const v = txValue(t);
+    const v = openMarketInsiderValue(t);
     if (v != null && v > 0) boughtUsd += v;
     if (v != null && v < 0) soldUsd += Math.abs(v);
   }
@@ -233,8 +231,7 @@ function summarizeInsiders(market: InsiderTx[]) {
 }
 
 export function InsiderPanel({ insiders }: { insiders: InsiderTx[] }) {
-  // Open-market rows tell the story; derivative legs (price 0) are noise.
-  const market = insiders.filter((t) => !t.isDerivative && t.txDate != null);
+  const market = insiders.filter(isOpenMarketInsiderTransaction);
   if (market.length === 0) return null;
 
   const { boughtUsd, soldUsd, people } = summarizeInsiders(market);
@@ -266,7 +263,7 @@ export function InsiderPanel({ insiders }: { insiders: InsiderTx[] }) {
         </div>
         <div className="pos-insider-table">
           {market.slice(0, 8).map((t, i) => {
-            const v = txValue(t);
+            const v = openMarketInsiderValue(t);
             const code = t.txCode ?? "?";
             return (
               <div key={i} className="pos-insider-row">
