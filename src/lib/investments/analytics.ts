@@ -56,8 +56,9 @@ export async function getInvestmentDashboardData(
   // Each account's `totalValue` is already signed (negative for a carried card
   // balance), so summing them yields net worth; `liabilityCAD` re-surfaces the
   // debt portion as a positive figure.
-  const liabilitiesCAD = accounts.reduce((s, a) => s + a.liabilityCAD, 0);
-  const netWorthCAD = accounts.reduce((s, a) => s + a.totalValue, 0);
+  const trackedAccounts = accounts.filter((a) => a.tracked);
+  const liabilitiesCAD = trackedAccounts.reduce((s, a) => s + a.liabilityCAD, 0);
+  const netWorthCAD = trackedAccounts.reduce((s, a) => s + a.totalValue, 0);
   const assetsCAD = netWorthCAD + liabilitiesCAD;
   const costCAD = holdings.reduce((s, h) => s + (h.costCAD ?? 0), 0);
   const plCAD = holdings.reduce((s, h) => s + (h.plCAD ?? 0), 0);

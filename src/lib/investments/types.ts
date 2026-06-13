@@ -32,6 +32,9 @@ export type InvestmentAccount = {
   status: "IDLE" | "SYNCING" | "ERROR" | "DISABLED";
   isStale: boolean;
   initialSyncComplete: boolean;
+  // False when the user has untracked this account: excluded from holdings,
+  // cash, and every total, but still listed so it can be re-tracked.
+  tracked: boolean;
 };
 
 export type AccountKind =

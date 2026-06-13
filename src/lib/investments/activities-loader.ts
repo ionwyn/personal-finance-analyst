@@ -89,9 +89,11 @@ export async function loadActivities(tenantId?: string | null): Promise<LoadedAc
   }
 
   const [totalRowCount, raw] = await Promise.all([
-    prisma.snapTradeActivity.count({ where: { tenantId } }),
+    prisma.snapTradeActivity.count({
+      where: { tenantId, account: { is: { tracked: true } } },
+    }),
     prisma.snapTradeActivity.findMany({
-      where: { tenantId },
+      where: { tenantId, account: { is: { tracked: true } } },
       orderBy: [{ tradeDate: "desc" }, { createdAt: "desc" }],
       take: ACTIVITY_CAP,
       include: {

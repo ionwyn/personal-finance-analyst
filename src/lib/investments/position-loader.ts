@@ -112,6 +112,7 @@ export async function getPositionDetail(
   const activityRaw = await prisma.snapTradeActivity.findMany({
     where: {
       tenantId,
+      account: { is: { tracked: true } },
       OR: activityNames.map((name) => ({ symbol: { equals: name, mode: "insensitive" as const } })),
     },
     orderBy: [{ tradeDate: "desc" }, { createdAt: "desc" }],

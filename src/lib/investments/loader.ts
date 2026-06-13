@@ -195,36 +195,40 @@ export async function loadInvestments(tenantId?: string | null): Promise<LoadedI
       status: account.connection.status,
       isStale: isStaleSince(lastSyncAt, now),
       initialSyncComplete: account.holdingsInitialSyncComplete,
+      tracked: account.tracked,
     };
   });
 
-  const holdings: InvestmentPosition[] = activeAccountsRaw.flatMap((account) =>
-    account.positions.map(
-      (position): InvestmentPosition => ({
-        id: position.id,
-        accountId: account.id,
-        symbol: position.symbol,
-        description: position.description ?? position.symbol,
-        type: position.assetType,
-        exchange: position.exchange ?? "",
-        currency: position.currency,
-        units: numberValue(position.units),
-        price: numberValue(position.price),
-        avgCost: nullableNumber(position.avgCost),
-        mvNative: numberValue(position.marketValueNative),
-        mvCAD: numberValue(position.marketValueCad),
-        costNative: nullableNumber(position.costNative),
-        costCAD: nullableNumber(position.costCad),
-        plCAD: nullableNumber(position.pnlCad),
-        plPct: nullableNumber(position.pnlPct),
-        logoBg: hashColor(position.symbol),
-        logoId: position.logo?.status === "READY" || position.logoId ? position.logoId : null,
-      })
-    )
-  );
+  const holdings: InvestmentPosition[] = activeAccountsRaw
+    .filter((account) => account.tracked)
+    .flatMap((account) =>
+      account.positions.map(
+        (position): InvestmentPosition => ({
+          id: position.id,
+          accountId: account.id,
+          symbol: position.symbol,
+          description: position.description ?? position.symbol,
+          type: position.assetType,
+          exchange: position.exchange ?? "",
+          currency: position.currency,
+          units: numberValue(position.units),
+          price: numberValue(position.price),
+          avgCost: nullableNumber(position.avgCost),
+          mvNative: numberValue(position.marketValueNative),
+          mvCAD: numberValue(position.marketValueCad),
+          costNative: nullableNumber(position.costNative),
+          costCAD: nullableNumber(position.costCad),
+          plCAD: nullableNumber(position.pnlCad),
+          plPct: nullableNumber(position.pnlPct),
+          logoBg: hashColor(position.symbol),
+          logoId: position.logo?.status === "READY" || position.logoId ? position.logoId : null,
+        })
+      )
+    );
 
   const cashByCurrency = new Map<string, InvestmentCashBalance>();
   for (const account of activeAccountsRaw) {
+    if (!account.tracked) continue;
     for (const balance of account.balances) {
       const existing = cashByCurrency.get(balance.currency);
       const value = numberValue(balance.cash);
