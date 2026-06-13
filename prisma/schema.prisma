@@ -325,6 +325,10 @@ model SnapTradeAccount {
   snapTradeCreatedAt          DateTime?
   status                      String?
   isPaper                     Boolean   @default(false)
+  // When false the account is "untracked": it is not synced (no positions,
+  // balances, or activities fetched) and is excluded from every investment
+  // total. User-controlled from the account's three-dots menu. Defaults true.
+  tracked                     Boolean   @default(true)
   lastHoldingsSyncAt          DateTime?
   holdingsInitialSyncComplete Boolean   @default(false)
   activitiesBackfilledAt      DateTime?
