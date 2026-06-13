@@ -361,7 +361,8 @@
   }
 }
 .mkt-watch-error {
-  margin-top: 7px;
+  padding: 7px 14px;
+  border-bottom: 1px solid var(--border-subtle);
   font-size: 10.5px;
   color: var(--neg);
 }

@@ -22,6 +22,7 @@ import {
 } from "@/components/features/positions/position-intel";
 import { AnalystPanel, DividendsPanel } from "@/components/features/positions/position-street";
 import { Section } from "@/components/features/positions/sections/section";
+import { requestApi } from "@/lib/client-api";
 import type { SymbolDetail } from "@/lib/investments/symbol-loader";
 
 // ─── Market-only symbol page — research view for tickers you don't hold ────
@@ -50,31 +51,42 @@ function WatchToggle({
 }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   if (!canEdit) return null;
 
   const toggle = async () => {
     setBusy(true);
+    setError(null);
     try {
       if (onWatchlist) {
-        await fetch(`/api/watchlist/${encodeURIComponent(symbol)}`, { method: "DELETE" });
+        await requestApi(`/api/watchlist/${encodeURIComponent(symbol)}`, { method: "DELETE" });
       } else {
-        await fetch("/api/watchlist", {
+        await requestApi("/api/watchlist", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ symbol, name }),
         });
       }
       router.refresh();
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Could not update watchlist");
     } finally {
       setBusy(false);
     }
   };
 
   return (
-    <button type="button" className="sym-watch-btn" onClick={toggle} disabled={busy}>
-      {onWatchlist ? <EyeOff size={11} /> : <Eye size={11} />}
-      {onWatchlist ? "UNWATCH" : "WATCH"}
-    </button>
+    <>
+      <button type="button" className="sym-watch-btn" onClick={toggle} disabled={busy}>
+        {onWatchlist ? <EyeOff size={11} /> : <Eye size={11} />}
+        {onWatchlist ? "UNWATCH" : "WATCH"}
+      </button>
+      {error && (
+        <span className="inline-error" role="alert">
+          {error}
+        </span>
+      )}
+    </>
   );
 }
 
