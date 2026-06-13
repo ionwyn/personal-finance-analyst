@@ -72,7 +72,7 @@ export function CurvePanel({ curve }: { curve: YieldCurveData }) {
         ) : (
           <>
             <div style={{ width: "100%", height: 216 }}>
-              <ResponsiveContainer>
+              <ResponsiveContainer initialDimension={{ width: 1, height: 1 }}>
                 <LineChart data={data} margin={{ top: 8, right: 8, bottom: 0, left: -2 }}>
                   <CartesianGrid stroke="var(--border-subtle)" vertical={false} />
                   <XAxis

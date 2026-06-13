@@ -63,7 +63,7 @@ export function IncomePanel({ income }: { income: IncomeStats }) {
           )}
         </div>
         <div style={{ width: "100%", height: 120 }}>
-          <ResponsiveContainer>
+          <ResponsiveContainer initialDimension={{ width: 1, height: 1 }}>
             <BarChart data={data} margin={{ top: 4, right: 4, bottom: 0, left: -22 }}>
               <XAxis
                 dataKey="label"
