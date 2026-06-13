@@ -10,6 +10,8 @@ export type AccountSummary = {
   currentBalance: number;
   isoCurrencyCode: string;
   lastBalanceAt: string | null;
+  tracked: boolean;
+  possibleDuplicate: boolean;
 };
 
 export type PlaidItemSummary = {

@@ -6,7 +6,7 @@ import type { AccountSummary, InstitutionSummary, PlaidItemSummary } from "@/lib
 type PlaidAccount = Prisma.PlaidAccountGetPayload<object>;
 type PlaidItemWithAccounts = Prisma.PlaidItemGetPayload<{ include: { accounts: true } }>;
 
-export function mapAccountSummary(a: PlaidAccount): AccountSummary {
+export function mapAccountSummary(a: PlaidAccount, duplicateIds?: Set<string>): AccountSummary {
   return {
     id: a.id,
     itemId: a.itemId,
@@ -19,6 +19,8 @@ export function mapAccountSummary(a: PlaidAccount): AccountSummary {
     currentBalance: numberValue(a.currentBalance),
     isoCurrencyCode: a.isoCurrencyCode ?? "USD",
     lastBalanceAt: a.lastBalanceAt?.toISOString() ?? null,
+    tracked: a.tracked,
+    possibleDuplicate: duplicateIds?.has(a.id) ?? false,
   };
 }
 
@@ -39,9 +41,13 @@ export function mapPlaidItemSummary(item: PlaidItemWithAccounts): PlaidItemSumma
   return basePlaidItemFields(item);
 }
 
-export function mapInstitutionSummary(item: PlaidItemWithAccounts): InstitutionSummary {
-  const accounts = item.accounts.map(mapAccountSummary);
+export function mapInstitutionSummary(
+  item: PlaidItemWithAccounts,
+  duplicateIds?: Set<string>
+): InstitutionSummary {
+  const accounts = item.accounts.map((a) => mapAccountSummary(a, duplicateIds));
   const total = accounts.reduce((s, a) => {
+    if (!a.tracked) return s;
     const sign = isLiabilityType(a.type) ? -1 : 1;
     return s + sign * Math.abs(a.currentBalance);
   }, 0);

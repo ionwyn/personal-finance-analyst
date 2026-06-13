@@ -22,6 +22,7 @@ import {
   mapInstitutionSummary,
   mapPlaidItemSummary,
 } from "@/lib/analytics/mappers";
+import { findDuplicatePlaidAccountIds } from "@/lib/analytics/duplicates";
 import {
   aggregateTransactions,
   buildCategorySpend,
@@ -182,8 +183,22 @@ export async function getDashboardData(tenantSlug: string) {
   const now = new Date();
   const windows = buildDateWindows(now);
 
+  const snapTradeConnections = await prisma.snapTradeConnection.findMany({
+    where: { tenantId: tenant.id, disabled: false },
+    select: { brokerageName: true },
+  });
+  const duplicateAccountIds = findDuplicatePlaidAccountIds(
+    tenant.plaidItems,
+    snapTradeConnections.map((c) => c.brokerageName)
+  );
+
   const transactions = await prisma.plaidTransaction.findMany({
-    where: { tenantId: tenant.id, removed: false, date: { gte: windows.sixMonthsAgo } },
+    where: {
+      tenantId: tenant.id,
+      removed: false,
+      date: { gte: windows.sixMonthsAgo },
+      account: { is: { tracked: true } },
+    },
     orderBy: { date: "desc" },
     include: { account: true },
   });
@@ -206,7 +221,11 @@ export async function getDashboardData(tenantSlug: string) {
   const agg = aggregateTransactions(transactions, windows);
 
   const balanceSnapshots = await prisma.balanceSnapshot.findMany({
-    where: { tenantId: tenant.id, capturedAt: { gte: windows.sixMonthsAgo } },
+    where: {
+      tenantId: tenant.id,
+      capturedAt: { gte: windows.sixMonthsAgo },
+      account: { is: { tracked: true } },
+    },
     include: { account: true },
     orderBy: { capturedAt: "asc" },
   });
@@ -214,7 +233,9 @@ export async function getDashboardData(tenantSlug: string) {
   const balanceByDay = buildBalanceByDay(balanceSnapshots);
   const balanceHistory = buildBalanceHistory(balanceByDay, investments.summary.portfolioCAD);
 
-  const { totalAssets, totalLiabilities, currentBalance } = computeNetTotals(tenant.plaidAccounts);
+  const { totalAssets, totalLiabilities, currentBalance } = computeNetTotals(
+    tenant.plaidAccounts.filter((a) => a.tracked)
+  );
 
   const monthlySeries = windows.monthKeys.map((k) => agg.monthlyMap.get(k));
   const incomeSpark = monthlySeries.map((m) => m?.income ?? 0);
@@ -235,9 +256,13 @@ export async function getDashboardData(tenantSlug: string) {
   const categorySpend7d = buildCategorySpend(agg.categoryMap7);
   const merchantSpend = buildMerchantSpend(agg.merchantMap);
 
-  const accounts: AccountSummary[] = tenant.plaidAccounts.map(mapAccountSummary);
+  const accounts: AccountSummary[] = tenant.plaidAccounts.map((a) =>
+    mapAccountSummary(a, duplicateAccountIds)
+  );
   const plaidItems: PlaidItemSummary[] = tenant.plaidItems.map(mapPlaidItemSummary);
-  const institutions: InstitutionSummary[] = tenant.plaidItems.map(mapInstitutionSummary);
+  const institutions: InstitutionSummary[] = tenant.plaidItems.map((item) =>
+    mapInstitutionSummary(item, duplicateAccountIds)
+  );
 
   const insights = buildInsights({
     now,
@@ -345,7 +370,9 @@ export async function getTransactionsForTenant(input: {
 
   if (input.category) where.categoryPrimary = input.category;
 
-  if (input.account) where.account = { is: { name: input.account } };
+  where.account = {
+    is: { tracked: true, ...(input.account ? { name: input.account } : {}) },
+  };
 
   if (input.pending === "true") where.pending = true;
   if (input.pending === "false") where.pending = false;
