@@ -714,6 +714,8 @@ model MarketProfile {
   holdingsCount   Int?
   beta            Decimal? @db.Decimal(10, 4)
   fetchedAt       DateTime
+  profileFetchedAt DateTime?
+  fundamentalsFetchedAt DateTime?
   updatedAt       DateTime @updatedAt
 }
 
