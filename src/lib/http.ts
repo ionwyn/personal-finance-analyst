@@ -121,6 +121,24 @@ export async function requireOwnedSnapTradeConnection(connectionId: string) {
   return { ...auth, connection };
 }
 
+export async function requireOwnedSnapTradeAccount(accountId: string) {
+  const auth = await requireUserTenant();
+  if ("error" in auth) return auth;
+
+  const account = await prisma.snapTradeAccount.findFirst({
+    where: {
+      id: accountId,
+      tenantId: auth.tenant.id,
+    },
+  });
+
+  if (!account) {
+    return { error: NextResponse.json({ error: "SnapTrade account not found" }, { status: 404 }) };
+  }
+
+  return { ...auth, account };
+}
+
 export async function requireOwnedSnapTradeLogo(logoId: string) {
   const auth = await requireUserTenant();
   if ("error" in auth) return auth;
