@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Plus, Search, X } from "lucide-react";
 
 import { Sparkline } from "@/components/shared/sparkline";
+import { requestApi } from "@/lib/client-api";
 import type { WatchlistRow } from "@/lib/investments/markets-loader";
 import type { SymbolSearchResult } from "@/lib/market-data";
 
@@ -54,20 +55,17 @@ export function WatchlistPanel({ rows, canEdit }: { rows: WatchlistRow[]; canEdi
     setBusy(r.symbol);
     setError(null);
     try {
-      const res = await fetch("/api/watchlist", {
+      await requestApi("/api/watchlist", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ symbol: r.symbol, name: r.name, exchange: r.exchange }),
       });
-      if (!res.ok) {
-        const body = (await res.json().catch(() => null)) as { error?: string } | null;
-        setError(body?.error ?? "Could not add symbol");
-        return;
-      }
       setQuery("");
       setResults([]);
       setAdding(false);
       router.refresh();
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Could not add symbol");
     } finally {
       setBusy(null);
     }
@@ -75,9 +73,12 @@ export function WatchlistPanel({ rows, canEdit }: { rows: WatchlistRow[]; canEdi
 
   const remove = async (symbol: string) => {
     setBusy(symbol);
+    setError(null);
     try {
-      await fetch(`/api/watchlist/${encodeURIComponent(symbol)}`, { method: "DELETE" });
+      await requestApi(`/api/watchlist/${encodeURIComponent(symbol)}`, { method: "DELETE" });
       router.refresh();
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Could not remove symbol");
     } finally {
       setBusy(null);
     }
@@ -117,7 +118,6 @@ export function WatchlistPanel({ rows, canEdit }: { rows: WatchlistRow[]; canEdi
               onChange={(e) => setQuery(e.target.value)}
             />
           </div>
-          {error && <div className="mkt-watch-error">{error}</div>}
           {results.length > 0 && (
             <div className="mkt-watch-results">
               {results.map((r) => (
@@ -135,6 +135,11 @@ export function WatchlistPanel({ rows, canEdit }: { rows: WatchlistRow[]; canEdi
               ))}
             </div>
           )}
+        </div>
+      )}
+      {error && (
+        <div className="mkt-watch-error" role="alert">
+          {error}
         </div>
       )}
 
