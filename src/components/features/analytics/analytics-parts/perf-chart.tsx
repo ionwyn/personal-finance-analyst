@@ -115,7 +115,7 @@ export function PerfChart({ series, fxNote }: { series: SeriesPoint[]; fxNote: s
           </div>
         </div>
         <div style={{ width: "100%", height: 260 }}>
-          <ResponsiveContainer>
+          <ResponsiveContainer initialDimension={{ width: 1, height: 1 }}>
             <LineChart data={data} margin={{ top: 10, right: 8, bottom: 0, left: -2 }}>
               <XAxis
                 dataKey="date"

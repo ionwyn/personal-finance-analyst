@@ -78,7 +78,7 @@ const AXIS_TICK = { fontSize: 10, fill: "var(--text-3)", fontFamily: "var(--font
 
 export function CashflowChart({ data }: { data: CashflowDatum[] }) {
   return (
-    <ResponsiveContainer width="100%" height="100%">
+    <ResponsiveContainer width="100%" height="100%" initialDimension={{ width: 1, height: 1 }}>
       <BarChart data={data} margin={{ top: 6, right: 6, bottom: 0, left: -8 }} barCategoryGap="22%">
         <CartesianGrid vertical={false} stroke="var(--border-subtle)" />
         <XAxis dataKey="month" tickLine={false} axisLine={false} tick={AXIS_TICK} />
@@ -99,7 +99,7 @@ export function CashflowChart({ data }: { data: CashflowDatum[] }) {
 
 export function BalanceChart({ data }: { data: BalanceDatum[] }) {
   return (
-    <ResponsiveContainer width="100%" height="100%">
+    <ResponsiveContainer width="100%" height="100%" initialDimension={{ width: 1, height: 1 }}>
       <AreaChart data={data} margin={{ top: 6, right: 6, bottom: 0, left: -8 }}>
         <defs>
           <linearGradient id="balGrad" x1="0" y1="0" x2="0" y2="1">
@@ -138,7 +138,7 @@ export function BalanceChart({ data }: { data: BalanceDatum[] }) {
 export function CategoryDonut({ data, total }: { data: CategoryDatum[]; total: number }) {
   return (
     <div style={{ position: "relative", width: 120, height: 120 }}>
-      <ResponsiveContainer width="100%" height="100%">
+      <ResponsiveContainer width="100%" height="100%" initialDimension={{ width: 1, height: 1 }}>
         <PieChart>
           <Pie
             data={data}
