@@ -13,6 +13,7 @@ import {
 import { SyncAllButton } from "@/components/actions/sync-all-button";
 import { PageHeader, StatusPill } from "@/components/ui";
 import { getDashboardData } from "@/lib/analytics";
+import { institutionKeyMatches, normalizeInstitutionName } from "@/lib/analytics/duplicates";
 import { authOptions } from "@/lib/auth";
 import { formatMoney, formatRelativeTime, formatYearMonth } from "@/lib/format";
 import { resolveSessionTenant } from "@/lib/tenant";
@@ -27,6 +28,15 @@ export default async function AccountsPage() {
   const data = await getDashboardData(tenantSlug);
   const institutions = data.institutions;
   const accountCount = institutions.reduce((s, i) => s + i.accounts.length, 0);
+
+  // Institutions where a Plaid investment account looks like a SnapTrade duplicate.
+  // Used to surface the same warning on the matching SnapTrade account rows.
+  const duplicateInstitutionKeys = new Set(
+    institutions
+      .filter((i) => i.accounts.some((a) => a.possibleDuplicate))
+      .map((i) => normalizeInstitutionName(i.institutionName))
+      .filter(Boolean)
+  );
 
   const lastSyncAt = institutions
     .map((p) => p.lastSyncAt)
@@ -127,7 +137,11 @@ export default async function AccountsPage() {
         </div>
       )}
 
-      <InvestmentsSection data={data.investments} isDemo={isDemo} />
+      <InvestmentsSection
+        data={data.investments}
+        isDemo={isDemo}
+        duplicateInstitutionKeys={duplicateInstitutionKeys}
+      />
 
       <div className="foot-note">
         <span>Plaid items stored encrypted at rest · webhook /api/webhooks/plaid online</span>
@@ -140,9 +154,11 @@ export default async function AccountsPage() {
 function InvestmentsSection({
   data,
   isDemo,
+  duplicateInstitutionKeys,
 }: {
   data: Awaited<ReturnType<typeof getDashboardData>>["investments"];
   isDemo: boolean;
+  duplicateInstitutionKeys: Set<string>;
 }) {
   const { summary, accounts } = data;
   const plPos = summary.plCAD >= 0;
@@ -224,28 +240,64 @@ function InvestmentsSection({
           </div>
 
           <div className={styles.acctList}>
-            {accounts.map((a) => (
-              <div className={styles.acctRow} key={a.id}>
+            {accounts.map((a) => {
+              const warnDuplicate =
+                a.tracked && institutionKeyMatches(a.institution, duplicateInstitutionKeys);
+              return (
                 <div
-                  className={styles.acctIcon}
-                  style={{ width: 28, height: 28, color: "var(--invest)" }}
+                  className={styles.acctRow}
+                  key={a.id}
+                  style={a.tracked ? undefined : { opacity: 0.55 }}
                 >
-                  <TrendingUp size={14} />
-                </div>
-                <div>
+                  <div
+                    className={styles.acctIcon}
+                    style={{ width: 28, height: 28, color: "var(--invest)" }}
+                  >
+                    <TrendingUp size={14} />
+                  </div>
                   <div>
-                    <span className={styles.acctName}>{a.name}</span>
-                    <span className={styles.acctMask}>··{a.registration}</span>
+                    <div>
+                      <span className={styles.acctName}>{a.name}</span>
+                      <span className={styles.acctMask}>··{a.registration}</span>
+                      {!a.tracked ? (
+                        <span
+                          style={{
+                            marginLeft: 8,
+                            fontSize: 10,
+                            letterSpacing: 0.5,
+                            padding: "1px 6px",
+                            borderRadius: 4,
+                            border: "1px solid var(--border)",
+                            color: "var(--text-2)",
+                          }}
+                        >
+                          UNTRACKED
+                        </span>
+                      ) : null}
+                    </div>
+                    <div className={styles.acctType}>
+                      {a.registration} · {a.currency}
+                      {a.openedAt ? ` · OPENED ${formatYearMonth(a.openedAt)}` : ""}
+                    </div>
+                    {warnDuplicate ? (
+                      <div
+                        style={{ marginTop: 3, fontSize: 11, color: "var(--neg)", maxWidth: 470 }}
+                      >
+                        ⚠ Possibly also linked via Plaid — counting both double-counts this balance
+                        in your net worth and totals. Untrack one from the ⋯ menu.
+                      </div>
+                    ) : null}
                   </div>
-                  <div className={styles.acctType}>
-                    {a.registration} · {a.currency}
-                    {a.openedAt ? ` · OPENED ${formatYearMonth(a.openedAt)}` : ""}
-                  </div>
+                  <div className={styles.acctBal}>{formatMoney(a.totalValue)}</div>
+                  <AccountRowMenu
+                    accountName={a.name}
+                    accountId={a.id}
+                    tracked={a.tracked}
+                    source="snaptrade"
+                  />
                 </div>
-                <div className={styles.acctBal}>{formatMoney(a.totalValue)}</div>
-                <AccountRowMenu accountName={a.name} />
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       ) : null}

@@ -5,8 +5,19 @@
 // the user decides whether to untrack one side. Keeping both double-counts the
 // account's balance in net worth and every total.
 
-function normalizeInstitutionName(name: string | null | undefined): string {
+export function normalizeInstitutionName(name: string | null | undefined): string {
   return (name ?? "").toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
+// True when `name` matches (equals or contains / is contained by) any of the
+// normalized institution keys. Used to flag the SnapTrade side of a duplicate.
+export function institutionKeyMatches(name: string | null | undefined, keys: Set<string>): boolean {
+  const key = normalizeInstitutionName(name);
+  if (!key) return false;
+  for (const candidate of keys) {
+    if (candidate === key || candidate.includes(key) || key.includes(candidate)) return true;
+  }
+  return false;
 }
 
 export function isInvestmentAccountType(type: string, subtype: string | null): boolean {

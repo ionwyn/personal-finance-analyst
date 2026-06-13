@@ -10,10 +10,12 @@ export function AccountRowMenu({
   accountName,
   accountId,
   tracked,
+  source = "plaid",
 }: {
   accountName: string;
   accountId?: string;
   tracked?: boolean;
+  source?: "plaid" | "snaptrade";
 }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
@@ -22,7 +24,7 @@ export function AccountRowMenu({
     if (!accountId || busy) return;
     setBusy(true);
     try {
-      const res = await fetch(`/api/plaid/accounts/${accountId}/track`, {
+      const res = await fetch(`/api/${source}/accounts/${accountId}/track`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ tracked: next }),
