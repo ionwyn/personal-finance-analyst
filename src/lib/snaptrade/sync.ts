@@ -379,6 +379,10 @@ async function syncConnection(input: {
       seenAccountIds.push(savedAccount.id);
       accountsCount += 1;
 
+      // Untracked accounts stay linked (visible + re-trackable) but are excluded
+      // everywhere — skip fetching their balances, positions, and activities.
+      if (!savedAccount.tracked) continue;
+
       const balancesResponse = await client.accountInformation.getUserAccountBalance({
         accountId: account.id,
         userId,
