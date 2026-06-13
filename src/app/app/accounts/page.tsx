@@ -318,8 +318,13 @@ function InstitutionCard({ institution, isDemo }: { institution: Institution; is
           const kind = accountKind(account.type, account.subtype);
           const Icon =
             kind === "credit" ? CreditCard : kind === "investment" ? TrendingUp : Landmark;
+          const warnDuplicate = account.possibleDuplicate && account.tracked;
           return (
-            <div className={styles.acctRow} key={account.id}>
+            <div
+              className={styles.acctRow}
+              key={account.id}
+              style={account.tracked ? undefined : { opacity: 0.55 }}
+            >
               <div className={styles.acctIcon} style={{ width: 28, height: 28 }}>
                 <Icon size={14} />
               </div>
@@ -327,10 +332,31 @@ function InstitutionCard({ institution, isDemo }: { institution: Institution; is
                 <div>
                   <span className={styles.acctName}>{account.name}</span>
                   {account.mask ? <span className={styles.acctMask}>··{account.mask}</span> : null}
+                  {!account.tracked ? (
+                    <span
+                      style={{
+                        marginLeft: 8,
+                        fontSize: 10,
+                        letterSpacing: 0.5,
+                        padding: "1px 6px",
+                        borderRadius: 4,
+                        border: "1px solid var(--border)",
+                        color: "var(--text-2)",
+                      }}
+                    >
+                      UNTRACKED
+                    </span>
+                  ) : null}
                 </div>
                 <div className={styles.acctType}>
                   {[account.type, account.subtype].filter(Boolean).join(" · ").toUpperCase()}
                 </div>
+                {warnDuplicate ? (
+                  <div style={{ marginTop: 3, fontSize: 11, color: "var(--neg)", maxWidth: 470 }}>
+                    ⚠ Possibly already tracked via SnapTrade — counting both double-counts this
+                    balance in your net worth and totals. Untrack one from the ⋯ menu.
+                  </div>
+                ) : null}
               </div>
               <div
                 className={styles.acctBal}
@@ -339,7 +365,11 @@ function InstitutionCard({ institution, isDemo }: { institution: Institution; is
                 {account.currentBalance < 0 ? "−" : ""}
                 {formatMoney(Math.abs(account.currentBalance))}
               </div>
-              <AccountRowMenu accountName={account.name} />
+              <AccountRowMenu
+                accountName={account.name}
+                accountId={account.id}
+                tracked={account.tracked}
+              />
             </div>
           );
         })}
