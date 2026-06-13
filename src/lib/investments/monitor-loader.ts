@@ -5,6 +5,7 @@ import {
   getRecTrends,
   isUsListed,
 } from "@/lib/market-data";
+import { isOpenMarketInsiderTransaction, openMarketInsiderValue } from "@/lib/market-data/insiders";
 import { prisma } from "@/lib/prisma";
 
 import { loadInvestments } from "./loader";
@@ -192,12 +193,12 @@ export async function getDeskMonitor(tenantId: string | null | undefined): Promi
     let insiderSells90d = 0;
     if (covered(seed)) {
       for (const t of insiders[i]) {
-        if (t.isDerivative || t.txDate == null || t.txDate < cutoff90) continue;
-        if (t.change != null && t.txPrice != null && t.txPrice > 0) {
-          insiderNetUsd90d = (insiderNetUsd90d ?? 0) + t.change * t.txPrice;
-          if (t.change > 0) insiderBuys90d++;
-          if (t.change < 0) insiderSells90d++;
-        }
+        if (!isOpenMarketInsiderTransaction(t) || t.txDate! < cutoff90) continue;
+        const value = openMarketInsiderValue(t);
+        if (value == null) continue;
+        insiderNetUsd90d = (insiderNetUsd90d ?? 0) + value;
+        if (t.txCode === "P") insiderBuys90d++;
+        if (t.txCode === "S") insiderSells90d++;
       }
     }
 
