@@ -55,11 +55,7 @@ async function main() {
   assert(finite(result.twr["3M"]), "3M TWR is unavailable");
   assert(finite(result.twr["6M"]), "6M TWR is unavailable");
   assert(finite(result.twr["1Y"]), "1Y TWR is unavailable");
-  assert.equal(result.twr.ALL, null, "Expected ALL TWR to honor the cash-excluded denominator");
-  assert(
-    result.twrUnavailable.ALL?.includes("cash is intentionally excluded"),
-    "ALL TWR has no explicit cash-exclusion diagnostic"
-  );
+  assert(finite(result.twr.ALL), "ALL TWR is unavailable");
   assert(result.twr["1Y"] < 0.446, `1Y TWR is not below the old 44.6% value`);
   assert(finite(result.mwr), "MWR is unavailable");
   assert(result.terminalReconciled, "Terminal reconstructed NAV is outside the 1% tolerance");
@@ -71,15 +67,21 @@ async function main() {
   console.log(`Lifetime symbols resolved:    ${result.resolvedSymbols}/${result.lifetimeSymbols}`);
   console.log(`Coverage issues:              ${result.coverageIssues.length}`);
   console.log(`FX source:                    ${result.fxSource}`);
-  console.log(`Securities-only inception:    ${result.inceptionDate}`);
+  console.log(`Portfolio inception:          ${result.inceptionDate}`);
   console.log(`3M TWR:                       ${(result.twr["3M"]! * 100).toFixed(6)}%`);
   console.log(`6M TWR:                       ${(result.twr["6M"]! * 100).toFixed(6)}%`);
   console.log(`1Y TWR:                       ${(result.twr["1Y"]! * 100).toFixed(6)}%`);
-  console.log(`ALL securities-only TWR:      unavailable`);
-  console.log(`ALL diagnostic:               ${result.twrUnavailable.ALL}`);
+  console.log(`ALL TWR:                      ${(result.twr.ALL! * 100).toFixed(6)}%`);
   console.log(`All-time MWR/XIRR:            ${(result.mwr! * 100).toFixed(6)}%`);
-  console.log(`Reconstructed terminal NAV:   $${result.terminalValueCad!.toFixed(2)} CAD`);
-  console.log(`Synced terminal NAV:          $${result.syncedValueCad.toFixed(2)} CAD`);
+  console.log(
+    `Reconstructed securities:     $${result.terminalSecuritiesValueCad!.toFixed(2)} CAD`
+  );
+  console.log(`Reconstructed cash:           $${result.terminalCashCad!.toFixed(2)} CAD`);
+  console.log(`Reconstructed total NAV:      $${result.terminalValueCad!.toFixed(2)} CAD`);
+  console.log(`Synced securities:            $${result.syncedSecuritiesValueCad.toFixed(2)} CAD`);
+  console.log(`Synced cash:                  $${result.syncedCashCad.toFixed(2)} CAD`);
+  console.log(`Synced total NAV:             $${result.syncedValueCad.toFixed(2)} CAD`);
+  console.log(`Cash difference:              $${result.cashDifferenceCad!.toFixed(2)} CAD`);
   console.log(
     `Terminal difference:          $${result.terminalDifferenceCad!.toFixed(2)} CAD (${result.terminalDifferencePct!.toFixed(4)}%)`
   );

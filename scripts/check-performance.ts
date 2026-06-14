@@ -10,6 +10,7 @@ import {
   isUnitAffectingEntry,
   mwr,
   mwrNpv,
+  reconstructDailyCash,
   reconstructDailyHoldings,
 } from "../src/lib/investments/performance";
 import { prisma } from "../src/lib/prisma";
@@ -74,6 +75,7 @@ async function main() {
 
   const endDate = calendarDate(new Date());
   const holdings = reconstructDailyHoldings(ledger, endDate);
+  const cash = reconstructDailyCash(ledger, endDate);
   const finalUnits = holdings.at(-1)?.units ?? {};
   const lifetimeSymbols = new Set(
     ledger
@@ -123,9 +125,18 @@ async function main() {
     (entry) => entry.activityType === "MoneyMovement" && entry.activitySubType === "EFT"
   );
   const flows = externalFlows(ledger);
-  const terminalValueCad = positions
+  const terminalSecuritiesValueCad = positions
     .reduce((sum, position) => sum.add(position.marketValueCad), new Prisma.Decimal(0))
     .toNumber();
+  const terminalCashCad = cash.at(-1)?.cashCad ?? 0;
+  const terminalValueCad = terminalSecuritiesValueCad + terminalCashCad;
+  const syncedCashCad =
+    (
+      await prisma.snapTradeCashBalance.aggregate({
+        where: { tenantId: tenant.id, accountId: { in: accountIds } },
+        _sum: { cashCad: true },
+      })
+    )._sum.cashCad?.toNumber() ?? 0;
   const rate = mwr(flows, terminalValueCad, endDate);
   const residual = rate == null ? null : mwrNpv(flows, terminalValueCad, endDate, rate);
 
@@ -151,7 +162,10 @@ async function main() {
   console.log(`Unit mismatches:              ${mismatches.length}`);
   console.log(`EFT source rows:              ${eftRows.length}`);
   console.log(`EFT date aggregates:          ${flows.length}`);
-  console.log(`Terminal securities NAV:      $${terminalValueCad.toFixed(2)} CAD`);
+  console.log(`Terminal securities NAV:      $${terminalSecuritiesValueCad.toFixed(2)} CAD`);
+  console.log(`Transaction-derived cash:     $${terminalCashCad.toFixed(2)} CAD`);
+  console.log(`Synced cash snapshot:         $${syncedCashCad.toFixed(2)} CAD`);
+  console.log(`Terminal total NAV:           $${terminalValueCad.toFixed(2)} CAD`);
   console.log(`All-time MWR/XIRR:            ${(rate * 100).toFixed(6)}%`);
   console.log(`XIRR NPV residual:            ${residual!.toExponential(3)} CAD`);
   console.log("-".repeat(68));
