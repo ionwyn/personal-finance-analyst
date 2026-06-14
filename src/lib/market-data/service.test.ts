@@ -5,6 +5,9 @@ import type { MarketDataProvider, SecurityProfile } from "./types";
 const mocks = vi.hoisted(() => ({
   findUnique: vi.fn(),
   upsert: vi.fn(),
+  priceFindMany: vi.fn(),
+  priceUpsert: vi.fn(),
+  transaction: vi.fn(async (operations: unknown[]) => Promise.all(operations)),
 }));
 
 vi.mock("@/lib/prisma", () => ({
@@ -13,6 +16,11 @@ vi.mock("@/lib/prisma", () => ({
       findUnique: mocks.findUnique,
       upsert: mocks.upsert,
     },
+    marketPriceDay: {
+      findMany: mocks.priceFindMany,
+      upsert: mocks.priceUpsert,
+    },
+    $transaction: mocks.transaction,
   },
 }));
 
@@ -91,5 +99,70 @@ describe("MarketDataService profile cache", () => {
         }),
       })
     );
+  });
+});
+
+describe("MarketDataService historical price cache", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("fetches missing deep history even when the newest cached row is fresh", async () => {
+    const now = new Date();
+    mocks.priceFindMany
+      .mockResolvedValueOnce([
+        {
+          date: "2024-12-31",
+          close: 20,
+          open: null,
+          high: null,
+          low: null,
+          volume: null,
+          fetchedAt: now,
+        },
+      ])
+      .mockResolvedValueOnce([
+        {
+          date: "2020-01-02",
+          close: 10,
+          open: null,
+          high: null,
+          low: null,
+          volume: null,
+          fetchedAt: now,
+        },
+        {
+          date: "2024-12-31",
+          close: 20,
+          open: null,
+          high: null,
+          low: null,
+          volume: null,
+          fetchedAt: now,
+        },
+      ]);
+    mocks.priceUpsert.mockResolvedValue({});
+
+    const provider = {
+      getTimeSeriesRange: vi.fn().mockResolvedValue([
+        {
+          date: "2020-01-02",
+          close: 10,
+          open: null,
+          high: null,
+          low: null,
+          volume: null,
+        },
+      ]),
+    } as unknown as MarketDataProvider;
+
+    const service = new MarketDataService(provider);
+    const result = await service.getTimeSeriesRange("ABC", {
+      startDate: "2020-01-01",
+      endDate: "2024-12-31",
+    });
+
+    expect(provider.getTimeSeriesRange).toHaveBeenCalledOnce();
+    expect(result.map((point) => point.date)).toEqual(["2020-01-02", "2024-12-31"]);
   });
 });

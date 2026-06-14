@@ -5,6 +5,8 @@ import {
   mwr,
   mwrNpv,
   reconstructDailyHoldings,
+  restateHoldingsForSplitAdjustedPrices,
+  securitiesOnlyTwr,
   twr,
   valueSeries,
   type DailyValue,
@@ -163,6 +165,35 @@ describe("reconstructDailyHoldings", () => {
         "2024-01-01"
       )
     ).toThrow("has no normalized symbol");
+  });
+});
+
+describe("restateHoldingsForSplitAdjustedPrices", () => {
+  it("restates pre-split units and preserves post-split units", () => {
+    const ledger = [
+      entry({
+        tradeDate: "2024-01-01",
+        activityType: "Trade",
+        activitySubType: "BUY",
+        symbolNorm: "ABC",
+        units: 2,
+      }),
+      entry({
+        tradeDate: "2024-01-03",
+        activityType: "LegacyCorporateAction",
+        activitySubType: "SPLIT",
+        symbolNorm: "ABC",
+        units: 18,
+      }),
+    ];
+    const holdings = reconstructDailyHoldings(ledger, "2024-01-04");
+
+    expect(restateHoldingsForSplitAdjustedPrices(holdings, ledger)).toEqual([
+      { date: "2024-01-01", units: { ABC: 20 } },
+      { date: "2024-01-02", units: { ABC: 20 } },
+      { date: "2024-01-03", units: { ABC: 20 } },
+      { date: "2024-01-04", units: { ABC: 20 } },
+    ]);
   });
 });
 
@@ -374,6 +405,24 @@ describe("twr", () => {
         "ALL"
       )
     ).toBeNull();
+  });
+
+  it("starts securities-only ALL at the first positive NAV", () => {
+    expect(
+      securitiesOnlyTwr(
+        [
+          { date: "2024-01-01", valueCad: 0 },
+          { date: "2024-01-02", valueCad: 0 },
+          { date: "2024-01-03", valueCad: 100 },
+          { date: "2024-01-04", valueCad: 110 },
+        ],
+        [
+          { date: "2024-01-01", amountCad: 50 },
+          { date: "2024-01-02", amountCad: 50 },
+        ],
+        "ALL"
+      )
+    ).toBeCloseTo(0.1, 12);
   });
 });
 
