@@ -46,7 +46,7 @@ export function CalendarPanel({ calendar }: { calendar: CalendarEntry[] }) {
               return (
                 <Link
                   key={i}
-                  href={`/app/investments/${encodeURIComponent(c.symbol)}` as never}
+                  href={`/app/portfolio/${encodeURIComponent(c.symbol)}` as never}
                   className={"ana-cal-row " + (soon ? "soon" : "")}
                 >
                   <span className="date">{d}</span>

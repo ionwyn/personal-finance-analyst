@@ -44,9 +44,9 @@ export function Hero({ p }: { p: PositionDetail }) {
     <div className="pos-hero">
       <div className="pos-hero-row">
         <div className="pos-hero-id">
-          <Link href={"/app/investments" as never} className="pos-back">
+          <Link href={"/app/portfolio" as never} className="pos-back">
             <ChevronLeft size={11} />
-            Back to Investments
+            Back to Portfolio
           </Link>
           <div className="pos-id-row">
             <div

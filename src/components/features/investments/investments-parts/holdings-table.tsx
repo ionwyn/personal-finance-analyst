@@ -104,7 +104,7 @@ export function HoldingsTable({
                     <div className="sym-cell">
                       <SymLogo symbol={h.symbol} bg={h.logoBg} logoId={h.logoId} />
                       <Link
-                        href={`/app/investments/${encodeURIComponent(h.symbol)}` as never}
+                        href={`/app/portfolio/${encodeURIComponent(h.symbol)}` as never}
                         className="ticker"
                         title={`Open ${h.symbol} position`}
                         style={{ color: "inherit", textDecoration: "none" }}

@@ -157,7 +157,7 @@ export function WatchlistPanel({ rows, canEdit }: { rows: WatchlistRow[]; canEdi
               return (
                 <div key={r.symbol} className="mkt-watch-row">
                   <Link
-                    href={`/app/investments/${encodeURIComponent(r.symbol)}` as never}
+                    href={`/app/portfolio/${encodeURIComponent(r.symbol)}` as never}
                     className="mkt-watch-main"
                   >
                     <div className="mkt-watch-id">

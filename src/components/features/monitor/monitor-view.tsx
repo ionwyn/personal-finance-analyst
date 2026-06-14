@@ -2,7 +2,9 @@
 
 import Link from "next/link";
 
-import { InvestmentsTabs } from "@/components/features/investments/investments-tabs";
+import { MarketsTabs } from "@/components/features/markets/markets-tabs";
+import { WatchlistPanel } from "@/components/features/markets/markets-parts/watchlist-panel";
+import type { WatchlistRow } from "@/lib/investments/markets-loader";
 import type { DeskMonitor, MonitorRow } from "@/lib/investments/monitor-loader";
 
 // ─── Desk monitor — the whole book on one intelligence sheet ────────────────
@@ -41,7 +43,7 @@ function Row({ r }: { r: MonitorRow }) {
   const earn = earningsCell(r);
   const net = r.insiderNetUsd90d;
   return (
-    <Link href={`/app/investments/${encodeURIComponent(r.symbol)}` as never} className="mon-row">
+    <Link href={`/app/portfolio/${encodeURIComponent(r.symbol)}` as never} className="mon-row">
       <span className="sym">
         <b>{r.symbol}</b>
         {r.held ? <em className="wt">{r.weight.toFixed(1)}%</em> : <em className="watch">WATCH</em>}
@@ -95,7 +97,15 @@ function Row({ r }: { r: MonitorRow }) {
   );
 }
 
-export function MonitorView({ data }: { data: DeskMonitor }) {
+export function MonitorView({
+  data,
+  watchlist,
+  canEdit,
+}: {
+  data: DeskMonitor;
+  watchlist: WatchlistRow[];
+  canEdit: boolean;
+}) {
   const held = data.rows.filter((r) => r.held);
   const watched = data.rows.filter((r) => !r.held);
   const covered = held.filter((r) => r.usCovered).length;
@@ -105,8 +115,8 @@ export function MonitorView({ data }: { data: DeskMonitor }) {
       <div className="page-header">
         <div>
           <div className="invest-header-row">
-            <div className="page-title">Monitor</div>
-            <InvestmentsTabs active="monitor" />
+            <div className="page-title">Watch &amp; Intel</div>
+            <MarketsTabs active="intel" />
           </div>
           <div className="page-sub">
             POSITION INTELLIGENCE · AS OF {asOfLabel(data.asOf).toUpperCase()} · FINNHUB + YAHOO ·
@@ -114,6 +124,8 @@ export function MonitorView({ data }: { data: DeskMonitor }) {
           </div>
         </div>
       </div>
+
+      <WatchlistPanel rows={watchlist} canEdit={canEdit} />
 
       <div className="mon-callouts">
         <div className="mon-callout">
