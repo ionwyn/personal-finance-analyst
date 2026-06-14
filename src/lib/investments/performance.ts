@@ -1,5 +1,6 @@
 const DAY_MS = 24 * 60 * 60 * 1000;
 const UNIT_SCALE = 100_000_000;
+const CASH_SCALE = 10_000_000_000;
 const XIRR_MIN_RATE = -0.999999;
 const XIRR_MAX_RATE = 1_000_000;
 const XIRR_SCAN_STEPS = 1024;
@@ -24,6 +25,11 @@ export type PerformanceLedgerEntry = {
 export type DailyHoldings = {
   date: string;
   units: Record<string, number>;
+};
+
+export type DailyCash = {
+  date: string;
+  cashCad: number;
 };
 
 export type PriceObservation = {
@@ -92,6 +98,30 @@ function scaledUnits(value: NumericInput): bigint {
 
 function unitsNumber(value: bigint): number {
   return Number(value) / UNIT_SCALE;
+}
+
+function scaledCash(value: NumericInput): bigint {
+  let raw = typeof value === "number" ? value.toFixed(10) : value.toString();
+  if (/[eE]/.test(raw)) {
+    const amount = Number(raw);
+    if (!Number.isFinite(amount)) throw new Error("cashAmount must be a finite number");
+    raw = amount.toFixed(10);
+  }
+  const match = raw.match(/^([+-]?)(\d+)(?:\.(\d+))?$/);
+  if (!match) throw new Error("cashAmount must be a finite number");
+
+  const fraction = match[3] ?? "";
+  if (fraction.length > 10 && /[1-9]/.test(fraction.slice(10))) {
+    throw new Error("cashAmount may have at most 10 decimal places");
+  }
+  const scaled =
+    BigInt(match[2]!) * BigInt(CASH_SCALE) +
+    BigInt((fraction.slice(0, 10) + "0".repeat(10)).slice(0, 10));
+  const signed = match[1] === "-" ? -scaled : scaled;
+  if (signed > BigInt(Number.MAX_SAFE_INTEGER) || signed < BigInt(Number.MIN_SAFE_INTEGER)) {
+    throw new Error("cashAmount exceeds the supported 10-decimal precision range");
+  }
+  return signed;
 }
 
 function dateParts(value: string) {
@@ -226,6 +256,40 @@ export function reconstructDailyHoldings(
     });
   }
 
+  return snapshots;
+}
+
+export function reconstructDailyCash(
+  ledger: PerformanceLedgerEntry[],
+  endDate: Date | string
+): DailyCash[] {
+  if (ledger.length === 0) return [];
+
+  const normalized = ledger
+    .map((entry, index) => ({
+      entry,
+      index,
+      date: calendarDate(entry.tradeDate),
+    }))
+    .sort((left, right) => left.date.localeCompare(right.date) || left.index - right.index);
+  const start = normalized[0]!.date;
+  const end = calendarDate(endDate);
+  if (end < start) return [];
+
+  const changes = new Map<string, bigint>();
+  for (const item of normalized) {
+    if (item.date > end || item.entry.cashAmount == null) continue;
+    // App convention is positive debit/outflow and negative credit/inflow.
+    const cashDelta = -scaledCash(item.entry.cashAmount);
+    changes.set(item.date, (changes.get(item.date) ?? 0n) + cashDelta);
+  }
+
+  let running = 0n;
+  const snapshots: DailyCash[] = [];
+  for (let date = start; date <= end; date = addCalendarDays(date, 1)) {
+    running += changes.get(date) ?? 0n;
+    snapshots.push({ date, cashCad: Number(running) / CASH_SCALE });
+  }
   return snapshots;
 }
 
@@ -416,6 +480,21 @@ export function valueSeries(
   return values;
 }
 
+export function addCashToValueSeries(
+  securityValues: DailyValue[],
+  cash: DailyCash[]
+): DailyValue[] {
+  const cashByDate = new Map(cash.map((point) => [calendarDate(point.date), point.cashCad]));
+  return securityValues.map((value) => {
+    const date = calendarDate(value.date);
+    const cashCad = cashByDate.get(date);
+    if (cashCad == null) {
+      throw new Error(`Cash series has no value for ${date}`);
+    }
+    return { date, valueCad: value.valueCad + cashCad };
+  });
+}
+
 export function externalFlows(ledger: PerformanceLedgerEntry[]): ExternalFlow[] {
   const amounts = new Map<string, number>();
 
@@ -519,26 +598,6 @@ export function twr(
   }
 
   return Math.expm1(logReturn);
-}
-
-/**
- * Cash is outside the reconstructed NAV. For ALL, begin at the first positive
- * securities valuation and exclude earlier funding that had not yet purchased
- * a security. Shorter windows retain the normal exact-boundary behavior.
- */
-export function securitiesOnlyTwr(
-  values: DailyValue[],
-  flows: ExternalFlow[],
-  window: PerformanceWindow
-): number | null {
-  if (window !== "ALL") return twr(values, flows, window);
-  const inception = values.find((value) => value.valueCad > 0);
-  if (!inception) return null;
-  return twr(
-    values.filter((value) => value.date >= inception.date),
-    flows.filter((flow) => flow.date >= inception.date),
-    "ALL"
-  );
 }
 
 function investorCashFlows(

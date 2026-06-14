@@ -1,12 +1,13 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  addCashToValueSeries,
   externalFlows,
   mwr,
   mwrNpv,
+  reconstructDailyCash,
   reconstructDailyHoldings,
   restateHoldingsForSplitAdjustedPrices,
-  securitiesOnlyTwr,
   twr,
   valueSeries,
   type DailyValue,
@@ -168,6 +169,82 @@ describe("reconstructDailyHoldings", () => {
   });
 });
 
+describe("reconstructDailyCash", () => {
+  it("walks every cash-affecting ledger entry using the app sign convention", () => {
+    const ledger = [
+      entry({
+        tradeDate: "2024-01-01",
+        activityType: "MoneyMovement",
+        activitySubType: "EFT",
+        cashAmount: -100,
+      }),
+      entry({
+        tradeDate: "2024-01-02",
+        activityType: "Trade",
+        activitySubType: "BUY",
+        symbolNorm: "ABC",
+        units: 1,
+        cashAmount: 60,
+      }),
+      entry({
+        tradeDate: "2024-01-02",
+        activityType: "Dividend",
+        cashAmount: -5,
+      }),
+      entry({
+        tradeDate: "2024-01-02",
+        activityType: "Fee",
+        cashAmount: 1,
+      }),
+      entry({
+        tradeDate: "2024-01-03",
+        activityType: "Trade",
+        activitySubType: "SELL",
+        symbolNorm: "ABC",
+        units: -1,
+        cashAmount: -20,
+      }),
+      entry({
+        tradeDate: "2024-01-03",
+        activityType: "LegacyCorporateAction",
+        activitySubType: "SPLIT",
+        symbolNorm: "ABC",
+        units: 1,
+        cashAmount: null,
+      }),
+    ];
+
+    expect(reconstructDailyCash(ledger, "2024-01-04")).toEqual([
+      { date: "2024-01-01", cashCad: 100 },
+      { date: "2024-01-02", cashCad: 44 },
+      { date: "2024-01-03", cashCad: 64 },
+      { date: "2024-01-04", cashCad: 64 },
+    ]);
+  });
+
+  it("nets household internal cash transfers", () => {
+    expect(
+      reconstructDailyCash(
+        [
+          entry({
+            tradeDate: "2024-01-01",
+            activityType: "MoneyMovement",
+            activitySubType: "TRANSFER_TF",
+            cashAmount: 50,
+          }),
+          entry({
+            tradeDate: "2024-01-01",
+            activityType: "MoneyMovement",
+            activitySubType: "TRANSFER_TF",
+            cashAmount: -50,
+          }),
+        ],
+        "2024-01-01"
+      )
+    ).toEqual([{ date: "2024-01-01", cashCad: 0 }]);
+  });
+});
+
 describe("restateHoldingsForSplitAdjustedPrices", () => {
   it("restates pre-split units and preserves post-split units", () => {
     const ledger = [
@@ -272,6 +349,24 @@ describe("valueSeries", () => {
         []
       )
     ).toThrow("Unsupported price currency");
+  });
+
+  it("adds the reconstructed cash balance to securities NAV", () => {
+    expect(
+      addCashToValueSeries(
+        [
+          { date: "2024-01-01", valueCad: 90 },
+          { date: "2024-01-02", valueCad: 105 },
+        ],
+        [
+          { date: "2024-01-01", cashCad: 10 },
+          { date: "2024-01-02", cashCad: -5 },
+        ]
+      )
+    ).toEqual([
+      { date: "2024-01-01", valueCad: 100 },
+      { date: "2024-01-02", valueCad: 100 },
+    ]);
   });
 });
 
@@ -407,22 +502,43 @@ describe("twr", () => {
     ).toBeNull();
   });
 
-  it("starts securities-only ALL at the first positive NAV", () => {
-    expect(
-      securitiesOnlyTwr(
-        [
-          { date: "2024-01-01", valueCad: 0 },
-          { date: "2024-01-02", valueCad: 0 },
-          { date: "2024-01-03", valueCad: 100 },
-          { date: "2024-01-04", valueCad: 110 },
-        ],
-        [
-          { date: "2024-01-01", amountCad: 50 },
-          { date: "2024-01-02", amountCad: 50 },
-        ],
-        "ALL"
-      )
-    ).toBeCloseTo(0.1, 12);
+  it("computes ALL from total NAV including reconstructed cash", () => {
+    const ledger = [
+      entry({
+        tradeDate: "2024-01-01",
+        activityType: "MoneyMovement",
+        activitySubType: "EFT",
+        cashAmount: -100,
+      }),
+      entry({
+        tradeDate: "2024-01-02",
+        activityType: "Trade",
+        activitySubType: "BUY",
+        symbolNorm: "ABC",
+        units: 1,
+        cashAmount: 100,
+      }),
+    ];
+    const holdings = reconstructDailyHoldings(ledger, "2024-01-03");
+    const securities = valueSeries(
+      holdings,
+      {
+        ABC: {
+          currency: "CAD",
+          points: [
+            { date: "2024-01-02", close: 100 },
+            { date: "2024-01-03", close: 110 },
+          ],
+        },
+      },
+      []
+    );
+    const totalValues = addCashToValueSeries(
+      securities,
+      reconstructDailyCash(ledger, "2024-01-03")
+    );
+
+    expect(twr(totalValues, externalFlows(ledger), "ALL")).toBeCloseTo(0.1, 12);
   });
 });
 

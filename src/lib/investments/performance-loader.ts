@@ -7,11 +7,13 @@ import {
 import { prisma } from "@/lib/prisma";
 
 import {
+  addCashToValueSeries,
   externalFlows,
   mwr,
+  reconstructDailyCash,
   reconstructDailyHoldings,
   restateHoldingsForSplitAdjustedPrices,
-  securitiesOnlyTwr,
+  twr as computeTwr,
   valueSeries,
   type DailyHoldings,
   type PerformanceLedgerEntry,
@@ -32,14 +34,19 @@ export type HistoricalCoverageIssue = {
 };
 
 export type HistoricalPerformance = {
-  methodology: "securities-only";
+  methodology: "total-portfolio";
   asOf: string;
   inceptionDate: string | null;
   terminalDate: string | null;
   terminalValueCad: number | null;
+  terminalSecuritiesValueCad: number | null;
+  terminalCashCad: number | null;
   syncedValueCad: number;
+  syncedSecuritiesValueCad: number;
+  syncedCashCad: number;
   terminalDifferenceCad: number | null;
   terminalDifferencePct: number | null;
+  cashDifferenceCad: number | null;
   terminalReconciled: boolean;
   resolvedSymbols: number;
   lifetimeSymbols: number;
@@ -50,7 +57,6 @@ export type HistoricalPerformance = {
     "1Y": number | null;
     ALL: number | null;
   };
-  twrUnavailable: Partial<Record<"3M" | "6M" | "1Y" | "ALL", string>>;
   mwr: number | null;
   coverageIssues: HistoricalCoverageIssue[];
 };
@@ -186,40 +192,6 @@ function fxCoverageIssues(
   return issues;
 }
 
-function allTwrUnavailableReason(
-  values: Array<{ date: string; valueCad: number }>,
-  flows: Array<{ date: string; amountCad: number }>
-): string | null {
-  const inception = values.find((value) => value.valueCad > 0);
-  if (!inception) return "No positive securities valuation is available";
-  const chain = values.filter((value) => value.date >= inception.date);
-  const flowByDate = new Map(
-    flows
-      .filter((flow) => flow.date >= inception.date)
-      .map((flow) => [flow.date, flow.amountCad] as const)
-  );
-
-  for (let index = 1; index < chain.length; index += 1) {
-    const previous = chain[index - 1]!;
-    const current = chain[index]!;
-    if (current.date !== addDays(previous.date, 1)) {
-      return `A continuous securities valuation is unavailable after ${previous.date}`;
-    }
-    const flow = flowByDate.get(current.date) ?? 0;
-    const denominator = previous.valueCad + flow;
-    if (denominator <= 0) {
-      return (
-        `${current.date} has a non-positive opening securities NAV after its ` +
-        `${flow.toFixed(2)} CAD external flow; cash is intentionally excluded`
-      );
-    }
-    if (current.valueCad === 0) {
-      return `The securities NAV falls to zero on ${current.date}`;
-    }
-  }
-  return "The all-time securities-only chain is unavailable";
-}
-
 export async function loadHistoricalPerformance(
   tenantId: string,
   endDate = new Date().toISOString().slice(0, 10)
@@ -234,6 +206,7 @@ export async function loadHistoricalPerformance(
       symbolNorm: true,
       units: true,
       cashAmount: true,
+      accountId: true,
     },
   });
   if (ledger.length === 0) return null;
@@ -241,6 +214,7 @@ export async function loadHistoricalPerformance(
   const performanceLedger: PerformanceLedgerEntry[] = ledger;
   const actualHoldings = reconstructDailyHoldings(performanceLedger, endDate);
   const holdings = restateHoldingsForSplitAdjustedPrices(actualHoldings, performanceLedger);
+  const cash = reconstructDailyCash(performanceLedger, endDate);
   const intervals = holdingIntervals(holdings);
   const bySymbol = new Map<string, HoldingInterval[]>();
   for (const interval of intervals) {
@@ -309,41 +283,54 @@ export async function loadHistoricalPerformance(
       : [];
   coverageIssues.push(...fxCoverageIssues(usdIntervals, fx));
 
-  const values = valueSeries(holdings, priceSeries, fx);
+  const securityValues = valueSeries(holdings, priceSeries, fx);
+  const values = addCashToValueSeries(securityValues, cash);
   const flows = externalFlows(performanceLedger);
   const terminal = values.filter((value) => value.date <= endDate).at(-1) ?? null;
+  const terminalSecurities = securityValues.filter((value) => value.date <= endDate).at(-1) ?? null;
+  const terminalCash = cash.filter((value) => value.date <= endDate).at(-1) ?? null;
+  const accountIds = [
+    ...new Set(ledger.map((entry) => entry.accountId).filter((id): id is string => Boolean(id))),
+  ];
   const positions = await prisma.snapTradePosition.findMany({
-    where: { tenantId },
+    where: { tenantId, accountId: { in: accountIds } },
     select: { marketValueCad: true },
   });
-  const syncedValueCad = positions.reduce(
+  const syncedSecuritiesValueCad = positions.reduce(
     (sum, position) => sum + position.marketValueCad.toNumber(),
     0
   );
+  const cashBalances = await prisma.snapTradeCashBalance.findMany({
+    where: { tenantId, accountId: { in: accountIds } },
+    select: { cashCad: true },
+  });
+  const syncedCashCad = cashBalances.reduce((sum, balance) => sum + balance.cashCad.toNumber(), 0);
+  const syncedValueCad = syncedSecuritiesValueCad + syncedCashCad;
   const terminalDifferenceCad = terminal ? terminal.valueCad - syncedValueCad : null;
   const terminalDifferencePct =
     terminal && syncedValueCad > 0 ? (terminalDifferenceCad! / syncedValueCad) * 100 : null;
+  const cashDifferenceCad = terminalCash != null ? terminalCash.cashCad - syncedCashCad : null;
   const twr = {
-    "3M": securitiesOnlyTwr(values, flows, "3M"),
-    "6M": securitiesOnlyTwr(values, flows, "6M"),
-    "1Y": securitiesOnlyTwr(values, flows, "1Y"),
-    ALL: securitiesOnlyTwr(values, flows, "ALL"),
+    "3M": computeTwr(values, flows, "3M"),
+    "6M": computeTwr(values, flows, "6M"),
+    "1Y": computeTwr(values, flows, "1Y"),
+    ALL: computeTwr(values, flows, "ALL"),
   };
-  const twrUnavailable: HistoricalPerformance["twrUnavailable"] = {};
-  if (twr.ALL == null) {
-    twrUnavailable.ALL =
-      allTwrUnavailableReason(values, flows) ?? "The all-time securities-only chain is unavailable";
-  }
 
   return {
-    methodology: "securities-only",
+    methodology: "total-portfolio",
     asOf: endDate,
-    inceptionDate: values.find((value) => value.valueCad > 0)?.date ?? null,
+    inceptionDate: values[0]?.date ?? null,
     terminalDate: terminal?.date ?? null,
     terminalValueCad: terminal?.valueCad ?? null,
+    terminalSecuritiesValueCad: terminalSecurities?.valueCad ?? null,
+    terminalCashCad: terminalCash?.cashCad ?? null,
     syncedValueCad,
+    syncedSecuritiesValueCad,
+    syncedCashCad,
     terminalDifferenceCad,
     terminalDifferencePct,
+    cashDifferenceCad,
     terminalReconciled:
       terminalDifferencePct != null &&
       Math.abs(terminalDifferencePct) <= NAV_RECONCILIATION_TOLERANCE_PCT,
@@ -351,7 +338,6 @@ export async function loadHistoricalPerformance(
     lifetimeSymbols: bySymbol.size,
     fxSource: "Bank of Canada FXUSDCAD",
     twr,
-    twrUnavailable,
     mwr: terminal ? mwr(flows, terminal.valueCad, terminal.date) : null,
     coverageIssues: coverageIssues.sort(
       (left, right) =>
