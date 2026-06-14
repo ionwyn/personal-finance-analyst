@@ -229,6 +229,72 @@ export function reconstructDailyHoldings(
   return snapshots;
 }
 
+/**
+ * Yahoo daily closes are adjusted for splits but not for cash distributions.
+ * Restate pre-split ledger units to the provider's current-share basis so a
+ * recorded split and a split-adjusted close are not both applied to NAV.
+ */
+export function restateHoldingsForSplitAdjustedPrices(
+  holdings: DailyHoldings[],
+  ledger: PerformanceLedgerEntry[]
+): DailyHoldings[] {
+  const normalized = ledger
+    .map((entry, index) => ({
+      entry,
+      index,
+      date: calendarDate(entry.tradeDate),
+    }))
+    .sort((left, right) => left.date.localeCompare(right.date) || left.index - right.index);
+  const running = new Map<string, bigint>();
+  const splits: Array<{ symbol: string; date: string; factor: number }> = [];
+
+  for (const item of normalized) {
+    if (!isUnitAffectingEntry(item.entry)) continue;
+    const symbol = normalizedSymbol(item.entry.symbolNorm);
+    if (!symbol) {
+      throw new Error(`Unit-affecting ledger entry on ${item.date} has no normalized symbol`);
+    }
+
+    const before = running.get(symbol) ?? 0n;
+    const delta = scaledUnits(item.entry.units);
+    const after = before + delta;
+    if (
+      item.entry.activityType === "LegacyCorporateAction" &&
+      item.entry.activitySubType === "SPLIT"
+    ) {
+      const beforeUnits = unitsNumber(before);
+      const afterUnits = unitsNumber(after);
+      const factor = afterUnits / beforeUnits;
+      if (
+        beforeUnits === 0 ||
+        !Number.isFinite(factor) ||
+        factor <= 0 ||
+        Math.abs(factor - 1) < 1e-12
+      ) {
+        throw new Error(`Cannot derive split factor for ${symbol} on ${item.date}`);
+      }
+      splits.push({ symbol, date: item.date, factor });
+    }
+
+    if (after === 0n) running.delete(symbol);
+    else running.set(symbol, after);
+  }
+
+  if (splits.length === 0) {
+    return holdings.map((holding) => ({ ...holding, units: { ...holding.units } }));
+  }
+
+  return holdings.map((holding) => {
+    const date = calendarDate(holding.date);
+    const units = { ...holding.units };
+    for (const split of splits) {
+      if (date >= split.date || units[split.symbol] == null) continue;
+      units[split.symbol] *= split.factor;
+    }
+    return { date, units };
+  });
+}
+
 function prepareObservations(
   observations: Array<{ date: Date | string; value: number }>,
   label: string
@@ -453,6 +519,26 @@ export function twr(
   }
 
   return Math.expm1(logReturn);
+}
+
+/**
+ * Cash is outside the reconstructed NAV. For ALL, begin at the first positive
+ * securities valuation and exclude earlier funding that had not yet purchased
+ * a security. Shorter windows retain the normal exact-boundary behavior.
+ */
+export function securitiesOnlyTwr(
+  values: DailyValue[],
+  flows: ExternalFlow[],
+  window: PerformanceWindow
+): number | null {
+  if (window !== "ALL") return twr(values, flows, window);
+  const inception = values.find((value) => value.valueCad > 0);
+  if (!inception) return null;
+  return twr(
+    values.filter((value) => value.date >= inception.date),
+    flows.filter((flow) => flow.date >= inception.date),
+    "ALL"
+  );
 }
 
 function investorCashFlows(

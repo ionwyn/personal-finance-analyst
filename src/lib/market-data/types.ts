@@ -28,6 +28,11 @@ export type PricePoint = {
   volume: number | null;
 };
 
+export type HistoricalDateRange = {
+  startDate: string; // inclusive YYYY-MM-DD
+  endDate: string; // inclusive YYYY-MM-DD
+};
+
 export type SecurityProfile = {
   symbol: string;
   name: string | null;
@@ -144,6 +149,12 @@ export interface MarketDataProvider {
    * Returns an empty array on failure — callers must treat [] as "no data".
    */
   getTimeSeries(symbol: string, days: number): Promise<PricePoint[]>;
+
+  /**
+   * Daily OHLCV close history for an explicit inclusive calendar range.
+   * Returns an empty array on failure — callers must treat [] as "no data".
+   */
+  getTimeSeriesRange(symbol: string, range: HistoricalDateRange): Promise<PricePoint[]>;
 
   /**
    * Fundamentals: valuation multiples, margins, and ETF metrics.

@@ -3,6 +3,7 @@ import YahooFinance from "yahoo-finance2";
 import type {
   AnalystConsensus,
   DividendPayment,
+  HistoricalDateRange,
   MarketDataProvider,
   MarketEvents,
   MarketQuote,
@@ -16,6 +17,7 @@ import type {
 // ─── Singleton client ─────────────────────────────────────────────────────
 // One instance shared across all calls in the Node process.
 const yf = new YahooFinance({ suppressNotices: ["yahooSurvey", "ripHistorical"] });
+const YAHOO_EXCHANGE_SUFFIXES = new Set(["V", "TO", "CN", "NE"]);
 
 // ─── Symbol convention ────────────────────────────────────────────────────
 // Yahoo uses a hyphen for share classes while SnapTrade commonly uses dots:
@@ -26,6 +28,9 @@ export function toYahooSymbol(symbol: string): string {
   if (parts.length >= 3) {
     const exchange = parts.pop();
     return `${parts.join("-")}.${exchange}`;
+  }
+  if (parts.length === 2 && YAHOO_EXCHANGE_SUFFIXES.has(parts[1]!)) {
+    return parts.join(".");
   }
   if (parts.length === 2 && parts[1]?.length === 1) {
     return parts.join("-");
@@ -92,10 +97,22 @@ export class YahooFinanceProvider implements MarketDataProvider {
   }
 
   async getTimeSeries(symbol: string, days: number): Promise<PricePoint[]> {
+    const startDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    const endDate = new Date().toISOString().slice(0, 10);
+    return this.getTimeSeriesRange(symbol, { startDate, endDate });
+  }
+
+  async getTimeSeriesRange(symbol: string, range: HistoricalDateRange): Promise<PricePoint[]> {
     try {
-      const period1 = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+      const period1 = new Date(`${range.startDate}T00:00:00.000Z`);
+      const period2 = new Date(`${range.endDate}T00:00:00.000Z`);
+      period2.setUTCDate(period2.getUTCDate() + 1);
       // Use chart() directly — historical() is deprecated in yahoo-finance2 v3.
-      const result = await yf.chart(toYahooSymbol(symbol), { period1, interval: "1d" });
+      const result = await yf.chart(toYahooSymbol(symbol), {
+        period1,
+        period2,
+        interval: "1d",
+      });
       const rows = (result.quotes ?? []) as Array<{
         date: Date;
         close: number | null;

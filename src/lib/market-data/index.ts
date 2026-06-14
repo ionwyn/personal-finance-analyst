@@ -10,6 +10,7 @@ export type { MarketDataProvider } from "./types";
 export type {
   AnalystConsensus,
   DividendPayment,
+  HistoricalDateRange,
   MarketEvents,
   MarketQuote,
   NewsItem,
@@ -21,6 +22,10 @@ export type {
   SecurityProfile,
   SymbolSearchResult,
 } from "./types";
+export type { HistoricalFxPoint } from "./fx-history";
+export { getHistoricalUsdCad } from "./fx-history";
+export type { PortfolioSecurity } from "./portfolio-symbols";
+export { PORTFOLIO_SECURITIES, resolvePortfolioSecurity } from "./portfolio-symbols";
 export type { PositionMarketData, ReturnPeriod, Technicals } from "./service";
 export type { MacroGroup, MacroIndicator, YieldCurveData, YieldCurvePoint } from "./macro";
 export { getMacroOverview, getYieldCurve } from "./macro";

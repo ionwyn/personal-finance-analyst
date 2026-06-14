@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import type {
   AnalystConsensus,
   DividendPayment,
+  HistoricalDateRange,
   MarketDataProvider,
   MarketEvents,
   MarketQuote,
@@ -28,6 +29,8 @@ const TTL = {
 
 /** How far back dividend history is fetched (5 years). */
 const DIVIDEND_LOOKBACK_DAYS = 5 * 365;
+const SERIES_EDGE_TOLERANCE_DAYS = 7;
+const DAY_MS = 24 * 60 * 60 * 1000;
 
 function isStale(fetchedAt: Date, ttlMs: number): boolean {
   return Date.now() - fetchedAt.getTime() > ttlMs;
@@ -36,6 +39,18 @@ function isStale(fetchedAt: Date, ttlMs: number): boolean {
 function n(v: { toNumber(): number } | number | null | undefined): number | null {
   if (v == null) return null;
   return typeof v === "number" ? v : v.toNumber();
+}
+
+function historicalDateTime(date: string): number {
+  const time = Date.parse(`${date}T00:00:00.000Z`);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !Number.isFinite(time)) {
+    throw new Error(`Invalid historical market date: ${date}`);
+  }
+  return time;
+}
+
+function datesWithin(left: string, right: string, days: number): boolean {
+  return Math.abs(historicalDateTime(left) - historicalDateTime(right)) <= days * DAY_MS;
 }
 
 // ─── Computed technicals (from stored time series) ────────────────────────
@@ -373,20 +388,40 @@ export class MarketDataService {
   // ── Time series ───────────────────────────────────────────────────────
 
   async getTimeSeries(symbol: string, days = 400): Promise<PricePoint[]> {
-    const cutoff = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
-    const rows = await prisma.marketPriceDay.findMany({
-      where: { symbol, date: { gte: cutoff } },
-      orderBy: { date: "asc" },
-    });
+    const startDate = new Date(Date.now() - days * DAY_MS).toISOString().slice(0, 10);
+    const endDate = new Date().toISOString().slice(0, 10);
+    return this.getTimeSeriesRange(symbol, { startDate, endDate });
+  }
 
-    // Refresh if we have no data, or the newest entry is stale.
+  async getTimeSeriesRange(symbol: string, range: HistoricalDateRange): Promise<PricePoint[]> {
+    historicalDateTime(range.startDate);
+    historicalDateTime(range.endDate);
+    if (range.endDate < range.startDate) {
+      throw new Error("Historical market end date must not precede start date");
+    }
+
+    const loadRows = () =>
+      prisma.marketPriceDay.findMany({
+        where: {
+          symbol,
+          date: { gte: range.startDate, lte: range.endDate },
+        },
+        orderBy: { date: "asc" },
+      });
+    let rows = await loadRows();
+
+    const oldest = rows[0];
     const newest = rows.at(-1);
-    const needsRefresh = !newest || isStale(newest.fetchedAt, TTL.series);
+    const coversStart =
+      oldest && datesWithin(oldest.date, range.startDate, SERIES_EDGE_TOLERANCE_DAYS);
+    const coversEnd = newest && datesWithin(newest.date, range.endDate, SERIES_EDGE_TOLERANCE_DAYS);
+    const needsRefresh =
+      !coversStart || !coversEnd || !newest || isStale(newest.fetchedAt, TTL.series);
     if (needsRefresh) {
-      const fresh = await this.provider.getTimeSeries(symbol, days);
+      const fresh = await this.provider.getTimeSeriesRange(symbol, range);
       if (fresh.length > 0) {
         await this.saveTimeSeries(symbol, fresh);
-        return fresh;
+        rows = await loadRows();
       }
     }
 
@@ -402,30 +437,35 @@ export class MarketDataService {
 
   private async saveTimeSeries(symbol: string, points: PricePoint[]) {
     if (points.length === 0) return;
-    await prisma.$transaction(
-      points.map((p) =>
-        prisma.marketPriceDay.upsert({
-          where: { symbol_date: { symbol, date: p.date } },
-          create: {
-            symbol,
-            date: p.date,
-            close: p.close,
-            open: p.open,
-            high: p.high,
-            low: p.low,
-            volume: p.volume != null ? BigInt(Math.round(p.volume)) : null,
-          },
-          update: {
-            close: p.close,
-            open: p.open,
-            high: p.high,
-            low: p.low,
-            volume: p.volume != null ? BigInt(Math.round(p.volume)) : null,
-            fetchedAt: new Date(),
-          },
-        })
-      )
-    );
+    const fetchedAt = new Date();
+    for (let offset = 0; offset < points.length; offset += 250) {
+      const batch = points.slice(offset, offset + 250);
+      await prisma.$transaction(
+        batch.map((p) =>
+          prisma.marketPriceDay.upsert({
+            where: { symbol_date: { symbol, date: p.date } },
+            create: {
+              symbol,
+              date: p.date,
+              close: p.close,
+              open: p.open,
+              high: p.high,
+              low: p.low,
+              volume: p.volume != null ? BigInt(Math.round(p.volume)) : null,
+              fetchedAt,
+            },
+            update: {
+              close: p.close,
+              open: p.open,
+              high: p.high,
+              low: p.low,
+              volume: p.volume != null ? BigInt(Math.round(p.volume)) : null,
+              fetchedAt,
+            },
+          })
+        )
+      );
+    }
   }
 
   // ── News (classified + relevance-ranked) ─────────────────────────────

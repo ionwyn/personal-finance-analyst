@@ -27,6 +27,7 @@
     "import:ws-export": "tsx scripts/import-ws-export.ts",
     "reconcile:ledger": "tsx scripts/reconcile-ledger.ts",
     "check:performance": "tsx scripts/check-performance.ts",
+    "check:market-history": "tsx scripts/check-market-history.ts",
     "seed:demo": "tsx scripts/seed-demo.ts",
     "backfill:cycles": "tsx scripts/backfill-cycles.ts",
     "secrets": "tsx scripts/print-secret.ts",

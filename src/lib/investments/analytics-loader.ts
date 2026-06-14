@@ -8,13 +8,14 @@ import { prisma } from "@/lib/prisma";
 
 import { groupOf } from "./activity-types";
 import { loadInvestments } from "./loader";
+import { loadHistoricalPerformance, type HistoricalPerformance } from "./performance-loader";
 
 // ─── Portfolio analytics (current holdings × market history) ───────────────
 // Reconstruction note: the value series prices TODAY'S holdings at historical
 // closes with a constant FX rate — it answers "how has what I hold now been
 // moving", not time-weighted performance with flows. Labeled as such in UI.
 
-const SERIES_DAYS = 380;
+const CHART_DAYS = 380;
 const EVENTS_TOP_N = 20; // earnings calendar covers the largest N positions
 const CONCURRENCY = 6;
 
@@ -80,6 +81,7 @@ export type PortfolioAnalytics = {
   sectors: SectorSlice[];
   income: IncomeStats | null;
   calendar: CalendarEntry[];
+  performance: HistoricalPerformance | null;
 };
 
 const EMPTY: PortfolioAnalytics = {
@@ -91,6 +93,7 @@ const EMPTY: PortfolioAnalytics = {
   sectors: [],
   income: null,
   calendar: [],
+  performance: null,
 };
 
 function closeMapOf(series: PricePoint[]): Map<string, number> {
@@ -171,14 +174,16 @@ export async function getPortfolioAnalytics(
   const totalMv = aggs.reduce((s, a) => s + a.mvCad, 0);
 
   // ── market data (bounded concurrency; everything lands in the DB cache) ──
-  const [benchSpx, benchTsx, symbolSeries, profiles, fundamentalsList, macro] = await Promise.all([
-    svc.getTimeSeries("^GSPC", SERIES_DAYS).catch(() => [] as PricePoint[]),
-    svc.getTimeSeries("^GSPTSE", SERIES_DAYS).catch(() => [] as PricePoint[]),
-    mapLimit(aggs, CONCURRENCY, (a) => svc.getTimeSeries(a.symbol, SERIES_DAYS).catch(() => [])),
-    mapLimit(aggs, CONCURRENCY, (a) => svc.getProfile(a.symbol).catch(() => null)),
-    mapLimit(aggs, CONCURRENCY, (a) => svc.getFundamentals(a.symbol).catch(() => null)),
-    getMacroOverview().catch(() => []),
-  ]);
+  const [benchSpx, benchTsx, symbolSeries, profiles, fundamentalsList, macro, performance] =
+    await Promise.all([
+      svc.getTimeSeries("^GSPC", CHART_DAYS).catch(() => [] as PricePoint[]),
+      svc.getTimeSeries("^GSPTSE", CHART_DAYS).catch(() => [] as PricePoint[]),
+      mapLimit(aggs, CONCURRENCY, (a) => svc.getTimeSeries(a.symbol, CHART_DAYS).catch(() => [])),
+      mapLimit(aggs, CONCURRENCY, (a) => svc.getProfile(a.symbol).catch(() => null)),
+      mapLimit(aggs, CONCURRENCY, (a) => svc.getFundamentals(a.symbol).catch(() => null)),
+      getMacroOverview().catch(() => []),
+      loadHistoricalPerformance(tenantId).catch(() => null),
+    ]);
 
   // ── portfolio value series on the S&P axis ──
   const axis = benchSpx.map((p) => p.date);
@@ -373,5 +378,6 @@ export async function getPortfolioAnalytics(
     sectors,
     income,
     calendar,
+    performance,
   };
 }
