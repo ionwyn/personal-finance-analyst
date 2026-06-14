@@ -81,7 +81,7 @@ export function MoversPanel({
             return (
               <Link
                 key={m.symbol}
-                href={`/app/investments/${encodeURIComponent(m.symbol)}` as never}
+                href={`/app/portfolio/${encodeURIComponent(m.symbol)}` as never}
                 className="mkt-mover-row"
               >
                 <SymLogo symbol={m.symbol} bg={m.logoBg} logoId={m.logoId} />

@@ -4,8 +4,10 @@ import { useMemo, useState } from "react";
 import { Search } from "lucide-react";
 
 import { SnapTradeLinkButton, SnapTradeSyncButton } from "@/components/actions/snaptrade-actions";
+import { MoversPanel } from "@/components/features/markets/markets-parts/movers-panel";
 import { SegmentedControl } from "@/components/ui";
 import { formatRelativeTime } from "@/lib/format";
+import type { PortfolioPulse } from "@/lib/investments/markets-loader";
 import type { InvestmentDashboardData, InvestmentPosition } from "@/lib/investments/types";
 
 import { AccountsPanel } from "./investments-parts/accounts-panel";
@@ -15,9 +17,15 @@ import { ConnectionHealthPanel } from "./investments-parts/connection-health-pan
 import { HoldingsTable } from "./investments-parts/holdings-table";
 import { SummaryBar } from "./investments-parts/summary-bar";
 import type { SortDir, SortKey } from "./investments-parts/types";
-import { InvestmentsTabs } from "./investments-tabs";
+import { PortfolioTabs } from "./portfolio-tabs";
 
-export function InvestmentsView({ data }: { data: InvestmentDashboardData }) {
+export function InvestmentsView({
+  data,
+  pulse,
+}: {
+  data: InvestmentDashboardData;
+  pulse: PortfolioPulse;
+}) {
   const { summary, accounts, connections, holdings, allocByType, allocByCcy } = data;
   const [showCAD, setShowCAD] = useState(false);
   const [sortKey, setSortKey] = useState<SortKey>("mvCAD");
@@ -56,8 +64,8 @@ export function InvestmentsView({ data }: { data: InvestmentDashboardData }) {
       <div className="page-header">
         <div>
           <div className="invest-header-row">
-            <div className="page-title">Investments</div>
-            <InvestmentsTabs active="holdings" />
+            <div className="page-title">Portfolio</div>
+            <PortfolioTabs active="overview" />
           </div>
           <div className="page-sub">
             {summary.accountCount} {summary.accountCount === 1 ? "ACCOUNT" : "ACCOUNTS"} ·{" "}
@@ -78,6 +86,8 @@ export function InvestmentsView({ data }: { data: InvestmentDashboardData }) {
         allocByCcy={allocByCcy}
         fxUSDtoCAD={summary.fxUSDtoCAD}
       />
+
+      <MoversPanel portfolio={pulse.portfolio} spx={pulse.spx ?? undefined} />
 
       <ConnectionHealthPanel connections={connections} />
 

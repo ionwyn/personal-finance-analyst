@@ -9,7 +9,8 @@ export const LANDING_OPTIONS = [
   { value: "accounts", label: "Accounts", path: "/app/accounts" },
   { value: "transactions", label: "Transactions", path: "/app/transactions" },
   { value: "spending-insight", label: "Spending Insight", path: "/app/spending-insight" },
-  { value: "investments", label: "Investments", path: "/app/investments" },
+  { value: "portfolio", label: "Portfolio", path: "/app/portfolio" },
+  { value: "markets", label: "Markets", path: "/app/markets" },
   { value: "cycles", label: "Pay cycles", path: "/app/cycles" },
   { value: "budgets", label: "Budgets & Goals", path: "/app/budgets" },
 ] as const;

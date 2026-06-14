@@ -1,6 +1,6 @@
 "use client";
 
-import { InvestmentsTabs } from "@/components/features/investments/investments-tabs";
+import { PortfolioTabs } from "@/components/features/investments/portfolio-tabs";
 import type { PortfolioAnalytics } from "@/lib/investments/analytics-loader";
 
 import { CalendarPanel } from "./analytics-parts/calendar-panel";
@@ -15,8 +15,8 @@ export function AnalyticsView({ data }: { data: PortfolioAnalytics }) {
       <div className="page-header">
         <div>
           <div className="invest-header-row">
-            <div className="page-title">Analytics</div>
-            <InvestmentsTabs active="analytics" />
+            <div className="page-title">Performance</div>
+            <PortfolioTabs active="performance" />
           </div>
           <div className="page-sub">
             PORTFOLIO STATISTICS · CURRENT HOLDINGS AT HISTORICAL PRICES · DESCRIPTIVE, NOT

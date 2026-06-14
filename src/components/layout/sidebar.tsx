@@ -8,6 +8,7 @@ import clsx from "clsx";
 import {
   ArrowLeftRight,
   CalendarClock,
+  CandlestickChart,
   LayoutGrid,
   LogOut,
   PieChart,
@@ -72,25 +73,32 @@ export function Sidebar({ mode, user }: { mode: "private" | "demo"; user?: Sideb
             kbd: "⌘4",
           },
           {
-            key: "investments",
-            label: "Investments",
-            href: "/app/investments",
+            key: "portfolio",
+            label: "Portfolio",
+            href: "/app/portfolio",
             icon: <TrendingUp size={ICON_SIZE} />,
             kbd: "⌘5",
+          },
+          {
+            key: "markets",
+            label: "Markets",
+            href: "/app/markets",
+            icon: <CandlestickChart size={ICON_SIZE} />,
+            kbd: "⌘6",
           },
           {
             key: "cycles",
             label: "Pay cycles",
             href: "/app/cycles",
             icon: <CalendarClock size={ICON_SIZE} />,
-            kbd: "⌘6",
+            kbd: "⌘7",
           },
           {
             key: "budgets",
             label: "Budgets & Goals",
             href: "/app/budgets",
             icon: <Target size={ICON_SIZE} />,
-            kbd: "⌘7",
+            kbd: "⌘8",
           },
         ]
       : [
@@ -123,25 +131,32 @@ export function Sidebar({ mode, user }: { mode: "private" | "demo"; user?: Sideb
             kbd: "⌘4",
           },
           {
-            key: "investments",
-            label: "Investments",
-            href: "/app/investments",
+            key: "portfolio",
+            label: "Portfolio",
+            href: "/app/portfolio",
             icon: <TrendingUp size={ICON_SIZE} />,
             kbd: "⌘5",
+          },
+          {
+            key: "markets",
+            label: "Markets",
+            href: "/app/markets",
+            icon: <CandlestickChart size={ICON_SIZE} />,
+            kbd: "⌘6",
           },
           {
             key: "cycles",
             label: "Pay cycles",
             href: "/app/cycles",
             icon: <CalendarClock size={ICON_SIZE} />,
-            kbd: "⌘6",
+            kbd: "⌘7",
           },
           {
             key: "budgets",
             label: "Budgets & Goals",
             href: "/app/budgets",
             icon: <Target size={ICON_SIZE} />,
-            kbd: "⌘7",
+            kbd: "⌘8",
           },
         ];
 
@@ -163,9 +178,10 @@ export function Sidebar({ mode, user }: { mode: "private" | "demo"; user?: Sideb
       "2": "/app/accounts",
       "3": "/app/transactions",
       "4": "/app/spending-insight",
-      "5": "/app/investments",
-      "6": "/app/cycles",
-      "7": "/app/budgets",
+      "5": "/app/portfolio",
+      "6": "/app/markets",
+      "7": "/app/cycles",
+      "8": "/app/budgets",
     };
     const onKey = (e: KeyboardEvent) => {
       if (!(e.metaKey || e.ctrlKey)) return;

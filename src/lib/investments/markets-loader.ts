@@ -10,9 +10,12 @@ import { prisma } from "@/lib/prisma";
 
 import { loadInvestments } from "./loader";
 
-// ─── Markets overview (tape + personal movers + macro) ─────────────────────
-// Everything here flows through the MarketQuote / MacroPoint caches, so a
-// page load costs zero external calls when the caches are warm.
+// ─── Markets data loaders ──────────────────────────────────────────────────
+// Split by destination: getMacroBoard backs Markets → Overview (tape, curve,
+// macro), getWatchlist backs Markets → Watch & Intel, and getPortfolioPulse
+// backs Portfolio → Overview (today's move through my holdings). Everything
+// flows through the MarketQuote / MacroPoint caches, so a page load costs zero
+// external calls when the caches are warm.
 
 /** Tape quotes refresh faster than position quotes — it's the pulse strip. */
 const TAPE_MAX_AGE_MS = 15 * 60 * 1000;
@@ -85,14 +88,21 @@ export type WatchlistRow = {
   spark: number[]; // ~30 trading days of closes, oldest → newest
 };
 
-export type MarketsOverview = {
+/** Macro board (Markets → Overview): tape, yield curve, US + Canada macro. */
+export type MacroBoard = {
   tape: TapeQuote[];
-  portfolio: MarketsPortfolioPulse | null;
-  watchlist: WatchlistRow[];
   macro: MacroIndicator[];
   canada: MacroIndicator[];
   curve: YieldCurveData;
   asOf: string; // ISO — page assembly time
+};
+
+/** Personal pulse (Portfolio → Overview): today's move through my holdings. */
+export type PortfolioPulse = {
+  portfolio: MarketsPortfolioPulse | null;
+  /** S&P 500 quote, for the benchmark comparison on the movers panel. */
+  spx: TapeQuote | null;
+  asOf: string;
 };
 
 /** Watchlist rows with quotes and 30-day sparklines (all served from cache). */
@@ -131,12 +141,11 @@ async function loadWatchlist(
   });
 }
 
-export async function getMarketsOverview(
-  tenantId: string | null | undefined
-): Promise<MarketsOverview> {
+/** Macro board for Markets → Overview. Tenant-agnostic; all cache-served. */
+export async function getMacroBoard(): Promise<MacroBoard> {
   const svc = getMarketDataService();
 
-  const [tapeQuotes, macro, canada, curve, investments] = await Promise.all([
+  const [tapeQuotes, macro, canada, curve] = await Promise.all([
     svc.getQuotes(
       TAPE.map((t) => t.symbol),
       TAPE_MAX_AGE_MS
@@ -144,7 +153,6 @@ export async function getMarketsOverview(
     getMacroOverview().catch(() => [] as MacroIndicator[]),
     getCanadaMacro().catch(() => [] as MacroIndicator[]),
     getYieldCurve().catch(() => ({ points: [], asOf: null }) as YieldCurveData),
-    tenantId ? loadInvestments(tenantId).catch(() => null) : Promise.resolve(null),
   ]);
 
   const tape: TapeQuote[] = TAPE.map((t, i) => {
@@ -160,6 +168,40 @@ export async function getMarketsOverview(
       changePct: q?.changePct ?? null,
     };
   });
+
+  return { tape, macro, canada, curve, asOf: new Date().toISOString() };
+}
+
+/** Watchlist for Markets → Watch & Intel. Resolves held flags from holdings. */
+export async function getWatchlist(tenantId: string | null | undefined): Promise<WatchlistRow[]> {
+  if (!tenantId) return [];
+  const investments = await loadInvestments(tenantId).catch(() => null);
+  const heldSymbols = new Set((investments?.holdings ?? []).map((h) => h.symbol.toUpperCase()));
+  return loadWatchlist(tenantId, heldSymbols);
+}
+
+/** Personal pulse for Portfolio → Overview: today's move through holdings. */
+export async function getPortfolioPulse(
+  tenantId: string | null | undefined
+): Promise<PortfolioPulse> {
+  const svc = getMarketDataService();
+
+  const [spxQuotes, investments] = await Promise.all([
+    svc.getQuotes(["^GSPC"], TAPE_MAX_AGE_MS),
+    tenantId ? loadInvestments(tenantId).catch(() => null) : Promise.resolve(null),
+  ]);
+
+  const spxQuote = spxQuotes[0];
+  const spx: TapeQuote = {
+    id: "spx",
+    label: "S&P 500",
+    symbol: "^GSPC",
+    kind: "index",
+    decimals: 0,
+    value: spxQuote?.price ?? null,
+    change: spxQuote?.change ?? null,
+    changePct: spxQuote?.changePct ?? null,
+  };
 
   // ── Personal pulse: aggregate holdings by symbol, price each once ──
   let portfolio: MarketsPortfolioPulse | null = null;
@@ -230,8 +272,5 @@ export async function getMarketsOverview(
     };
   }
 
-  const heldSymbols = new Set(holdings.map((h) => h.symbol.toUpperCase()));
-  const watchlist = await loadWatchlist(tenantId, heldSymbols);
-
-  return { tape, portfolio, watchlist, macro, canada, curve, asOf: new Date().toISOString() };
+  return { portfolio, spx, asOf: new Date().toISOString() };
 }

@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { loadSymbolIntel, type SymbolIntelBundle } from "./intel-loader";
 
 // ─── Market-only symbol view (not held in any account) ─────────────────────
-// Backs /app/investments/[symbol] when getPositionDetail finds no lots, so
+// Backs /app/portfolio/[symbol] when getPositionDetail finds no lots, so
 // any watchlist or searched ticker gets a research page.
 
 export type SymbolDetail = {

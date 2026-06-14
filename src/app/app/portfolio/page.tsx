@@ -1,18 +1,21 @@
 import { getServerSession } from "next-auth";
 
 import { AppShell } from "@/components/layout/app-shell";
-import { AnalyticsView } from "@/components/features/analytics/analytics-view";
-import { getPortfolioAnalytics } from "@/lib/investments/analytics-loader";
+import { InvestmentsView } from "@/components/features/investments/investments-view";
+import { getInvestmentDashboardData } from "@/lib/investments/analytics";
+import { getPortfolioPulse } from "@/lib/investments/markets-loader";
 import { authOptions } from "@/lib/auth";
 import { resolveSessionTenant } from "@/lib/tenant";
 
 export const dynamic = "force-dynamic";
 
-export default async function AnalyticsPage() {
+export default async function PortfolioPage() {
   const session = await getServerSession(authOptions);
   const { tenantId, isDemo } = await resolveSessionTenant(session);
-
-  const data = await getPortfolioAnalytics(tenantId);
+  const [data, pulse] = await Promise.all([
+    getInvestmentDashboardData(tenantId),
+    getPortfolioPulse(tenantId),
+  ]);
 
   return (
     <AppShell
@@ -28,7 +31,7 @@ export default async function AnalyticsPage() {
             }
       }
     >
-      <AnalyticsView data={data} />
+      <InvestmentsView data={data} pulse={pulse} />
     </AppShell>
   );
 }

@@ -22,7 +22,7 @@ import { activeBrokerages, firstError, worstConnectionStatus } from "./activity-
 import { MobileActivityList } from "./activity-parts/mobile-activity-list";
 import { MobileFilterSheet } from "./activity-parts/mobile-filter-sheet";
 import { TypeChipFilter } from "./activity-parts/type-chip";
-import { InvestmentsTabs } from "./investments-tabs";
+import { PortfolioTabs } from "./portfolio-tabs";
 
 type Props = {
   rows: ActivityRow[];
@@ -140,8 +140,8 @@ export function ActivityView({
       <div className="page-header">
         <div>
           <div className="invest-header-row">
-            <div className="page-title">Investments</div>
-            <InvestmentsTabs active="activity" />
+            <div className="page-title">Activity</div>
+            <PortfolioTabs active="activity" />
           </div>
           <div className="page-sub">
             {totalRowCount} {totalRowCount === 1 ? "ROW" : "ROWS"} ·{" "}

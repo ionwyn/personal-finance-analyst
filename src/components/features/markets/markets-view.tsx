@@ -1,13 +1,11 @@
 "use client";
 
-import { InvestmentsTabs } from "@/components/features/investments/investments-tabs";
-import type { MarketsOverview } from "@/lib/investments/markets-loader";
+import { MarketsTabs } from "@/components/features/markets/markets-tabs";
+import type { MacroBoard } from "@/lib/investments/markets-loader";
 
 import { CurvePanel } from "./markets-parts/curve-panel";
 import { MacroPanel } from "./markets-parts/macro-panel";
-import { MoversPanel } from "./markets-parts/movers-panel";
 import { Tape } from "./markets-parts/tape";
-import { WatchlistPanel } from "./markets-parts/watchlist-panel";
 
 function asOfLabel(iso: string): string {
   const d = new Date(iso);
@@ -19,16 +17,14 @@ function asOfLabel(iso: string): string {
   });
 }
 
-export function MarketsView({ data, canEdit }: { data: MarketsOverview; canEdit: boolean }) {
-  const spx = data.tape.find((t) => t.id === "spx");
-
+export function MarketsView({ data }: { data: MacroBoard }) {
   return (
     <>
       <div className="page-header">
         <div>
           <div className="invest-header-row">
             <div className="page-title">Markets</div>
-            <InvestmentsTabs active="markets" />
+            <MarketsTabs active="overview" />
           </div>
           <div className="page-sub">
             INDICES · RATES · MACRO · AS OF {asOfLabel(data.asOf).toUpperCase()} · YAHOO FINANCE +
@@ -39,13 +35,7 @@ export function MarketsView({ data, canEdit }: { data: MarketsOverview; canEdit:
 
       <Tape tape={data.tape} />
 
-      <div className="mkt-grid">
-        <MoversPanel portfolio={data.portfolio} spx={spx} />
-        <div className="mkt-col">
-          <CurvePanel curve={data.curve} />
-          <WatchlistPanel rows={data.watchlist} canEdit={canEdit} />
-        </div>
-      </div>
+      <CurvePanel curve={data.curve} />
 
       <MacroPanel macro={data.macro} />
 

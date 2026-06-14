@@ -31,7 +31,7 @@ export function InvestmentsCard({ data }: { data: InvestmentDashboardData }) {
           </div>
         </div>
         <Link
-          href={"/app/investments" as never}
+          href={"/app/portfolio" as never}
           className="panel-meta"
           style={{
             display: "inline-flex",
@@ -79,7 +79,7 @@ export function InvestmentsCard({ data }: { data: InvestmentDashboardData }) {
             <Link
               className="hld-row tick-link"
               key={h.id}
-              href={`/app/investments/${encodeURIComponent(h.symbol)}` as never}
+              href={`/app/portfolio/${encodeURIComponent(h.symbol)}` as never}
               title={`Open ${h.symbol} position`}
               style={{ color: "inherit", textDecoration: "none" }}
             >
@@ -106,7 +106,7 @@ export function InvestmentsCard({ data }: { data: InvestmentDashboardData }) {
       </div>
 
       {remaining > 0 ? (
-        <Link href={"/app/investments" as never} className="invest-card-foot">
+        <Link href={"/app/portfolio" as never} className="invest-card-foot">
           {remaining} more positions →
         </Link>
       ) : null}

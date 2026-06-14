@@ -107,9 +107,9 @@ export function SymbolView({ data, canEdit }: { data: SymbolDetail; canEdit: boo
       <div className="pos-hero">
         <div className="pos-hero-row">
           <div className="pos-hero-id">
-            <Link href={"/app/investments/markets" as never} className="pos-back">
+            <Link href={"/app/markets/intel" as never} className="pos-back">
               <ChevronLeft size={11} />
-              Back to Markets
+              Back to Watch &amp; Intel
             </Link>
             <div className="pos-id-row">
               <div className="pos-logo" style={{ background: "var(--surface-3)" }}>
