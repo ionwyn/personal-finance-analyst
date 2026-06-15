@@ -1,7 +1,13 @@
 import { formatMoney, formatPercent } from "@/lib/format";
-import type { InvestmentDashboardData } from "@/lib/investments/types";
+import type { ContributionData, InvestmentDashboardData } from "@/lib/investments/types";
 
-export function SummaryBar({ summary }: { summary: InvestmentDashboardData["summary"] }) {
+export function SummaryBar({
+  summary,
+  contributions,
+}: {
+  summary: InvestmentDashboardData["summary"];
+  contributions: ContributionData;
+}) {
   const plPos = summary.plCAD >= 0;
   return (
     <div className="summary-bar">
@@ -20,6 +26,10 @@ export function SummaryBar({ summary }: { summary: InvestmentDashboardData["summ
         <div className="val" style={{ color: plPos ? "var(--pos)" : "var(--neg)" }}>
           {formatPercent(summary.plPct)}
         </div>
+      </div>
+      <div className="cell">
+        <div className="lbl">Net invested</div>
+        <div className="val">{formatMoney(contributions.lifetimeNetCad)}</div>
       </div>
       <div className="cell">
         <div className="lbl">Cash · CAD-eq.</div>

@@ -128,6 +128,24 @@ export type InvestmentSummary = {
   failingConnectionCount: number;
 };
 
+export type SectorSlice = { name: string; mvCad: number; weightPct: number };
+
+export type ContributionMonth = { month: string; contributionCad: number; withdrawalCad: number };
+export type ContributionYear = {
+  year: number;
+  contributionCad: number;
+  withdrawalCad: number;
+  netCad: number;
+  months: ContributionMonth[];
+};
+
+export type ContributionData = {
+  lifetimeNetCad: number;
+  lifetimeContributionCad: number;
+  lifetimeWithdrawalCad: number;
+  years: ContributionYear[];
+};
+
 export type InvestmentDashboardData = {
   summary: InvestmentSummary;
   accounts: InvestmentAccount[];
@@ -136,6 +154,8 @@ export type InvestmentDashboardData = {
   cashBalances: InvestmentCashBalance[];
   allocByType: Allocation[];
   allocByCcy: Allocation[];
+  sectors: SectorSlice[];
+  contributions: ContributionData;
 };
 
 // ─── Position detail page (single holding drill-down) ──────────────────────

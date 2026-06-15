@@ -1,5 +1,15 @@
+import { getMarketDataService } from "@/lib/market-data";
+import { prisma } from "@/lib/prisma";
+
 import { loadInvestments } from "./loader";
-import type { Allocation, InvestmentDashboardData } from "./types";
+import type {
+  Allocation,
+  ContributionData,
+  ContributionMonth,
+  ContributionYear,
+  InvestmentDashboardData,
+  SectorSlice,
+} from "./types";
 
 const TYPE_COLORS: Record<string, string> = {
   ETF: "var(--invest)",
@@ -28,10 +38,110 @@ const FALLBACK_COLORS = [
   "var(--cat-8)",
 ];
 
+const FUND_TYPES = new Set(["ETF", "MUTUAL FUND", "CEF", "FUND"]);
+
 function fallbackColor(name: string) {
   let h = 0;
   for (let i = 0; i < name.length; i += 1) h = (h * 31 + name.charCodeAt(i)) | 0;
   return FALLBACK_COLORS[Math.abs(h) % FALLBACK_COLORS.length];
+}
+
+async function fetchSectors(
+  tenantId: string,
+  holdings: { symbol: string; type: string; mvCAD: number }[]
+): Promise<SectorSlice[]> {
+  const bySymbol = new Map<string, { type: string; mvCad: number }>();
+  for (const h of holdings) {
+    const cur = bySymbol.get(h.symbol);
+    if (cur) cur.mvCad += h.mvCAD;
+    else bySymbol.set(h.symbol, { type: h.type, mvCad: h.mvCAD });
+  }
+  const symbols = [...bySymbol.keys()];
+  if (symbols.length === 0) return [];
+
+  const totalMv = [...bySymbol.values()].reduce((s, v) => s + v.mvCad, 0);
+  if (totalMv <= 0) return [];
+
+  const svc = getMarketDataService();
+  const profiles = await Promise.all(symbols.map((s) => svc.getProfile(s).catch(() => null)));
+
+  const sectorMv = new Map<string, number>();
+  symbols.forEach((sym, i) => {
+    const entry = bySymbol.get(sym)!;
+    const sector =
+      profiles[i]?.sector ??
+      (FUND_TYPES.has(entry.type.toUpperCase()) ? "Funds & ETFs" : "Unclassified");
+    sectorMv.set(sector, (sectorMv.get(sector) ?? 0) + entry.mvCad);
+  });
+
+  return [...sectorMv.entries()]
+    .map(([name, mvCad]) => ({ name, mvCad, weightPct: (mvCad / totalMv) * 100 }))
+    .sort((a, b) => b.mvCad - a.mvCad);
+}
+
+async function fetchContributions(tenantId: string): Promise<ContributionData> {
+  const raw = await prisma.brokerLedgerEntry.findMany({
+    where: {
+      tenantId,
+      activityType: "MoneyMovement",
+      account: { is: { tracked: true } },
+    },
+    select: { cashAmount: true, tradeDate: true },
+    orderBy: { tradeDate: "asc" },
+  });
+
+  const yearMap = new Map<number, Map<string, { contrib: number; withdrawal: number }>>();
+
+  for (const entry of raw) {
+    if (!entry.cashAmount || !entry.tradeDate) continue;
+    const amount = entry.cashAmount.toNumber();
+    const date = entry.tradeDate;
+    const year = date.getUTCFullYear();
+    const month = date.toISOString().slice(0, 7);
+
+    if (!yearMap.has(year)) yearMap.set(year, new Map());
+    const monthMap = yearMap.get(year)!;
+    if (!monthMap.has(month)) monthMap.set(month, { contrib: 0, withdrawal: 0 });
+    const slot = monthMap.get(month)!;
+
+    // App convention: negative cashAmount = credit = money IN (contribution)
+    //                 positive cashAmount = debit = money OUT (withdrawal)
+    if (amount < 0) slot.contrib += Math.abs(amount);
+    else slot.withdrawal += amount;
+  }
+
+  let lifetimeContrib = 0;
+  let lifetimeWithdrawal = 0;
+  const years: ContributionYear[] = [];
+
+  for (const [year, monthMap] of [...yearMap.entries()].sort((a, b) => b[0] - a[0])) {
+    let yearContrib = 0;
+    let yearWithdrawal = 0;
+    const months: ContributionMonth[] = [];
+
+    for (const [month, slot] of [...monthMap.entries()].sort((a, b) => b[0].localeCompare(a[0]))) {
+      yearContrib += slot.contrib;
+      yearWithdrawal += slot.withdrawal;
+      months.push({ month, contributionCad: slot.contrib, withdrawalCad: slot.withdrawal });
+    }
+
+    lifetimeContrib += yearContrib;
+    lifetimeWithdrawal += yearWithdrawal;
+    years.push({
+      year,
+      contributionCad: yearContrib,
+      withdrawalCad: yearWithdrawal,
+      netCad: yearContrib - yearWithdrawal,
+      months,
+    });
+  }
+
+  return {
+    lifetimeNetCad: lifetimeContrib - lifetimeWithdrawal,
+    lifetimeContributionCad: lifetimeContrib,
+    lifetimeWithdrawalCad: lifetimeWithdrawal,
+    years,
+  };
 }
 
 export async function getInvestmentDashboardData(
@@ -52,10 +162,6 @@ export async function getInvestmentDashboardData(
   const holdingsCAD = holdings.reduce((s, h) => s + h.mvCAD, 0);
   const portfolioCAD = holdingsCAD + cashCAD;
 
-  // Net worth nets debts (credit card balances, margin loans) out of assets.
-  // Each account's `totalValue` is already signed (negative for a carried card
-  // balance), so summing them yields net worth; `liabilityCAD` re-surfaces the
-  // debt portion as a positive figure.
   const trackedAccounts = accounts.filter((a) => a.tracked);
   const liabilitiesCAD = trackedAccounts.reduce((s, a) => s + a.liabilityCAD, 0);
   const netWorthCAD = trackedAccounts.reduce((s, a) => s + a.totalValue, 0);
@@ -69,6 +175,18 @@ export async function getInvestmentDashboardData(
     if (!acc) return a.lastSyncAt;
     return a.lastSyncAt > acc ? a.lastSyncAt : acc;
   }, null);
+
+  const [sectors, contributions] = await Promise.all([
+    tenantId ? fetchSectors(tenantId, holdings) : Promise.resolve([] as SectorSlice[]),
+    tenantId
+      ? fetchContributions(tenantId)
+      : Promise.resolve({
+          lifetimeNetCad: 0,
+          lifetimeContributionCad: 0,
+          lifetimeWithdrawalCad: 0,
+          years: [],
+        } as ContributionData),
+  ]);
 
   const summary = {
     institution: accounts[0]?.institution ?? "Unknown Institution",
@@ -131,5 +249,7 @@ export async function getInvestmentDashboardData(
     cashBalances,
     allocByType,
     allocByCcy,
+    sectors,
+    contributions,
   };
 }

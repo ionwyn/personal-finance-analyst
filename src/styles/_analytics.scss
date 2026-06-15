@@ -101,36 +101,37 @@
   }
 }
 
-/* ── Sector exposure ────────────────────────────────────────────────────── */
-.ana-sector-list {
+/* ── Sector exposure — donut layout ─────────────────────────────────────── */
+.sector-donut-layout {
+  display: flex;
+  align-items: flex-start;
+  gap: 20px;
+}
+.sector-legend {
+  flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 9px;
+  gap: 7px;
+  min-width: 0;
 }
-.ana-sector-row {
+.sector-legend-row {
   display: grid;
-  grid-template-columns: 150px minmax(0, 1fr) 48px 70px;
+  grid-template-columns: 10px minmax(0, 1fr) 44px 68px;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
 
+  .sw {
+    width: 8px;
+    height: 8px;
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
   .nm {
     font-size: 11px;
     color: var(--text-2);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-  }
-  .bar {
-    height: 5px;
-    border-radius: 3px;
-    background: var(--surface-2);
-    overflow: hidden;
-
-    i {
-      display: block;
-      height: 100%;
-      border-radius: 3px;
-    }
   }
   .pct {
     font-family: var(--font-mono);
@@ -218,11 +219,11 @@
       border-right: none;
     }
   }
-  .ana-sector-row {
-    grid-template-columns: 110px minmax(0, 1fr) 44px;
-
-    .mv {
-      display: none;
-    }
+  .sector-donut-layout {
+    flex-direction: column;
+    align-items: center;
+  }
+  .sector-legend-row .mv {
+    display: none;
   }
 }

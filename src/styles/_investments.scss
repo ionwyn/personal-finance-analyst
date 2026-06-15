@@ -364,6 +364,64 @@
   text-align: right;
 }
 
+/* ── Contribution table ─────────────────────────────────────────────────── */
+.contrib-table {
+  .contrib-year-row {
+    td {
+      font-weight: 600;
+      padding-top: 11px;
+      padding-bottom: 11px;
+      border-top: 1px solid var(--border-subtle);
+    }
+    &:first-child td {
+      border-top: none;
+    }
+    &:hover td {
+      background: var(--hover);
+    }
+  }
+  .contrib-month-row {
+    td {
+      padding-top: 6px;
+      padding-bottom: 6px;
+      font-size: 11.5px;
+    }
+    &:hover td {
+      background: var(--hover);
+    }
+  }
+  .contrib-year,
+  .contrib-month-label {
+    padding-left: 14px;
+    color: var(--text-2);
+  }
+  .contrib-month-label {
+    padding-left: 28px;
+    color: var(--text-3);
+  }
+  .contrib-in {
+    color: var(--pos);
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+  }
+  .contrib-out {
+    color: var(--neg);
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+  }
+  .contrib-net {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+  }
+  .contrib-expand {
+    font-size: 9px;
+    color: var(--text-4);
+    padding-right: 14px;
+    text-align: center;
+  }
+}
+
 @include respond-to("lg") {
   .alloc-grid {
     grid-template-columns: 1fr;
