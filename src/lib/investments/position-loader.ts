@@ -23,6 +23,19 @@ function nullableNumber(value: { toNumber(): number } | number | null | undefine
   return typeof value === "number" ? value : value.toNumber();
 }
 
+function normalizeLedgerSymbol(value: string) {
+  return value.trim().toUpperCase().replace(/\.TO$/, "").replace(/\.VN$/, "");
+}
+
+function canonicalDisplayType(entry: { activityType: string; activitySubType: string | null }) {
+  if (entry.activityType === "Trade") return entry.activitySubType ?? "TRADE";
+  if (entry.activityType === "Dividend") return "DIVIDEND";
+  if (entry.activityType === "StockDividend") return "STOCK_DIVIDEND";
+  if (entry.activityType === "Interest") return "INTEREST";
+  if (entry.activityType === "Fee") return entry.activitySubType === "TAX" ? "TAX" : "FEE";
+  return entry.activitySubType ?? entry.activityType.toUpperCase();
+}
+
 /**
  * Build the single-holding "position" view for a symbol, aggregated across every
  * account that holds it. Everything here is derived from the SnapTrade sync in
@@ -104,18 +117,11 @@ export async function getPositionDetail(
   for (const l of lots) l.weight = mvCad > 0 ? (l.mvCad / mvCad) * 100 : 0;
 
   // ── activity for this symbol ──
-  // NB: SnapTradeActivity.symbol stores the security *name* (e.g. "Apple Inc."),
-  // not the ticker — the ticker only appears inside the description text. So we
-  // match the activity against the position's description (name), with the raw
-  // ticker as a fallback for brokerages that report it directly.
-  const activityNames = Array.from(
-    new Set([base.description, base.symbol].filter((v): v is string => Boolean(v)))
-  );
-  const activityRaw = await prisma.snapTradeActivity.findMany({
+  const activityRaw = await prisma.brokerLedgerEntry.findMany({
     where: {
       tenantId,
       account: { is: { tracked: true } },
-      OR: activityNames.map((name) => ({ symbol: { equals: name, mode: "insensitive" as const } })),
+      symbolNorm: normalizeLedgerSymbol(base.symbol),
     },
     orderBy: [{ tradeDate: "desc" }, { createdAt: "desc" }],
     include: { account: true },
@@ -123,32 +129,40 @@ export async function getPositionDetail(
   });
 
   const activity: PositionActivityRow[] = activityRaw.map((a) => {
-    const acct = accountById.get(a.accountId);
-    const fxRate = nullableNumber(a.fxRate);
-    const amountNative = nullableNumber(a.amount);
-    const fee = nullableNumber(a.fee) ?? 0;
+    const acct = a.accountId ? accountById.get(a.accountId) : undefined;
+    const type = canonicalDisplayType(a);
+    const amountNative = a.nativeCashAmount?.negated().toNumber() ?? null;
+    const amountCad = a.cashAmount?.negated().toNumber() ?? null;
+    const isTax = a.activityType === "Fee" && a.activitySubType === "TAX";
+    const fee =
+      a.activityType === "Fee" && !isTax && a.cashAmount?.isPositive()
+        ? a.cashAmount.toNumber()
+        : 0;
+    const tax = isTax && a.cashAmount?.isPositive() ? a.cashAmount.toNumber() : 0;
     return {
       id: a.id,
-      type: a.type,
-      group: groupOf(a.type),
+      type,
+      group: groupOf(type),
       accountLabel: acct?.registration ?? (a.account?.accountCategory ?? "ACCT").toUpperCase(),
-      description: a.description,
-      units: nullableNumber(a.units),
-      price: nullableNumber(a.price),
+      description: a.name,
+      units: a.units.isZero() ? null : a.units.toNumber(),
+      price: nullableNumber(a.unitPrice),
       amountNative,
-      amountCad: amountNative == null ? null : amountNative * (fxRate ?? 1),
+      amountCad,
       fee,
-      currency: a.currency,
-      fxRate,
-      tradeDate: a.tradeDate?.toISOString() ?? null,
+      tax,
+      currency: a.nativeCurrency ?? "CAD",
+      fxRate: nullableNumber(a.fxRate),
+      tradeDate: a.tradeDate.toISOString(),
     };
   });
 
   // ── performance roll-up ──
   const dividendRows = activity.filter((a) => a.group === "income" && (a.amountCad ?? 0) > 0);
   const dividendsCad = dividendRows.reduce((s, a) => s + (a.amountCad ?? 0), 0);
-  const feesCad = activity.reduce((s, a) => s + Math.abs(a.fee) * (a.fxRate ?? 1), 0);
-  const totalReturnCad = uplCad == null ? null : uplCad + dividendsCad - feesCad;
+  const feesCad = activity.reduce((s, a) => s + a.fee, 0);
+  const taxesCad = activity.reduce((s, a) => s + a.tax, 0);
+  const totalReturnCad = uplCad == null ? null : uplCad + dividendsCad - feesCad - taxesCad;
   const totalReturnPct =
     totalReturnCad != null && costCad && costCad !== 0 ? (totalReturnCad / costCad) * 100 : null;
 
@@ -197,6 +211,7 @@ export async function getPositionDetail(
       dividendsCad,
       dividendCount: dividendRows.length,
       feesCad,
+      taxesCad,
       totalReturnCad,
       totalReturnPct,
     },

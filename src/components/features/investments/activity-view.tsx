@@ -271,7 +271,7 @@ export function ActivityView({
 
           <div className="foot-note">
             <span>
-              Source SnapTrade · trade-date primary · settlement T+2 typical
+              Canonical brokerage ledger · trade-date primary · settlement T+2 typical
               {cappedAt ? ` · showing most recent ${cappedAt} of ${totalRowCount} rows` : ""}
             </span>
             <span>

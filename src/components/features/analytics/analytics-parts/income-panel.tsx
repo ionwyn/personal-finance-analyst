@@ -45,8 +45,12 @@ export function IncomePanel({ income }: { income: IncomeStats }) {
       <div className="panel-body">
         <div className="pos-divs-stats">
           <div>
-            <span className="lbl">RECEIVED · TTM</span>
-            <span className="val">${income.ttmReceivedCad.toFixed(0)}</span>
+            <span className="lbl">GROSS INCOME · TTM</span>
+            <span className="val">${income.ttmGrossIncomeCad.toFixed(0)}</span>
+          </div>
+          <div>
+            <span className="lbl">WITHHOLDING TAX</span>
+            <span className="val">${income.withholdingTaxCad.toFixed(2)}</span>
           </div>
           <div>
             <span className="lbl">PAYMENTS</span>

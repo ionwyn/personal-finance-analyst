@@ -1,7 +1,6 @@
 import { getMacroOverview, getMarketDataService, type MarketEvents } from "@/lib/market-data";
 import { prisma } from "@/lib/prisma";
 
-import { groupOf } from "./activity-types";
 import { loadInvestments } from "./loader";
 import {
   loadHistoricalPerformance,
@@ -53,7 +52,8 @@ export type SectorSlice = { name: string; mvCad: number; weightPct: number };
 export type IncomeMonth = { month: string; amountCad: number }; // YYYY-MM
 
 export type IncomeStats = {
-  ttmReceivedCad: number;
+  ttmGrossIncomeCad: number;
+  withholdingTaxCad: number;
   paymentCount: number;
   forwardEstCad: number | null; // Σ yield% × mvCAD where known
   forwardCoveragePct: number; // share of MV with a known yield
@@ -248,20 +248,37 @@ export async function getPortfolioAnalytics(
     }))
     .sort((a, b) => b.mvCad - a.mvCad);
 
-  // ── income: trailing 12M from synced activity + forward estimate ──
+  // ── income: trailing 12M from the canonical ledger + forward estimate ──
   const yearAgo = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000);
-  const activity = await prisma.snapTradeActivity.findMany({
-    where: { tenantId, tradeDate: { gte: yearAgo } },
-    select: { type: true, amount: true, fxRate: true, tradeDate: true },
+  const activity = await prisma.brokerLedgerEntry.findMany({
+    where: {
+      tenantId,
+      tradeDate: { gte: yearAgo },
+      account: { is: { tracked: true } },
+      OR: [
+        { activityType: "Dividend" },
+        { activityType: "Interest" },
+        { activityType: "Fee", activitySubType: "TAX" },
+      ],
+    },
+    select: {
+      activityType: true,
+      activitySubType: true,
+      cashAmount: true,
+      tradeDate: true,
+    },
   });
   let ttm = 0;
+  let withholdingTax = 0;
   let payments = 0;
   const monthMap = new Map<string, number>();
   for (const a of activity) {
-    if (groupOf(a.type) !== "income") continue;
-    const amount = a.amount != null ? Number(a.amount) : 0;
-    if (amount <= 0) continue;
-    const cad = amount * (a.fxRate != null ? Number(a.fxRate) : 1);
+    if (a.activityType === "Fee" && a.activitySubType === "TAX") {
+      withholdingTax += a.cashAmount?.isPositive() ? a.cashAmount.toNumber() : 0;
+      continue;
+    }
+    const cad = a.cashAmount?.isNegative() ? a.cashAmount.negated().toNumber() : 0;
+    if (cad <= 0) continue;
     ttm += cad;
     payments += 1;
     const month = a.tradeDate?.toISOString().slice(0, 7);
@@ -287,7 +304,8 @@ export async function getPortfolioAnalytics(
   });
 
   const income: IncomeStats = {
-    ttmReceivedCad: ttm,
+    ttmGrossIncomeCad: ttm,
+    withholdingTaxCad: withholdingTax,
     paymentCount: payments,
     forwardEstCad: forwardCoveredMv > 0 ? forwardEst : null,
     forwardCoveragePct: totalMv > 0 ? (forwardCoveredMv / totalMv) * 100 : 0,

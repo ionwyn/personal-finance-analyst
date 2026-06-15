@@ -68,6 +68,8 @@ export type ActivityRow = {
   tradeDate: string | null;
   settlementDate: string | null;
   externalReferenceId: string | null;
+  sourceProviders: string[];
+  sourceReferences: string[];
 };
 
 export type ActivityAccountOption = {
@@ -83,16 +85,38 @@ export type LoadedActivities = {
   accountOptions: ActivityAccountOption[];
 };
 
+function displayType(entry: {
+  activityType: string;
+  activitySubType: string | null;
+  units: { isNegative(): boolean };
+  cashAmount: { isPositive(): boolean } | null;
+}) {
+  if (entry.activityType === "Trade") return entry.activitySubType ?? "TRADE";
+  if (entry.activityType === "Dividend") return "DIVIDEND";
+  if (entry.activityType === "StockDividend") return "STOCK_DIVIDEND";
+  if (entry.activityType === "Interest") return "INTEREST";
+  if (entry.activityType === "Fee") return entry.activitySubType === "TAX" ? "TAX" : "FEE";
+  if (entry.activityType === "AdministrativePayment") return "REIMBURSEMENT";
+  if (entry.activityType === "InternalSecurityTransfer") {
+    return entry.units.isNegative() ? "EXTERNAL_ASSET_TRANSFER_OUT" : "EXTERNAL_ASSET_TRANSFER_IN";
+  }
+  if (entry.activityType === "MoneyMovement") {
+    if (entry.activitySubType === "TRANSFER_TF") return "TRANSFER";
+    return entry.cashAmount?.isPositive() ? "WITHDRAWAL" : "CONTRIBUTION";
+  }
+  return entry.activitySubType ?? entry.activityType.toUpperCase();
+}
+
 export async function loadActivities(tenantId?: string | null): Promise<LoadedActivities> {
   if (!tenantId) {
     return { rows: [], totalRowCount: 0, cappedAt: null, accountOptions: [] };
   }
 
   const [totalRowCount, raw] = await Promise.all([
-    prisma.snapTradeActivity.count({
+    prisma.brokerLedgerEntry.count({
       where: { tenantId, account: { is: { tracked: true } } },
     }),
-    prisma.snapTradeActivity.findMany({
+    prisma.brokerLedgerEntry.findMany({
       where: { tenantId, account: { is: { tracked: true } } },
       orderBy: [{ tradeDate: "desc" }, { createdAt: "desc" }],
       take: ACTIVITY_CAP,
@@ -100,12 +124,17 @@ export async function loadActivities(tenantId?: string | null): Promise<LoadedAc
         account: {
           include: { connection: true },
         },
+        sourceRecords: {
+          orderBy: [{ provider: "asc" }, { sourceKey: "asc" }],
+          select: { provider: true, providerRecordId: true, sourceKey: true },
+        },
       },
     }),
   ]);
 
-  const rows: ActivityRow[] = raw.map((activity) => {
+  const rows: ActivityRow[] = raw.flatMap((activity) => {
     const account = activity.account;
+    if (!account) return [];
     const institution = account.institutionName ?? account.connection.brokerageName ?? "Brokerage";
     const accountLabel = (
       account.accountCategory ??
@@ -113,30 +142,42 @@ export async function loadActivities(tenantId?: string | null): Promise<LoadedAc
       account.name ??
       "Account"
     ).toUpperCase();
-    const type = activity.type;
+    const type = displayType(activity);
+    const sourceReferences = activity.sourceRecords.map(
+      (source) => source.providerRecordId ?? source.sourceKey
+    );
+    const amount = activity.cashAmount == null ? null : activity.cashAmount.negated().toNumber();
+    const fee =
+      activity.activityType === "Fee" && activity.cashAmount?.isPositive()
+        ? activity.cashAmount.toNumber()
+        : 0;
 
-    return {
-      id: activity.id,
-      accountId: account.id,
-      accountLabel,
-      institution,
-      institutionLogoBg: hashColor(institution),
-      institutionLogoText: logoText(institution),
-      type,
-      group: groupOf(type),
-      symbol: activity.symbol,
-      symbolLogoBg: activity.symbol ? hashColor(activity.symbol) : null,
-      description: activity.description,
-      units: nullableNumber(activity.units),
-      price: nullableNumber(activity.price),
-      amount: nullableNumber(activity.amount),
-      fee: nullableNumber(activity.fee) ?? 0,
-      currency: activity.currency,
-      fxRate: nullableNumber(activity.fxRate),
-      tradeDate: activity.tradeDate?.toISOString() ?? null,
-      settlementDate: activity.settlementDate?.toISOString() ?? null,
-      externalReferenceId: activity.externalReferenceId,
-    };
+    return [
+      {
+        id: activity.id,
+        accountId: account.id,
+        accountLabel,
+        institution,
+        institutionLogoBg: hashColor(institution),
+        institutionLogoText: logoText(institution),
+        type,
+        group: groupOf(type),
+        symbol: activity.symbolNorm ?? activity.symbol,
+        symbolLogoBg: activity.symbolNorm ? hashColor(activity.symbolNorm) : null,
+        description: activity.name,
+        units: activity.units.isZero() ? null : activity.units.toNumber(),
+        price: nullableNumber(activity.unitPrice),
+        amount,
+        fee,
+        currency: "CAD",
+        fxRate: nullableNumber(activity.fxRate),
+        tradeDate: activity.tradeDate.toISOString(),
+        settlementDate: activity.settlementDate?.toISOString() ?? null,
+        externalReferenceId: sourceReferences[0] ?? null,
+        sourceProviders: [...new Set(activity.sourceRecords.map((source) => source.provider))],
+        sourceReferences,
+      },
+    ];
   });
 
   const accountOptionsMap = new Map<string, ActivityAccountOption>();
