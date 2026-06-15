@@ -44,8 +44,9 @@ export function RowDetail({ row }: { row: ActivityRow }) {
   if (row.fxRate) {
     fields.push(["FX rate", `1 ${row.currency} = ${row.fxRate.toFixed(4)} CAD`]);
   }
+  fields.push(["Source", row.sourceProviders.join(" + ") || "Canonical ledger"]);
   fields.push([
-    "External ref",
+    "Source ref",
     <span key="x" className="ext-ref-wrap">
       <code className="ext-ref">{row.externalReferenceId ?? "—"}</code>
       {row.externalReferenceId ? (

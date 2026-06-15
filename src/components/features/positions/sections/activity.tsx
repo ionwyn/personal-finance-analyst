@@ -78,7 +78,7 @@ export function Activity({ p }: { p: PositionDetail }) {
                   Units
                 </th>
                 <th className="num" style={{ width: 92 }}>
-                  Price {p.currency}
+                  Price CAD
                 </th>
                 <th className="num" style={{ width: 104 }}>
                   Amount CAD

@@ -71,6 +71,7 @@ export const ACTIVITY_TYPES: Record<string, ActivityTypeMeta> = {
   EXTERNAL_ASSET_TRANSFER_OUT: { group: "cash", short: "XFER OUT" },
   FEE: { group: "fee", short: "FEE" },
   TAX: { group: "fee", short: "TAX" },
+  REIMBURSEMENT: { group: "other", short: "REFUND" },
   SPLIT: { group: "corp", short: "SPLIT" },
   OPTIONEXPIRATION: { group: "corp", short: "OPT·EXP" },
   OPTIONASSIGNMENT: { group: "corp", short: "OPT·ASN" },

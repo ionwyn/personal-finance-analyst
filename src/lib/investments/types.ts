@@ -172,6 +172,7 @@ export type PositionActivityRow = {
   amountNative: number | null;
   amountCad: number | null;
   fee: number;
+  tax: number;
   currency: string;
   fxRate: number | null;
   tradeDate: string | null;
@@ -184,6 +185,7 @@ export type PositionPerformance = {
   dividendsCad: number;
   dividendCount: number;
   feesCad: number;
+  taxesCad: number;
   totalReturnCad: number | null;
   totalReturnPct: number | null;
 };
