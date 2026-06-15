@@ -6,6 +6,11 @@ import { resolve } from "node:path";
 
 import { Prisma, TenantKind } from "@prisma/client";
 
+import {
+  commitCanonicalCsvEntries,
+  previewCanonicalCsvEntries,
+  type CanonicalCsvEntry,
+} from "../src/lib/investments/csv-ledger-service";
 import { prisma } from "../src/lib/prisma";
 
 const CSV_COLUMNS = [
@@ -36,26 +41,6 @@ type ParsedRow = {
   units: Prisma.Decimal;
   unitPrice: Prisma.Decimal | null;
   sourceCashAmount: Prisma.Decimal | null;
-};
-
-type ImportEntry = {
-  tenantId: string;
-  accountId: string;
-  accountExternalId: string;
-  accountType: string;
-  tradeDate: Date;
-  settlementDate: Date | null;
-  activityType: string;
-  activitySubType: string | null;
-  symbol: string | null;
-  symbolNorm: string | null;
-  name: string | null;
-  currency: string | null;
-  units: Prisma.Decimal;
-  unitPrice: Prisma.Decimal | null;
-  cashAmount: Prisma.Decimal | null;
-  dedupeKey: string;
-  raw: Prisma.InputJsonValue;
 };
 
 const EXCLUDED_ACCOUNT_TYPES = new Set(["Chequing", "Smart Savings"]);
@@ -89,7 +74,6 @@ const KNOWN_ACTIVITY_TYPES = new Set([
 ]);
 const SHARE_TOLERANCE = new Prisma.Decimal("0.01");
 const CASH_TOLERANCE = new Prisma.Decimal("0.01");
-const BATCH_SIZE = 100;
 
 function parseArguments() {
   const values = new Map<string, string>();
@@ -462,52 +446,6 @@ function dedupeKey(tenantId: string, canonical: string, occurrence: number) {
     .digest("hex");
 }
 
-async function upsertEntries(entries: ImportEntry[]) {
-  const existingKeys = new Set<string>();
-  for (let index = 0; index < entries.length; index += 500) {
-    const keys = entries.slice(index, index + 500).map((entry) => entry.dedupeKey);
-    const existing = await prisma.brokerLedgerEntry.findMany({
-      where: { dedupeKey: { in: keys } },
-      select: { dedupeKey: true },
-    });
-    for (const entry of existing) existingKeys.add(entry.dedupeKey);
-  }
-
-  for (let index = 0; index < entries.length; index += BATCH_SIZE) {
-    const batch = entries.slice(index, index + BATCH_SIZE);
-    await prisma.$transaction(
-      batch.map((entry) =>
-        prisma.brokerLedgerEntry.upsert({
-          where: { dedupeKey: entry.dedupeKey },
-          create: entry,
-          update: {
-            accountId: entry.accountId,
-            accountExternalId: entry.accountExternalId,
-            accountType: entry.accountType,
-            tradeDate: entry.tradeDate,
-            settlementDate: entry.settlementDate,
-            activityType: entry.activityType,
-            activitySubType: entry.activitySubType,
-            symbol: entry.symbol,
-            symbolNorm: entry.symbolNorm,
-            name: entry.name,
-            currency: entry.currency,
-            units: entry.units,
-            unitPrice: entry.unitPrice,
-            cashAmount: entry.cashAmount,
-            raw: entry.raw,
-          },
-        })
-      )
-    );
-  }
-
-  return {
-    inserted: entries.length - existingKeys.size,
-    updated: existingKeys.size,
-  };
-}
-
 async function main() {
   const arguments_ = parseArguments();
   const tenant = await resolveTenant(arguments_.tenant);
@@ -565,7 +503,7 @@ async function main() {
   const accountMatches = await matchAccounts(tenant.id, includedRows);
   const occurrences = new Map<string, number>();
 
-  const entries = includedRows.map((row): ImportEntry => {
+  const entries = includedRows.map((row): CanonicalCsvEntry => {
     const canonical = canonicalRow(row.raw);
     const occurrence = (occurrences.get(canonical) ?? 0) + 1;
     occurrences.set(canonical, occurrence);
@@ -597,7 +535,8 @@ async function main() {
     };
   });
 
-  const result = await upsertEntries(entries);
+  const preview = await previewCanonicalCsvEntries(entries);
+  const result = await commitCanonicalCsvEntries(entries);
 
   console.log(`Imported Wealthsimple ledger for tenant ${tenant.slug} (${tenant.id})`);
   for (const [externalId, account] of [...accountMatches].sort(([left], [right]) =>
@@ -611,7 +550,10 @@ async function main() {
     `Transfer guards: TRANSFER_TF=${transferGuard.transferCash.toFixed(2)} CAD, InternalSecurityTransfer symbols=${transferGuard.transferSymbolCount}`
   );
   console.log(
-    `Rows: inserted=${result.inserted} updated=${result.updated} skipped=${excludedRows + nonDataRows} (excluded=${excludedRows}, nonData=${nonDataRows})`
+    `Preview: existing=${preview.existingCount} overlap=${preview.linkedCount} new=${preview.newCount} conflicts=${preview.conflictCount}`
+  );
+  console.log(
+    `Rows: inserted=${result.inserted} updated=${result.updated} linked=${result.linked} conflicts=${result.conflicts} skipped=${excludedRows + nonDataRows} (excluded=${excludedRows}, nonData=${nonDataRows})`
   );
 }
 

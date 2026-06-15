@@ -4,7 +4,7 @@ import type { Account, Balance, BrokerageAuthorization, Position } from "snaptra
 import { prisma } from "@/lib/prisma";
 import { getFxRate } from "@/lib/fx/rates";
 import { syncActivitiesForAccount } from "@/lib/snaptrade/activities";
-import { appendToLedger } from "@/lib/investments/ledger-sync";
+import { canonicalizeSnapTradeActivities } from "@/lib/investments/ledger-sync";
 import { ensureLogoRecord } from "@/lib/snaptrade/logo";
 import {
   isClosedSnapTradeAccountStatus,
@@ -272,6 +272,10 @@ async function syncConnection(input: {
       positionsCount: 0,
       activitiesCount: 0,
       omittedPositionsCount: 0,
+      canonicalizedCount: 0,
+      ledgerLinkedCount: 0,
+      ledgerIgnoredCount: 0,
+      ledgerConflictCount: 0,
       skipped: false,
     };
   }
@@ -298,6 +302,10 @@ async function syncConnection(input: {
       positionsCount: 0,
       activitiesCount: 0,
       omittedPositionsCount: 0,
+      canonicalizedCount: 0,
+      ledgerLinkedCount: 0,
+      ledgerIgnoredCount: 0,
+      ledgerConflictCount: 0,
       skipped: false,
     };
   }
@@ -333,6 +341,10 @@ async function syncConnection(input: {
       positionsCount: 0,
       activitiesCount: 0,
       omittedPositionsCount: 0,
+      canonicalizedCount: 0,
+      ledgerLinkedCount: 0,
+      ledgerIgnoredCount: 0,
+      ledgerConflictCount: 0,
       skipped: true,
     };
   }
@@ -380,8 +392,15 @@ async function syncConnection(input: {
       seenAccountIds.push(savedAccount.id);
       accountsCount += 1;
 
-      // Untracked accounts stay linked (visible + re-trackable) but are excluded
-      // everywhere — skip fetching their balances, positions, and activities.
+      // Retain activity independently of the display toggle so untracking an
+      // account cannot create a permanent canonical-history gap.
+      activitiesCount += await syncActivitiesForAccount({
+        tenantId: input.tenantId,
+        account: savedAccount,
+      });
+
+      // Untracked accounts remain linked and retain activity, but their current
+      // balances and positions stay excluded from portfolio totals.
       if (!savedAccount.tracked) continue;
 
       const balancesResponse = await client.accountInformation.getUserAccountBalance({
@@ -407,19 +426,11 @@ async function syncConnection(input: {
       });
       positionsCount += positionCounts.positionsCount;
       omittedPositionsCount += positionCounts.omittedPositionsCount;
-
-      activitiesCount += await syncActivitiesForAccount({
-        tenantId: input.tenantId,
-        account: savedAccount,
-      });
-
-      await appendToLedger(input.tenantId, savedAccount.id).catch((error) => {
-        logger.warn(
-          { accountId: savedAccount.id, error: safeError(error) },
-          "ledger append failed (non-fatal)"
-        );
-      });
     }
+
+    const ledgerResult = await canonicalizeSnapTradeActivities(input.tenantId, {
+      accountIds: seenAccountIds,
+    });
 
     await prisma.snapTradeAccount.deleteMany({
       where: {
@@ -447,6 +458,10 @@ async function syncConnection(input: {
         positionsCount,
         activitiesCount,
         omittedPositionsCount,
+        canonicalizedCount: ledgerResult.canonicalizedCount,
+        ledgerLinkedCount: ledgerResult.linkedCount,
+        ledgerIgnoredCount: ledgerResult.ignoredCount,
+        ledgerConflictCount: ledgerResult.conflictCount,
       },
       "snaptrade connection sync completed"
     );
@@ -456,6 +471,10 @@ async function syncConnection(input: {
       positionsCount,
       activitiesCount,
       omittedPositionsCount,
+      canonicalizedCount: ledgerResult.canonicalizedCount,
+      ledgerLinkedCount: ledgerResult.linkedCount,
+      ledgerIgnoredCount: ledgerResult.ignoredCount,
+      ledgerConflictCount: ledgerResult.conflictCount,
       skipped: false,
     };
   } catch (error) {
@@ -543,6 +562,10 @@ async function syncSnapTradeTenantWithContext(tenantId: string, source: SyncSour
   let positionsCount = 0;
   let activitiesCount = 0;
   let omittedPositionsCount = 0;
+  let canonicalizedCount = 0;
+  let ledgerLinkedCount = 0;
+  let ledgerIgnoredCount = 0;
+  let ledgerConflictCount = 0;
   let skippedConnections = 0;
 
   try {
@@ -564,6 +587,10 @@ async function syncSnapTradeTenantWithContext(tenantId: string, source: SyncSour
       positionsCount += counts.positionsCount;
       activitiesCount += counts.activitiesCount;
       omittedPositionsCount += counts.omittedPositionsCount;
+      canonicalizedCount += counts.canonicalizedCount;
+      ledgerLinkedCount += counts.ledgerLinkedCount;
+      ledgerIgnoredCount += counts.ledgerIgnoredCount;
+      ledgerConflictCount += counts.ledgerConflictCount;
       if (counts.skipped) skippedConnections += 1;
     }
 
@@ -589,6 +616,10 @@ async function syncSnapTradeTenantWithContext(tenantId: string, source: SyncSour
         positionsCount,
         activitiesCount,
         omittedPositionsCount,
+        canonicalizedCount,
+        ledgerLinkedCount,
+        ledgerIgnoredCount,
+        ledgerConflictCount,
         errorMessage: skippedConnections
           ? `${skippedConnections} connection(s) skipped: another sync was in progress.`
           : null,
@@ -604,6 +635,10 @@ async function syncSnapTradeTenantWithContext(tenantId: string, source: SyncSour
         positionsCount,
         activitiesCount,
         omittedPositionsCount,
+        canonicalizedCount,
+        ledgerLinkedCount,
+        ledgerIgnoredCount,
+        ledgerConflictCount,
         skippedConnections,
       },
       "snaptrade tenant sync completed"
@@ -621,6 +656,10 @@ async function syncSnapTradeTenantWithContext(tenantId: string, source: SyncSour
         positionsCount,
         activitiesCount,
         omittedPositionsCount,
+        canonicalizedCount,
+        ledgerLinkedCount,
+        ledgerIgnoredCount,
+        ledgerConflictCount,
         errorCode: "SNAPTRADE_SYNC_ERROR",
         errorMessage: errorMessage(error),
       },
@@ -635,6 +674,10 @@ async function syncSnapTradeTenantWithContext(tenantId: string, source: SyncSour
         positionsCount,
         activitiesCount,
         omittedPositionsCount,
+        canonicalizedCount,
+        ledgerLinkedCount,
+        ledgerIgnoredCount,
+        ledgerConflictCount,
         errorCode: "SNAPTRADE_SYNC_ERROR",
         error: safeError(error),
       },
