@@ -7,12 +7,13 @@ import type { SeriesPoint } from "@/lib/investments/analytics-loader";
 
 // ─── Portfolio vs benchmarks — TWR index rebased to 100 at window start ─────
 
-const WINDOWS = ["3M", "6M", "1Y", "ALL"] as const;
+const WINDOWS = ["YTD", "3M", "6M", "1Y", "ALL"] as const;
 type Window = (typeof WINDOWS)[number];
 
 function windowCutoff(endDate: string, window: Window): string | null {
   if (window === "ALL") return null;
   const d = new Date(endDate + "T00:00:00Z");
+  if (window === "YTD") return `${d.getUTCFullYear()}-01-01`;
   if (window === "3M") d.setUTCMonth(d.getUTCMonth() - 3);
   else if (window === "6M") d.setUTCMonth(d.getUTCMonth() - 6);
   else d.setUTCFullYear(d.getUTCFullYear() - 1);

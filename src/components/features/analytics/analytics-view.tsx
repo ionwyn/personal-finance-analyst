@@ -7,7 +7,6 @@ import { CalendarPanel } from "./analytics-parts/calendar-panel";
 import { IncomePanel } from "./analytics-parts/income-panel";
 import { PerfChart } from "./analytics-parts/perf-chart";
 import { RiskPanel } from "./analytics-parts/risk-panel";
-import { SectorPanel } from "./analytics-parts/sector-panel";
 
 export function AnalyticsView({ data }: { data: PortfolioAnalytics }) {
   return (
@@ -36,10 +35,11 @@ export function AnalyticsView({ data }: { data: PortfolioAnalytics }) {
         <>
           <PerfChart series={data.series} fxNote={data.fxNote} mwrPct={data.mwrPct} />
 
-          <div className="ana-grid">
-            {data.risk && <RiskPanel risk={data.risk} />}
-            <SectorPanel sectors={data.sectors} />
-          </div>
+          {data.risk && (
+            <div className="ana-grid">
+              <RiskPanel risk={data.risk} />
+            </div>
+          )}
 
           <div className="ana-grid">
             {data.income && <IncomePanel income={data.income} />}
