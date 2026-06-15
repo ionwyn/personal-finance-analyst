@@ -38,6 +38,31 @@ enum SnapTradeConnectionStatus {
   DISABLED
 }
 
+enum BrokerLedgerProvider {
+  SNAPTRADE
+  WEALTHSIMPLE_CSV
+}
+
+enum BrokerLedgerSourceStatus {
+  PENDING
+  LINKED
+  CONFLICT
+  IGNORED
+}
+
+enum BrokerLedgerIngestionMode {
+  SYNC
+  IMPORT
+  MIGRATION
+}
+
+enum BrokerLedgerReconciliationStatus {
+  UNKNOWN
+  COMPLETE
+  PARTIAL
+  CONFLICT
+}
+
 model Tenant {
   id        String     @id @default(cuid())
   slug      String     @unique
@@ -59,6 +84,9 @@ model Tenant {
   snapTradeActivities   SnapTradeActivity[]
   snapTradeSyncRuns     SnapTradeSyncRun[]
   brokerLedgerEntries   BrokerLedgerEntry[]
+  brokerLedgerSources   BrokerLedgerSourceRecord[]
+  brokerLedgerRuns      BrokerLedgerIngestionRun[]
+  brokerLedgerCoverage  BrokerLedgerCoverage[]
   payCycles             PayCycle[]
   recurringExpenses     RecurringExpense[]
   savingsDestinations   SavingsDestination[]
@@ -219,12 +247,12 @@ model PlaidTransaction {
   createdAt              DateTime  @default(now())
   updatedAt              DateTime  @updatedAt
 
-  tenant       Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  item         PlaidItem         @relation(fields: [itemId], references: [id], onDelete: Cascade)
-  account      PlaidAccount      @relation(fields: [accountId], references: [id], onDelete: Cascade)
-  cycle        PayCycle?         @relation(fields: [cycleId], references: [id], onDelete: SetNull)
-  supersededBy PlaidTransaction? @relation("ManualSweepSupersession", fields: [supersededById], references: [id], onDelete: SetNull)
-  supersedes   PlaidTransaction? @relation("ManualSweepSupersession")
+  tenant       Tenant                @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  item         PlaidItem             @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  account      PlaidAccount          @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  cycle        PayCycle?             @relation(fields: [cycleId], references: [id], onDelete: SetNull)
+  supersededBy PlaidTransaction?     @relation("ManualSweepSupersession", fields: [supersededById], references: [id], onDelete: SetNull)
+  supersedes   PlaidTransaction?     @relation("ManualSweepSupersession")
   settlements  CommittedSettlement[]
 
   @@index([tenantId, date])
@@ -338,12 +366,14 @@ model SnapTradeAccount {
   createdAt                   DateTime  @default(now())
   updatedAt                   DateTime  @updatedAt
 
-  tenant     Tenant                 @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  connection SnapTradeConnection    @relation(fields: [connectionId], references: [id], onDelete: Cascade)
-  positions  SnapTradePosition[]
-  balances   SnapTradeCashBalance[]
-  activities SnapTradeActivity[]
-  ledgerEntries BrokerLedgerEntry[]
+  tenant         Tenant                     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  connection     SnapTradeConnection        @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+  positions      SnapTradePosition[]
+  balances       SnapTradeCashBalance[]
+  activities     SnapTradeActivity[]
+  ledgerEntries  BrokerLedgerEntry[]
+  ledgerSources  BrokerLedgerSourceRecord[]
+  ledgerCoverage BrokerLedgerCoverage?
 
   @@index([tenantId])
   @@index([connectionId])
@@ -456,17 +486,105 @@ model BrokerLedgerEntry {
   unitPrice         Decimal?  @db.Decimal(24, 10)
   // App convention in CAD: positive is a debit/outflow; negative is a credit/inflow.
   cashAmount        Decimal?  @db.Decimal(24, 10)
+  nativeCashAmount  Decimal?  @db.Decimal(24, 10)
+  nativeCurrency    String?
+  fxRate            Decimal?  @db.Decimal(24, 10)
   dedupeKey         String    @unique
   raw               Json?
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
 
-  tenant  Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  account SnapTradeAccount? @relation(fields: [accountId], references: [id], onDelete: SetNull)
+  tenant        Tenant                     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  account       SnapTradeAccount?          @relation(fields: [accountId], references: [id], onDelete: SetNull)
+  sourceRecords BrokerLedgerSourceRecord[]
 
   @@index([tenantId, tradeDate])
   @@index([tenantId, symbolNorm])
   @@index([accountId, tradeDate])
+}
+
+model BrokerLedgerIngestionRun {
+  id                 String                    @id @default(cuid())
+  tenantId           String
+  provider           BrokerLedgerProvider
+  mode               BrokerLedgerIngestionMode
+  status             SyncRunStatus             @default(RUNNING)
+  startedAt          DateTime                  @default(now())
+  completedAt        DateTime?
+  sourceCount        Int                       @default(0)
+  insertedCount      Int                       @default(0)
+  linkedCount        Int                       @default(0)
+  canonicalizedCount Int                       @default(0)
+  ignoredCount       Int                       @default(0)
+  conflictCount      Int                       @default(0)
+  errorMessage       String?                   @db.Text
+
+  tenant        Tenant                     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  sourceRecords BrokerLedgerSourceRecord[]
+
+  @@index([tenantId, startedAt])
+  @@index([provider, status])
+}
+
+model BrokerLedgerSourceRecord {
+  id               String                   @id @default(cuid())
+  tenantId         String
+  accountId        String?
+  ledgerEntryId    String?
+  ingestionRunId   String?
+  provider         BrokerLedgerProvider
+  sourceKey        String
+  providerRecordId String?
+  status           BrokerLedgerSourceStatus @default(PENDING)
+  matchConfidence  Decimal?                 @db.Decimal(5, 4)
+  conflictReason   String?                  @db.Text
+  tradeDate        DateTime?                @db.Date
+  settlementDate   DateTime?                @db.Date
+  activityType     String?
+  activitySubType  String?
+  symbol           String?
+  symbolNorm       String?
+  name             String?                  @db.Text
+  currency         String?
+  units            Decimal?                 @db.Decimal(24, 8)
+  unitPrice        Decimal?                 @db.Decimal(24, 10)
+  nativeCashAmount Decimal?                 @db.Decimal(24, 10)
+  nativeCurrency   String?
+  cashAmount       Decimal?                 @db.Decimal(24, 10)
+  fxRate           Decimal?                 @db.Decimal(24, 10)
+  raw              Json?
+  createdAt        DateTime                 @default(now())
+  updatedAt        DateTime                 @updatedAt
+
+  tenant       Tenant                    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  account      SnapTradeAccount?         @relation(fields: [accountId], references: [id], onDelete: SetNull)
+  ledgerEntry  BrokerLedgerEntry?        @relation(fields: [ledgerEntryId], references: [id], onDelete: SetNull)
+  ingestionRun BrokerLedgerIngestionRun? @relation(fields: [ingestionRunId], references: [id], onDelete: SetNull)
+
+  @@unique([tenantId, provider, sourceKey])
+  @@index([tenantId, status])
+  @@index([accountId, tradeDate])
+  @@index([ledgerEntryId])
+  @@index([ingestionRunId])
+  @@index([provider, providerRecordId])
+}
+
+model BrokerLedgerCoverage {
+  id                   String                           @id @default(cuid())
+  tenantId             String
+  accountId            String                           @unique
+  activityStartDate    DateTime?                        @db.Date
+  activityEndDate      DateTime?                        @db.Date
+  taxCoverageStartDate DateTime?                        @db.Date
+  reconciliationStatus BrokerLedgerReconciliationStatus @default(UNKNOWN)
+  canonicalizedAt      DateTime?
+  createdAt            DateTime                         @default(now())
+  updatedAt            DateTime                         @updatedAt
+
+  tenant  Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  account SnapTradeAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, reconciliationStatus])
 }
 
 model SnapTradeSyncRun {
@@ -482,6 +600,10 @@ model SnapTradeSyncRun {
   positionsCount        Int           @default(0)
   balancesCount         Int           @default(0)
   activitiesCount       Int           @default(0)
+  canonicalizedCount    Int           @default(0)
+  ledgerLinkedCount     Int           @default(0)
+  ledgerIgnoredCount    Int           @default(0)
+  ledgerConflictCount   Int           @default(0)
   omittedPositionsCount Int           @default(0)
   errorCode             String?
   errorMessage          String?       @db.Text
@@ -541,7 +663,7 @@ model PayCycle {
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt
 
-  tenant       Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenant       Tenant                @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   transactions PlaidTransaction[]
   settlements  CommittedSettlement[]
 
@@ -706,59 +828,59 @@ model UserSettings {
 // rows can be selectively re-fetched if a provider is swapped.
 
 model MarketQuote {
-  symbol     String   @id
-  provider   String   @default("yahoo")
-  currency   String?
-  price      Decimal? @db.Decimal(18, 6)
-  change     Decimal? @db.Decimal(18, 6)
-  changePct  Decimal? @db.Decimal(10, 6)
-  open       Decimal? @db.Decimal(18, 6)
-  high52w    Decimal? @db.Decimal(18, 6)
-  low52w     Decimal? @db.Decimal(18, 6)
-  volume     BigInt?
-  marketCap  Decimal? @db.Decimal(24, 2)
-  prevClose  Decimal? @db.Decimal(18, 6)
-  dayHigh    Decimal? @db.Decimal(18, 6)
-  dayLow     Decimal? @db.Decimal(18, 6)
-  avgVolume  BigInt?
-  fetchedAt  DateTime
-  updatedAt  DateTime @updatedAt
+  symbol    String   @id
+  provider  String   @default("yahoo")
+  currency  String?
+  price     Decimal? @db.Decimal(18, 6)
+  change    Decimal? @db.Decimal(18, 6)
+  changePct Decimal? @db.Decimal(10, 6)
+  open      Decimal? @db.Decimal(18, 6)
+  high52w   Decimal? @db.Decimal(18, 6)
+  low52w    Decimal? @db.Decimal(18, 6)
+  volume    BigInt?
+  marketCap Decimal? @db.Decimal(24, 2)
+  prevClose Decimal? @db.Decimal(18, 6)
+  dayHigh   Decimal? @db.Decimal(18, 6)
+  dayLow    Decimal? @db.Decimal(18, 6)
+  avgVolume BigInt?
+  fetchedAt DateTime
+  updatedAt DateTime @updatedAt
 }
 
 model MarketProfile {
-  symbol          String   @id
-  provider        String   @default("yahoo")
-  name            String?
-  sector          String?
-  industry        String?
-  country         String?
-  description     String?  @db.Text
-  isFund          Boolean  @default(false)
-  peRatio         Decimal? @db.Decimal(10, 4)
-  forwardPe       Decimal? @db.Decimal(10, 4)
-  pbRatio         Decimal? @db.Decimal(10, 4)
-  evEbitda        Decimal? @db.Decimal(10, 4)
-  revenueGrowthPct   Decimal? @db.Decimal(10, 4)
-  epsGrowthPct       Decimal? @db.Decimal(10, 4)
-  grossMarginPct     Decimal? @db.Decimal(10, 4)
-  operatingMarginPct Decimal? @db.Decimal(10, 4)
-  freeCashFlow    Decimal? @db.Decimal(24, 2)
-  dividendYieldPct   Decimal? @db.Decimal(10, 4)
-  expenseRatioPct    Decimal? @db.Decimal(10, 4)
-  aum             Decimal? @db.Decimal(24, 2)
-  holdingsCount   Int?
-  beta            Decimal? @db.Decimal(10, 4)
-  fetchedAt       DateTime
-  profileFetchedAt DateTime?
+  symbol                String    @id
+  provider              String    @default("yahoo")
+  name                  String?
+  sector                String?
+  industry              String?
+  country               String?
+  description           String?   @db.Text
+  isFund                Boolean   @default(false)
+  peRatio               Decimal?  @db.Decimal(10, 4)
+  forwardPe             Decimal?  @db.Decimal(10, 4)
+  pbRatio               Decimal?  @db.Decimal(10, 4)
+  evEbitda              Decimal?  @db.Decimal(10, 4)
+  revenueGrowthPct      Decimal?  @db.Decimal(10, 4)
+  epsGrowthPct          Decimal?  @db.Decimal(10, 4)
+  grossMarginPct        Decimal?  @db.Decimal(10, 4)
+  operatingMarginPct    Decimal?  @db.Decimal(10, 4)
+  freeCashFlow          Decimal?  @db.Decimal(24, 2)
+  dividendYieldPct      Decimal?  @db.Decimal(10, 4)
+  expenseRatioPct       Decimal?  @db.Decimal(10, 4)
+  aum                   Decimal?  @db.Decimal(24, 2)
+  holdingsCount         Int?
+  beta                  Decimal?  @db.Decimal(10, 4)
+  fetchedAt             DateTime
+  profileFetchedAt      DateTime?
   fundamentalsFetchedAt DateTime?
-  updatedAt       DateTime @updatedAt
+  updatedAt             DateTime  @updatedAt
 }
 
 model MarketPriceDay {
   id        String   @id @default(cuid())
   symbol    String
   provider  String   @default("yahoo")
-  date      String   // YYYY-MM-DD — stored as string to avoid timezone drift
+  date      String // YYYY-MM-DD — stored as string to avoid timezone drift
   close     Decimal  @db.Decimal(18, 6)
   open      Decimal? @db.Decimal(18, 6)
   high      Decimal? @db.Decimal(18, 6)
@@ -778,8 +900,8 @@ model MarketNews {
   source      String?
   url         String?   @db.Text
   summary     String?   @db.Text
-  tag         String?   // derived category: DIVIDEND, ANALYST, EARNINGS, ...
-  relevance   String?   // high | med | low (relatedTickers-based)
+  tag         String? // derived category: DIVIDEND, ANALYST, EARNINGS, ...
+  relevance   String? // high | med | low (relatedTickers-based)
   publishedAt DateTime?
   fetchedAt   DateTime  @default(now())
 
@@ -788,13 +910,13 @@ model MarketNews {
 }
 
 model MarketEvents {
-  symbol       String   @id
-  provider     String   @default("yahoo")
+  symbol       String    @id
+  provider     String    @default("yahoo")
   nextEarnings DateTime?
   exDividend   DateTime?
   dividendDate DateTime?
   fetchedAt    DateTime
-  updatedAt    DateTime @updatedAt
+  updatedAt    DateTime  @updatedAt
 }
 
 model MarketAnalyst {
