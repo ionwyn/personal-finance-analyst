@@ -1,21 +1,16 @@
-import {
-  getMacroOverview,
-  getMarketDataService,
-  type MarketEvents,
-  type PricePoint,
-} from "@/lib/market-data";
+import { getMacroOverview, getMarketDataService, type MarketEvents } from "@/lib/market-data";
 import { prisma } from "@/lib/prisma";
 
 import { groupOf } from "./activity-types";
 import { loadInvestments } from "./loader";
-import { loadHistoricalPerformance, type HistoricalPerformance } from "./performance-loader";
+import {
+  loadHistoricalPerformance,
+  type HistoricalCoverageIssue,
+  type HistoricalPerformance,
+} from "./performance-loader";
 
-// ─── Portfolio analytics (current holdings × market history) ───────────────
-// Reconstruction note: the value series prices TODAY'S holdings at historical
-// closes with a constant FX rate — it answers "how has what I hold now been
-// moving", not time-weighted performance with flows. Labeled as such in UI.
+// ─── Portfolio analytics ────────────────────────────────────────────────────
 
-const CHART_DAYS = 380;
 const EVENTS_TOP_N = 20; // earnings calendar covers the largest N positions
 const CONCURRENCY = 6;
 
@@ -82,6 +77,8 @@ export type PortfolioAnalytics = {
   income: IncomeStats | null;
   calendar: CalendarEntry[];
   performance: HistoricalPerformance | null;
+  mwrPct: number | null;
+  coverageIssues: HistoricalCoverageIssue[];
 };
 
 const EMPTY: PortfolioAnalytics = {
@@ -94,29 +91,9 @@ const EMPTY: PortfolioAnalytics = {
   income: null,
   calendar: [],
   performance: null,
+  mwrPct: null,
+  coverageIssues: [],
 };
-
-function closeMapOf(series: PricePoint[]): Map<string, number> {
-  const m = new Map<string, number>();
-  for (const p of series) m.set(p.date, p.close);
-  return m;
-}
-
-/** Returns array aligned to `axis`, carrying the last known close forward and
- *  back-filling dates before the first close with the earliest one. */
-function alignToAxis(axis: string[], series: PricePoint[]): (number | null)[] {
-  if (series.length === 0) return axis.map(() => null);
-  const byDate = closeMapOf(series);
-  const first = series[0];
-  let last: number | null = null;
-  return axis.map((d) => {
-    const v = byDate.get(d);
-    if (v != null) last = v;
-    if (last != null) return last;
-    // before first observation — backfill so the level doesn't jump
-    return d <= first.date ? first.close : null;
-  });
-}
 
 function dailyReturns(values: number[]): number[] {
   const rets: number[] = [];
@@ -142,7 +119,6 @@ export async function getPortfolioAnalytics(
   if (holdings.length === 0) return EMPTY;
 
   const svc = getMarketDataService();
-  const fx = investments?.fxUSDtoCAD ?? 1.35;
 
   // ── aggregate per symbol ──
   type Agg = {
@@ -174,46 +150,17 @@ export async function getPortfolioAnalytics(
   const totalMv = aggs.reduce((s, a) => s + a.mvCad, 0);
 
   // ── market data (bounded concurrency; everything lands in the DB cache) ──
-  const [benchSpx, benchTsx, symbolSeries, profiles, fundamentalsList, macro, performance] =
-    await Promise.all([
-      svc.getTimeSeries("^GSPC", CHART_DAYS).catch(() => [] as PricePoint[]),
-      svc.getTimeSeries("^GSPTSE", CHART_DAYS).catch(() => [] as PricePoint[]),
-      mapLimit(aggs, CONCURRENCY, (a) => svc.getTimeSeries(a.symbol, CHART_DAYS).catch(() => [])),
-      mapLimit(aggs, CONCURRENCY, (a) => svc.getProfile(a.symbol).catch(() => null)),
-      mapLimit(aggs, CONCURRENCY, (a) => svc.getFundamentals(a.symbol).catch(() => null)),
-      getMacroOverview().catch(() => []),
-      loadHistoricalPerformance(tenantId).catch(() => null),
-    ]);
+  const [profiles, fundamentalsList, macro, performance] = await Promise.all([
+    mapLimit(aggs, CONCURRENCY, (a) => svc.getProfile(a.symbol).catch(() => null)),
+    mapLimit(aggs, CONCURRENCY, (a) => svc.getFundamentals(a.symbol).catch(() => null)),
+    getMacroOverview().catch(() => []),
+    loadHistoricalPerformance(tenantId).catch(() => null),
+  ]);
 
-  // ── portfolio value series on the S&P axis ──
-  const axis = benchSpx.map((p) => p.date);
-  const aligned = symbolSeries.map((s) => alignToAxis(axis, s));
-  const fxOf = (ccy: string) => (ccy === "USD" ? fx : 1);
+  // ── portfolio series from the flow-aware TWR engine ──
+  const series: SeriesPoint[] = performance?.series ?? [];
 
-  const series: SeriesPoint[] = [];
-  const spxMap = closeMapOf(benchSpx);
-  const tsxAligned = alignToAxis(axis, benchTsx);
-  axis.forEach((date, di) => {
-    let value = 0;
-    let covered = 0;
-    aggs.forEach((a, ai) => {
-      const px = aligned[ai][di];
-      if (px != null) {
-        value += a.units * px * fxOf(a.currency);
-        covered += a.mvCad;
-      }
-    });
-    // Skip leading dates where less than half the book has price history.
-    if (totalMv > 0 && covered / totalMv < 0.5) return;
-    series.push({
-      date,
-      portfolio: value,
-      spx: spxMap.get(date) ?? null,
-      tsx: tsxAligned[di],
-    });
-  });
-
-  // ── risk stats over the full window ──
+  // ── risk stats ──
   const values = series.map((p) => p.portfolio);
   const rets = dailyReturns(values);
   const sd = stdev(rets);
@@ -372,12 +319,14 @@ export async function getPortfolioAnalytics(
   return {
     hasHoldings: true,
     asOf: new Date().toISOString(),
-    fxNote: `USD at constant ${fx.toFixed(4)} CAD`,
+    fxNote: performance?.fxSource ?? "Bank of Canada USD/CAD",
     series,
     risk,
     sectors,
     income,
     calendar,
     performance,
+    mwrPct: performance?.mwr != null ? performance.mwr * 100 : null,
+    coverageIssues: performance?.coverageIssues ?? [],
   };
 }

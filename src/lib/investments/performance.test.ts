@@ -9,6 +9,7 @@ import {
   reconstructDailyHoldings,
   restateHoldingsForSplitAdjustedPrices,
   twr,
+  twrIndexSeries,
   valueSeries,
   type DailyValue,
   type PerformanceLedgerEntry,
@@ -583,5 +584,82 @@ describe("mwr", () => {
         "2021-12-31"
       )
     ).toBeNull();
+  });
+});
+
+describe("twrIndexSeries", () => {
+  it("returns empty array for empty values", () => {
+    expect(twrIndexSeries([], [])).toEqual([]);
+  });
+
+  it("accumulates a growth-of-1 index with no flows", () => {
+    const values = dailyValues("2024-01-01", "2024-01-03", (date) =>
+      date === "2024-01-01" ? 100 : date === "2024-01-02" ? 110 : 99
+    );
+    const result = twrIndexSeries(values, []);
+    expect(result).toHaveLength(3);
+    expect(result[0]).toEqual({ date: "2024-01-01", index: 1 });
+    expect(result[1]!.index).toBeCloseTo(1.1, 10);
+    expect(result[2]!.index).toBeCloseTo(0.99, 10);
+  });
+
+  it("applies the opening flow under the start-of-day convention", () => {
+    const result = twrIndexSeries(
+      [
+        { date: "2024-01-01", valueCad: 105 },
+        { date: "2024-01-02", valueCad: 115.5 },
+      ],
+      [{ date: "2024-01-01", amountCad: 100 }]
+    );
+    expect(result).toHaveLength(2);
+    // Day 1: index = 105 / 100 = 1.05
+    expect(result[0]!.index).toBeCloseTo(1.05, 10);
+    // Day 2: factor = 115.5 / 105 = 1.1; index = 1.05 * 1.1 = 1.155
+    expect(result[1]!.index).toBeCloseTo(1.155, 10);
+  });
+
+  it("applies a mid-series contribution at the start of the contribution day", () => {
+    const result = twrIndexSeries(
+      [
+        { date: "2024-01-01", valueCad: 100 },
+        { date: "2024-01-02", valueCad: 210 },
+        { date: "2024-01-03", valueCad: 220.5 },
+      ],
+      [{ date: "2024-01-02", amountCad: 100 }]
+    );
+    // Day 1 → Day 2: denominator = 100 + 100 = 200; factor = 210/200 = 1.05
+    // Day 2 → Day 3: denominator = 210 + 0 = 210; factor = 220.5/210 = 1.05
+    // index[0] = 1, index[1] = 1.05, index[2] = 1.05 * 1.05 = 1.1025
+    expect(result[0]!.index).toBeCloseTo(1, 10);
+    expect(result[1]!.index).toBeCloseTo(1.05, 10);
+    expect(result[2]!.index).toBeCloseTo(1.1025, 10);
+  });
+
+  it("stops at the first gap and returns results up to the gap", () => {
+    const result = twrIndexSeries(
+      [
+        { date: "2024-01-01", valueCad: 100 },
+        { date: "2024-01-02", valueCad: 110 },
+        // gap: no 2024-01-03
+        { date: "2024-01-04", valueCad: 120 },
+      ],
+      []
+    );
+    expect(result).toHaveLength(2);
+    expect(result.at(-1)!.date).toBe("2024-01-02");
+  });
+
+  it("index at the end matches the twr ALL scalar", () => {
+    const values: DailyValue[] = [
+      { date: "2024-01-01", valueCad: 105 },
+      { date: "2024-01-02", valueCad: 115.5 },
+      { date: "2024-01-03", valueCad: 120 },
+    ];
+    const flows = [{ date: "2024-01-01", amountCad: 100 }];
+    const index = twrIndexSeries(values, flows);
+    const scalar = twr(values, flows, "ALL");
+    expect(scalar).not.toBeNull();
+    // terminal index - 1 == TWR ALL scalar
+    expect(index.at(-1)!.index - 1).toBeCloseTo(scalar!, 10);
   });
 });
