@@ -4,6 +4,7 @@ import type { Account, Balance, BrokerageAuthorization, Position } from "snaptra
 import { prisma } from "@/lib/prisma";
 import { getFxRate } from "@/lib/fx/rates";
 import { syncActivitiesForAccount } from "@/lib/snaptrade/activities";
+import { appendToLedger } from "@/lib/investments/ledger-sync";
 import { ensureLogoRecord } from "@/lib/snaptrade/logo";
 import {
   isClosedSnapTradeAccountStatus,
@@ -410,6 +411,13 @@ async function syncConnection(input: {
       activitiesCount += await syncActivitiesForAccount({
         tenantId: input.tenantId,
         account: savedAccount,
+      });
+
+      await appendToLedger(input.tenantId, savedAccount.id).catch((error) => {
+        logger.warn(
+          { accountId: savedAccount.id, error: safeError(error) },
+          "ledger append failed (non-fatal)"
+        );
       });
     }
 
