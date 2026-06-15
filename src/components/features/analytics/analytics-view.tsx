@@ -19,8 +19,7 @@ export function AnalyticsView({ data }: { data: PortfolioAnalytics }) {
             <PortfolioTabs active="performance" />
           </div>
           <div className="page-sub">
-            PORTFOLIO STATISTICS · CURRENT HOLDINGS AT HISTORICAL PRICES · DESCRIPTIVE, NOT
-            PREDICTIVE
+            PORTFOLIO STATISTICS · TIME-WEIGHTED RETURN · DESCRIPTIVE, NOT PREDICTIVE
           </div>
         </div>
       </div>
@@ -35,7 +34,7 @@ export function AnalyticsView({ data }: { data: PortfolioAnalytics }) {
         </div>
       ) : (
         <>
-          <PerfChart series={data.series} fxNote={data.fxNote} />
+          <PerfChart series={data.series} fxNote={data.fxNote} mwrPct={data.mwrPct} />
 
           <div className="ana-grid">
             {data.risk && <RiskPanel risk={data.risk} />}
@@ -49,8 +48,8 @@ export function AnalyticsView({ data }: { data: PortfolioAnalytics }) {
 
           <div className="foot-note">
             <span>
-              Series reprices today&apos;s holdings at historical closes ({data.fxNote}) — it is not
-              a time-weighted return and ignores buys, sells &amp; cash flows.
+              Time-weighted return (TWR) — flow-neutralized daily chain-link. FX: {data.fxNote}.
+              MWR/XIRR is annualized, investor-perspective.
             </span>
             <span>Descriptive statistics — not financial advice</span>
           </div>

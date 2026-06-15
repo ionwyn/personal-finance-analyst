@@ -14,6 +14,7 @@ import {
   reconstructDailyHoldings,
   restateHoldingsForSplitAdjustedPrices,
   twr as computeTwr,
+  twrIndexSeries,
   valueSeries,
   type DailyHoldings,
   type PerformanceLedgerEntry,
@@ -58,6 +59,7 @@ export type HistoricalPerformance = {
     ALL: number | null;
   };
   mwr: number | null;
+  series: { date: string; portfolio: number; spx: number | null; tsx: number | null }[];
   coverageIssues: HistoricalCoverageIssue[];
 };
 
@@ -317,6 +319,44 @@ export async function loadHistoricalPerformance(
     ALL: computeTwr(values, flows, "ALL"),
   };
 
+  const indexSeries = twrIndexSeries(values, flows);
+  const seriesStart = indexSeries[0]?.date;
+  const seriesEnd = indexSeries.at(-1)?.date ?? endDate;
+
+  const [spxRaw, tsxRaw] = seriesStart
+    ? await Promise.all([
+        service
+          .getTimeSeriesRange("^GSPC", { startDate: seriesStart, endDate: seriesEnd })
+          .catch(() => [] as PricePoint[]),
+        service
+          .getTimeSeriesRange("^GSPTSE", { startDate: seriesStart, endDate: seriesEnd })
+          .catch(() => [] as PricePoint[]),
+      ])
+    : [[] as PricePoint[], [] as PricePoint[]];
+
+  const spxByDate = new Map(spxRaw.map((p) => [p.date, p.close]));
+  const tsxByDate = new Map(tsxRaw.map((p) => [p.date, p.close]));
+
+  function forwardFill(byDate: Map<string, number>, dates: string[]): (number | null)[] {
+    let last: number | null = null;
+    return dates.map((date) => {
+      const v = byDate.get(date);
+      if (v != null) last = v;
+      return last;
+    });
+  }
+
+  const indexDates = indexSeries.map((p) => p.date);
+  const spxAligned = forwardFill(spxByDate, indexDates);
+  const tsxAligned = forwardFill(tsxByDate, indexDates);
+
+  const series = indexSeries.map((p, i) => ({
+    date: p.date,
+    portfolio: p.index,
+    spx: spxAligned[i] ?? null,
+    tsx: tsxAligned[i] ?? null,
+  }));
+
   return {
     methodology: "total-portfolio",
     asOf: endDate,
@@ -339,6 +379,7 @@ export async function loadHistoricalPerformance(
     fxSource: "Bank of Canada FXUSDCAD",
     twr,
     mwr: terminal ? mwr(flows, terminal.valueCad, terminal.date) : null,
+    series,
     coverageIssues: coverageIssues.sort(
       (left, right) =>
         left.startDate.localeCompare(right.startDate) || left.symbol.localeCompare(right.symbol)

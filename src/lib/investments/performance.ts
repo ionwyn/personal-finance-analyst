@@ -600,6 +600,51 @@ export function twr(
   return Math.expm1(logReturn);
 }
 
+export function twrIndexSeries(
+  values: DailyValue[],
+  flows: ExternalFlow[]
+): { date: string; index: number }[] {
+  if (values.length === 0) return [];
+
+  const ordered = values
+    .map((value) => ({ ...value, date: calendarDate(value.date) }))
+    .sort((left, right) => left.date.localeCompare(right.date));
+
+  const flowByDate = aggregateFlows(flows);
+  const result: { date: string; index: number }[] = [];
+  let logIndex = 0;
+
+  const firstDate = ordered[0]!.date;
+  const openingFlow = flowByDate.get(firstDate) ?? 0;
+  if (openingFlow !== 0) {
+    if (openingFlow < 0) return [];
+    const openingFactor = ordered[0]!.valueCad / openingFlow;
+    if (!Number.isFinite(openingFactor) || openingFactor <= 0) return [];
+    logIndex += Math.log(openingFactor);
+  }
+  result.push({ date: firstDate, index: Math.exp(logIndex) });
+
+  for (let i = 1; i < ordered.length; i += 1) {
+    const previous = ordered[i - 1]!;
+    const current = ordered[i]!;
+    if (current.date !== addCalendarDays(previous.date, 1)) break;
+
+    const denominator = previous.valueCad + (flowByDate.get(current.date) ?? 0);
+    if (!Number.isFinite(denominator) || denominator <= 0) break;
+
+    const factor = current.valueCad / denominator;
+    if (!Number.isFinite(factor) || factor < 0) break;
+    if (factor === 0) {
+      result.push({ date: current.date, index: 0 });
+      break;
+    }
+    logIndex += Math.log(factor);
+    result.push({ date: current.date, index: Math.exp(logIndex) });
+  }
+
+  return result;
+}
+
 function investorCashFlows(
   flows: ExternalFlow[],
   terminalValueCad: number,
