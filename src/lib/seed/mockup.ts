@@ -1,10 +1,12 @@
 import {
+  BrokerLedgerIngestionMode,
   Prisma,
   SyncSource,
   TenantKind,
   SyncRunStatus,
   SnapTradeConnectionStatus,
 } from "@prisma/client";
+import { canonicalizeSnapTradeActivities } from "../investments/ledger-sync";
 import { prisma } from "../prisma";
 import { encryptToken } from "../security/token-crypto";
 
@@ -18,6 +20,16 @@ type SeedPosition = {
   units: number;
   price: number;
   avgCost: number;
+};
+
+type SeedMerchant = {
+  name: string;
+  min: number;
+  max: number;
+  primary: string;
+  detailed: string;
+  mcc: string;
+  accountId?: string;
 };
 
 function encrypt(token: string): string {
@@ -55,20 +67,32 @@ export async function seedMockupDemo() {
 
     await prisma.syncRun.deleteMany({ where: { tenantId } });
     await prisma.balanceSnapshot.deleteMany({ where: { tenantId } });
+    await prisma.committedSettlement.deleteMany({ where: { tenantId } });
     await prisma.plaidTransaction.deleteMany({ where: { tenantId } });
     await prisma.plaidAccount.deleteMany({ where: { tenantId } });
     await prisma.plaidItem.deleteMany({ where: { tenantId } });
     await prisma.snapTradeSyncRun.deleteMany({ where: { tenantId } });
+    await prisma.portfolioPerformancePoint.deleteMany({ where: { tenantId } });
+    await prisma.portfolioPerformanceSummary.deleteMany({ where: { tenantId } });
+    await prisma.brokerLedgerSourceRecord.deleteMany({ where: { tenantId } });
+    await prisma.brokerLedgerEntry.deleteMany({ where: { tenantId } });
+    await prisma.brokerLedgerIngestionRun.deleteMany({ where: { tenantId } });
+    await prisma.brokerLedgerCoverage.deleteMany({ where: { tenantId } });
+    await prisma.snapTradeActivity.deleteMany({ where: { tenantId } });
     await prisma.snapTradeCashBalance.deleteMany({ where: { tenantId } });
     await prisma.snapTradePosition.deleteMany({ where: { tenantId } });
     if (connIds.length > 0) {
       await prisma.snapTradeAccount.deleteMany({ where: { connectionId: { in: connIds } } });
     }
     await prisma.snapTradeConnection.deleteMany({ where: { tenantId } });
+    await prisma.budget.deleteMany({ where: { tenantId } });
+    await prisma.savingsGoal.deleteMany({ where: { tenantId } });
     await prisma.payCycle.deleteMany({ where: { tenantId } });
     await prisma.recurringExpense.deleteMany({ where: { tenantId } });
     await prisma.savingsDestination.deleteMany({ where: { tenantId } });
     await prisma.settlementPattern.deleteMany({ where: { tenantId } });
+    await prisma.incomeSource.deleteMany({ where: { tenantId } });
+    await prisma.watchlistItem.deleteMany({ where: { tenantId } });
     await prisma.userSettings.deleteMany({ where: { tenantId } });
     await prisma.user.deleteMany({ where: { tenantId } });
     await prisma.tenant.delete({ where: { id: tenantId } });
@@ -315,6 +339,15 @@ export async function seedMockupDemo() {
     const daysBack = Math.floor(Math.random() * 180);
     const place = foodPlaces[Math.floor(Math.random() * foodPlaces.length)];
     const amount = place.min + Math.random() * (place.max - place.min);
+    const isAlcohol = place.name === "LCBO";
+    const isGrocery = place.name === "LOBLAWS" || place.name === "FOOD BASICS";
+    const detailed = isAlcohol
+      ? "FOOD_AND_DRINK_BEER_WINE_AND_LIQUOR"
+      : isGrocery
+        ? "FOOD_AND_DRINK_GROCERIES"
+        : place.name === "STARBUCKS" || place.name === "TIM HORTONS"
+          ? "FOOD_AND_DRINK_COFFEE"
+          : "FOOD_AND_DRINK_RESTAURANTS";
 
     transactions.push({
       tenantId: tenant.id,
@@ -326,11 +359,19 @@ export async function seedMockupDemo() {
       amount: parseFloat(amount.toFixed(2)),
       date: getDateDaysAgo(daysBack),
       categoryPrimary: "FOOD_AND_DRINK",
-      categoryDetailed: "FOOD_AND_DRINK_RESTAURANTS",
+      categoryDetailed: detailed,
+      categoryConfidence: "VERY_HIGH",
       pending: false,
       source: SyncSource.SEED,
       removed: false,
-      raw: {},
+      raw: {
+        personal_finance_category: {
+          primary: "FOOD_AND_DRINK",
+          detailed,
+          confidence_level: "VERY_HIGH",
+        },
+        mcc: isAlcohol ? "5921" : isGrocery ? "5411" : "5812",
+      },
     });
   }
 
@@ -351,19 +392,59 @@ export async function seedMockupDemo() {
       categoryDetailed: isPresto
         ? "TRANSPORTATION_PUBLIC_TRANSIT"
         : "TRANSPORTATION_TAXIS_AND_RIDE_SHARING",
+      categoryConfidence: "VERY_HIGH",
       pending: false,
       source: SyncSource.SEED,
       removed: false,
-      raw: {},
+      raw: {
+        personal_finance_category: {
+          primary: "TRANSPORTATION",
+          detailed: isPresto
+            ? "TRANSPORTATION_PUBLIC_TRANSIT"
+            : "TRANSPORTATION_TAXIS_AND_RIDE_SHARING",
+          confidence_level: "VERY_HIGH",
+        },
+        mcc: isPresto ? "4111" : "4121",
+      },
     });
   }
 
   const shopping = [
-    { name: "AMAZON.CA", min: 20, max: 150, cat: "GENERAL_MERCHANDISE_ONLINE_MARKETPLACES" },
-    { name: "REXALL DRUG STORE", min: 15, max: 45, cat: "PERSONAL_CARE_DRUGSTORES" },
+    {
+      name: "AMAZON.CA",
+      min: 20,
+      max: 150,
+      primary: "GENERAL_MERCHANDISE",
+      detailed: "GENERAL_MERCHANDISE_ONLINE_MARKETPLACES",
+      mcc: "5399",
+    },
+    {
+      name: "REXALL DRUG STORE",
+      min: 15,
+      max: 45,
+      primary: "PERSONAL_CARE",
+      detailed: "PERSONAL_CARE_DRUGSTORES",
+      mcc: "5912",
+    },
+    {
+      name: "WINNERS",
+      min: 30,
+      max: 120,
+      primary: "GENERAL_MERCHANDISE",
+      detailed: "GENERAL_MERCHANDISE_DEPARTMENT_STORES",
+      mcc: "5311",
+    },
+    {
+      name: "UNIQLO",
+      min: 25,
+      max: 180,
+      primary: "GENERAL_MERCHANDISE",
+      detailed: "GENERAL_MERCHANDISE_CLOTHING_AND_ACCESSORIES",
+      mcc: "5651",
+    },
   ];
 
-  for (let i = 0; i < 36; i++) {
+  for (let i = 0; i < 56; i++) {
     const daysBack = Math.floor(Math.random() * 180);
     const place = shopping[Math.floor(Math.random() * shopping.length)];
     const amount = place.min + Math.random() * (place.max - place.min);
@@ -377,12 +458,20 @@ export async function seedMockupDemo() {
       merchantName: place.name,
       amount: parseFloat(amount.toFixed(2)),
       date: getDateDaysAgo(daysBack),
-      categoryPrimary: "GENERAL_MERCHANDISE",
-      categoryDetailed: place.cat,
+      categoryPrimary: place.primary,
+      categoryDetailed: place.detailed,
+      categoryConfidence: "VERY_HIGH",
       pending: false,
       source: SyncSource.SEED,
       removed: false,
-      raw: {},
+      raw: {
+        personal_finance_category: {
+          primary: place.primary,
+          detailed: place.detailed,
+          confidence_level: "VERY_HIGH",
+        },
+        mcc: place.mcc,
+      },
     });
   }
 
@@ -486,18 +575,74 @@ export async function seedMockupDemo() {
     });
   }
 
-  const services = [
-    { name: "SPORT CLIPS HAIR SALON", min: 25, max: 40, cat: "PERSONAL_CARE_HAIR_AND_BEAUTY" },
-    { name: "DRY CLEAN EXPRESS", min: 15, max: 35, cat: "PERSONAL_CARE_LAUNDRY_AND_DRY_CLEANING" },
-    { name: "STATE FARM INSURANCE", min: 180, max: 220, cat: "GENERAL_SERVICES_INSURANCE" },
-    { name: "KIJIJI EDUCATION COURSE", min: 50, max: 500, cat: "GENERAL_SERVICES_EDUCATION" },
-    { name: "HOME DEPOT", min: 60, max: 250, cat: "HOME_IMPROVEMENT_HARDWARE" },
-    { name: "IKEA FURNITURE", min: 100, max: 400, cat: "HOME_IMPROVEMENT_FURNITURE" },
-    { name: "BEST BUY ELECTRONICS", min: 50, max: 300, cat: "GENERAL_MERCHANDISE_ELECTRONICS" },
-    { name: "PETCO PETS", min: 30, max: 150, cat: "GENERAL_MERCHANDISE_PET_SUPPLIES" },
+  const services: SeedMerchant[] = [
+    {
+      name: "SPORT CLIPS HAIR SALON",
+      min: 25,
+      max: 40,
+      primary: "PERSONAL_CARE",
+      detailed: "PERSONAL_CARE_HAIR_AND_BEAUTY",
+      mcc: "7230",
+    },
+    {
+      name: "DRY CLEAN EXPRESS",
+      min: 15,
+      max: 35,
+      primary: "PERSONAL_CARE",
+      detailed: "PERSONAL_CARE_LAUNDRY_AND_DRY_CLEANING",
+      mcc: "7216",
+    },
+    {
+      name: "STATE FARM INSURANCE",
+      min: 180,
+      max: 220,
+      primary: "GENERAL_SERVICES",
+      detailed: "GENERAL_SERVICES_INSURANCE",
+      mcc: "6300",
+    },
+    {
+      name: "COURSERA",
+      min: 50,
+      max: 500,
+      primary: "GENERAL_SERVICES",
+      detailed: "GENERAL_SERVICES_EDUCATION",
+      mcc: "8299",
+    },
+    {
+      name: "HOME DEPOT",
+      min: 60,
+      max: 250,
+      primary: "HOME_IMPROVEMENT",
+      detailed: "HOME_IMPROVEMENT_HARDWARE",
+      mcc: "5200",
+    },
+    {
+      name: "IKEA FURNITURE",
+      min: 100,
+      max: 400,
+      primary: "HOME_IMPROVEMENT",
+      detailed: "HOME_IMPROVEMENT_FURNITURE",
+      mcc: "5712",
+    },
+    {
+      name: "BEST BUY ELECTRONICS",
+      min: 50,
+      max: 300,
+      primary: "GENERAL_MERCHANDISE",
+      detailed: "GENERAL_MERCHANDISE_ELECTRONICS",
+      mcc: "5732",
+    },
+    {
+      name: "PETSMART",
+      min: 30,
+      max: 150,
+      primary: "GENERAL_MERCHANDISE",
+      detailed: "GENERAL_MERCHANDISE_PET_SUPPLIES",
+      mcc: "5995",
+    },
   ];
 
-  for (let i = 0; i < 32; i++) {
+  for (let i = 0; i < 48; i++) {
     const daysBack = Math.floor(Math.random() * 180);
     const place = services[Math.floor(Math.random() * services.length)];
     const amount = place.min + Math.random() * (place.max - place.min);
@@ -511,12 +656,168 @@ export async function seedMockupDemo() {
       merchantName: place.name,
       amount: parseFloat(amount.toFixed(2)),
       date: getDateDaysAgo(daysBack),
-      categoryPrimary: place.cat.split("_")[0],
-      categoryDetailed: place.cat,
+      categoryPrimary: place.primary,
+      categoryDetailed: place.detailed,
+      categoryConfidence: "VERY_HIGH",
       pending: false,
       source: SyncSource.SEED,
       removed: false,
-      raw: {},
+      raw: {
+        personal_finance_category: {
+          primary: place.primary,
+          detailed: place.detailed,
+          confidence_level: "VERY_HIGH",
+        },
+        mcc: place.mcc,
+      },
+    });
+  }
+
+  const everydayMerchants: SeedMerchant[] = [
+    {
+      name: "UBER EATS",
+      min: 18,
+      max: 48,
+      primary: "FOOD_AND_DRINK",
+      detailed: "FOOD_AND_DRINK_DELIVERY",
+      mcc: "5814",
+    },
+    {
+      name: "DOORDASH",
+      min: 20,
+      max: 55,
+      primary: "FOOD_AND_DRINK",
+      detailed: "FOOD_AND_DRINK_DELIVERY",
+      mcc: "5814",
+    },
+    {
+      name: "THE KEG STEAKHOUSE",
+      min: 85,
+      max: 180,
+      primary: "FOOD_AND_DRINK",
+      detailed: "FOOD_AND_DRINK_RESTAURANTS",
+      mcc: "5812",
+    },
+    {
+      name: "BAR HOP",
+      min: 35,
+      max: 110,
+      primary: "FOOD_AND_DRINK",
+      detailed: "FOOD_AND_DRINK_BEER_WINE_AND_LIQUOR",
+      mcc: "5813",
+    },
+    {
+      name: "FARM BOY",
+      min: 45,
+      max: 155,
+      primary: "FOOD_AND_DRINK",
+      detailed: "FOOD_AND_DRINK_GROCERIES",
+      mcc: "5411",
+    },
+    {
+      name: "BIKE SHARE TORONTO",
+      min: 7,
+      max: 18,
+      primary: "TRANSPORTATION",
+      detailed: "TRANSPORTATION_BIKES_AND_SCOOTERS",
+      mcc: "7999",
+    },
+    {
+      name: "GO TRANSIT",
+      min: 11,
+      max: 28,
+      primary: "TRANSPORTATION",
+      detailed: "TRANSPORTATION_PUBLIC_TRANSIT",
+      mcc: "4111",
+    },
+    {
+      name: "GREEN P PARKING",
+      min: 6,
+      max: 24,
+      primary: "TRANSPORTATION",
+      detailed: "TRANSPORTATION_PARKING",
+      mcc: "7523",
+    },
+    {
+      name: "COMMUNAUTO",
+      min: 32,
+      max: 95,
+      primary: "TRANSPORTATION",
+      detailed: "TRANSPORTATION_CAR_RENTAL",
+      mcc: "7512",
+    },
+    {
+      name: "AIRBNB",
+      min: 120,
+      max: 420,
+      primary: "TRAVEL",
+      detailed: "TRAVEL_LODGING",
+      mcc: "7011",
+      accountId: chequing.id,
+    },
+    {
+      name: "PORTER AIRLINES",
+      min: 180,
+      max: 650,
+      primary: "TRAVEL",
+      detailed: "TRAVEL_FLIGHTS",
+      mcc: "4511",
+      accountId: chequing.id,
+    },
+    {
+      name: "APPLE SERVICES",
+      min: 3,
+      max: 16,
+      primary: "ENTERTAINMENT",
+      detailed: "ENTERTAINMENT_STREAMING_AND_DOWNLOADS",
+      mcc: "5815",
+    },
+    {
+      name: "TORONTO PUBLIC LIBRARY",
+      min: 2,
+      max: 15,
+      primary: "ENTERTAINMENT",
+      detailed: "ENTERTAINMENT_BOOKSTORES_AND_NEWSSTANDS",
+      mcc: "5942",
+    },
+    {
+      name: "MAPLE LEAFS TICKETS",
+      min: 95,
+      max: 340,
+      primary: "ENTERTAINMENT",
+      detailed: "ENTERTAINMENT_SPORTING_EVENTS_AMUSEMENT_PARKS_MUSEUMS",
+      mcc: "7941",
+    },
+  ];
+
+  for (let i = 0; i < 96; i++) {
+    const daysBack = Math.floor(Math.random() * 180);
+    const place = everydayMerchants[Math.floor(Math.random() * everydayMerchants.length)];
+    const amount = place.min + Math.random() * (place.max - place.min);
+
+    transactions.push({
+      tenantId: tenant.id,
+      itemId: plaidItem.id,
+      accountId: place.accountId ?? visa.id,
+      plaidTransactionId: `mock-txn-${txnId++}`,
+      name: place.name,
+      merchantName: place.name,
+      amount: parseFloat(amount.toFixed(2)),
+      date: getDateDaysAgo(daysBack),
+      categoryPrimary: place.primary,
+      categoryDetailed: place.detailed,
+      categoryConfidence: "VERY_HIGH",
+      pending: false,
+      source: SyncSource.SEED,
+      removed: false,
+      raw: {
+        personal_finance_category: {
+          primary: place.primary,
+          detailed: place.detailed,
+          confidence_level: "VERY_HIGH",
+        },
+        mcc: place.mcc,
+      },
     });
   }
 
@@ -685,9 +986,13 @@ export async function seedMockupDemo() {
         snapTradeAccountId: "acct-tfsa",
         rawType: "TFSA",
         accountCategory: "TFSA",
+        unifiedAccountType: "SELF_DIRECTED_TFSA",
+        institutionName: "Questrade",
+        currency: "CAD",
         totalValue: 95000,
         isPaper: false,
         holdingsInitialSyncComplete: true,
+        lastHoldingsSyncAt: new Date(),
         name: "Questrade TFSA",
       },
     }),
@@ -698,9 +1003,13 @@ export async function seedMockupDemo() {
         snapTradeAccountId: "acct-rrsp",
         rawType: "RRSP",
         accountCategory: "RRSP",
+        unifiedAccountType: "SELF_DIRECTED_RRSP",
+        institutionName: "Questrade",
+        currency: "CAD",
         totalValue: 80000,
         isPaper: false,
         holdingsInitialSyncComplete: true,
+        lastHoldingsSyncAt: new Date(),
         name: "Questrade RRSP",
       },
     }),
@@ -711,9 +1020,13 @@ export async function seedMockupDemo() {
         snapTradeAccountId: "acct-nonreg",
         rawType: "Individual",
         accountCategory: "Individual",
+        unifiedAccountType: "SELF_DIRECTED_NON_REGISTERED_MARGIN",
+        institutionName: "Questrade",
+        currency: "CAD",
         totalValue: 27000,
         isPaper: false,
         holdingsInitialSyncComplete: true,
+        lastHoldingsSyncAt: new Date(),
         name: "Questrade Non-Registered",
       },
     }),
@@ -944,9 +1257,13 @@ export async function seedMockupDemo() {
         snapTradeAccountId: "ibkr-main",
         rawType: "Individual",
         accountCategory: "Individual",
+        unifiedAccountType: "SELF_DIRECTED_NON_REGISTERED_MARGIN",
+        institutionName: "Interactive Brokers",
+        currency: "USD",
         totalValue: 180000,
         isPaper: false,
         holdingsInitialSyncComplete: true,
+        lastHoldingsSyncAt: new Date(),
         name: "Interactive Brokers Main",
       },
     }),
@@ -979,36 +1296,36 @@ export async function seedMockupDemo() {
     },
     {
       snapTradeAccountId: ibkrMainAcc.id,
-      symbol: "GOOGL",
-      rawSymbol: "GOOGL",
-      assetType: "cs",
+      symbol: "VEA",
+      rawSymbol: "VEA",
+      assetType: "et",
       exchange: "NASDAQ",
       currency: "USD",
-      units: 25,
-      price: 396.45,
-      avgCost: 360.8,
+      units: 180,
+      price: 52.8,
+      avgCost: 48.9,
     },
     {
       snapTradeAccountId: ibkrMainAcc.id,
-      symbol: "AMZN",
-      rawSymbol: "AMZN",
-      assetType: "cs",
-      exchange: "NASDAQ",
+      symbol: "AGG",
+      rawSymbol: "AGG",
+      assetType: "bond",
+      exchange: "ARCA",
       currency: "USD",
-      units: 40,
-      price: 198.72,
-      avgCost: 165.5,
+      units: 95,
+      price: 98.6,
+      avgCost: 100.2,
     },
     {
       snapTradeAccountId: ibkrMainAcc.id,
-      symbol: "TSLA",
-      rawSymbol: "TSLA",
-      assetType: "cs",
+      symbol: "TLT",
+      rawSymbol: "TLT",
+      assetType: "bond",
       exchange: "NASDAQ",
       currency: "USD",
-      units: 30,
-      price: 427.15,
-      avgCost: 380.0,
+      units: 70,
+      price: 88.4,
+      avgCost: 93.75,
     },
     {
       snapTradeAccountId: ibkrMainAcc.id,
@@ -1034,58 +1351,91 @@ export async function seedMockupDemo() {
     },
     {
       snapTradeAccountId: ibkrMainAcc.id,
-      symbol: "AMD",
-      rawSymbol: "AMD",
-      assetType: "cs",
+      symbol: "BNDX",
+      rawSymbol: "BNDX",
+      assetType: "bond",
       exchange: "NASDAQ",
       currency: "USD",
-      units: 60,
-      price: 178.45,
-      avgCost: 145.2,
+      units: 110,
+      price: 49.3,
+      avgCost: 50.8,
     },
     {
       snapTradeAccountId: ibkrMainAcc.id,
-      symbol: "JPM",
-      rawSymbol: "JPM",
-      assetType: "cs",
-      exchange: "NYSE",
-      currency: "USD",
-      units: 55,
-      price: 192.3,
-      avgCost: 175.8,
+      symbol: "XBB.TO",
+      rawSymbol: "XBB",
+      assetType: "bond",
+      exchange: "TSX",
+      currency: "CAD",
+      units: 240,
+      price: 27.35,
+      avgCost: 28.1,
     },
     {
       snapTradeAccountId: ibkrMainAcc.id,
-      symbol: "JNJ",
-      rawSymbol: "JNJ",
-      assetType: "cs",
-      exchange: "NYSE",
+      symbol: "VTI",
+      rawSymbol: "VTI",
+      assetType: "et",
+      exchange: "ARCA",
       currency: "USD",
       units: 35,
-      price: 155.72,
-      avgCost: 142.1,
+      price: 363.48,
+      avgCost: 322.4,
     },
     {
       snapTradeAccountId: ibkrMainAcc.id,
-      symbol: "PG",
-      rawSymbol: "PG",
-      assetType: "cs",
-      exchange: "NYSE",
-      currency: "USD",
-      units: 40,
-      price: 168.45,
-      avgCost: 155.3,
+      symbol: "VFV.TO",
+      rawSymbol: "VFV",
+      assetType: "et",
+      exchange: "TSX",
+      currency: "CAD",
+      units: 70,
+      price: 162.45,
+      avgCost: 141.3,
     },
     {
       snapTradeAccountId: ibkrMainAcc.id,
-      symbol: "KO",
-      rawSymbol: "KO",
-      assetType: "cs",
-      exchange: "NYSE",
+      symbol: "SGOV",
+      rawSymbol: "SGOV",
+      assetType: "bond",
+      exchange: "ARCA",
       currency: "USD",
-      units: 80,
-      price: 68.9,
-      avgCost: 62.5,
+      units: 45,
+      price: 100.5,
+      avgCost: 100.4,
+    },
+    {
+      snapTradeAccountId: ibkrMainAcc.id,
+      symbol: "SCHD",
+      rawSymbol: "SCHD",
+      assetType: "et",
+      exchange: "ARCA",
+      currency: "USD",
+      units: 85,
+      price: 27.4,
+      avgCost: 24.9,
+    },
+    {
+      snapTradeAccountId: ibkrMainAcc.id,
+      symbol: "XIC.TO",
+      rawSymbol: "XIC",
+      assetType: "et",
+      exchange: "TSX",
+      currency: "CAD",
+      units: 165,
+      price: 34.15,
+      avgCost: 30.2,
+    },
+    {
+      snapTradeAccountId: ibkrMainAcc.id,
+      symbol: "IEFA",
+      rawSymbol: "IEFA",
+      assetType: "et",
+      exchange: "BATS",
+      currency: "USD",
+      units: 75,
+      price: 78.2,
+      avgCost: 72.5,
     },
   ];
 
@@ -1191,6 +1541,131 @@ export async function seedMockupDemo() {
     },
   });
 
+  const activityRows: Prisma.SnapTradeActivityCreateManyInput[] = [
+    {
+      tenantId: tenant.id,
+      accountId: tfsaAcc.id,
+      snapTradeActivityId: "mock-act-tfsa-contribution-001",
+      type: "CONTRIBUTION",
+      description: "EFT contribution",
+      amount: 2000,
+      currency: "CAD",
+      fxRate: 1,
+      tradeDate: getDateDaysAgo(24),
+      settlementDate: getDateDaysAgo(24),
+      institution: "Questrade",
+      raw: {},
+    },
+    {
+      tenantId: tenant.id,
+      accountId: tfsaAcc.id,
+      snapTradeActivityId: "mock-act-tfsa-buy-xuu-001",
+      type: "BUY",
+      symbol: "XUU.TO",
+      description: "Buy 25 XUU.TO",
+      units: 25,
+      price: 42.85,
+      amount: -1071.25,
+      currency: "CAD",
+      fxRate: 1,
+      tradeDate: getDateDaysAgo(23),
+      settlementDate: getDateDaysAgo(21),
+      institution: "Questrade",
+      raw: {
+        symbol: {
+          symbol: "XUU.TO",
+          raw_symbol: "XUU",
+          description: "iShares Core S&P U.S. Total Market Index ETF",
+        },
+      },
+    },
+    {
+      tenantId: tenant.id,
+      accountId: rrspAcc.id,
+      snapTradeActivityId: "mock-act-rrsp-div-aapl-001",
+      type: "DIVIDEND",
+      symbol: "AAPL",
+      description: "Dividend from AAPL",
+      amount: 18.5,
+      currency: "USD",
+      fxRate: usdToCAD,
+      tradeDate: getDateDaysAgo(18),
+      settlementDate: getDateDaysAgo(18),
+      institution: "Questrade",
+      raw: { symbol: { symbol: "AAPL", raw_symbol: "AAPL", description: "Apple Inc." } },
+    },
+    {
+      tenantId: tenant.id,
+      accountId: rrspAcc.id,
+      snapTradeActivityId: "mock-act-rrsp-tax-aapl-001",
+      type: "TAX",
+      symbol: "AAPL",
+      description: "Foreign withholding tax AAPL",
+      amount: -2.78,
+      currency: "USD",
+      fxRate: usdToCAD,
+      tradeDate: getDateDaysAgo(18),
+      settlementDate: getDateDaysAgo(18),
+      institution: "Questrade",
+      raw: { symbol: { symbol: "AAPL", raw_symbol: "AAPL", description: "Apple Inc." } },
+    },
+    {
+      tenantId: tenant.id,
+      accountId: nonregAcc.id,
+      snapTradeActivityId: "mock-act-nonreg-sell-tsla-001",
+      type: "SELL",
+      symbol: "TSLA",
+      description: "Sell 3 TSLA",
+      units: 3,
+      price: 421.2,
+      amount: 1263.6,
+      currency: "USD",
+      fxRate: usdToCAD,
+      tradeDate: getDateDaysAgo(12),
+      settlementDate: getDateDaysAgo(10),
+      institution: "Questrade",
+      raw: { symbol: { symbol: "TSLA", raw_symbol: "TSLA", description: "Tesla Inc." } },
+    },
+    {
+      tenantId: tenant.id,
+      accountId: ibkrMainAcc.id,
+      snapTradeActivityId: "mock-act-ibkr-buy-amzn-001",
+      type: "BUY",
+      symbol: "AMZN",
+      description: "Buy 10 AMZN",
+      units: 10,
+      price: 184.3,
+      amount: -1843,
+      currency: "USD",
+      fxRate: usdToCAD,
+      tradeDate: getDateDaysAgo(35),
+      settlementDate: getDateDaysAgo(33),
+      institution: "Interactive Brokers",
+      raw: { symbol: { symbol: "AMZN", raw_symbol: "AMZN", description: "Amazon.com Inc." } },
+    },
+    {
+      tenantId: tenant.id,
+      accountId: ibkrMainAcc.id,
+      snapTradeActivityId: "mock-act-ibkr-interest-001",
+      type: "INTEREST",
+      description: "Cash interest",
+      amount: 9.25,
+      currency: "USD",
+      fxRate: usdToCAD,
+      tradeDate: getDateDaysAgo(8),
+      settlementDate: getDateDaysAgo(8),
+      institution: "Interactive Brokers",
+      raw: {},
+    },
+  ];
+  await prisma.snapTradeActivity.createMany({ data: activityRows });
+  const ledgerResult = await canonicalizeSnapTradeActivities(tenant.id, {
+    mode: BrokerLedgerIngestionMode.MIGRATION,
+  });
+  console.log(
+    `  ✓ Created ${activityRows.length} SnapTradeActivities and ${ledgerResult.canonicalizedCount} BrokerLedgerEntries`
+  );
+
   const cycles: Prisma.PayCycleCreateManyInput[] = [];
   for (let i = 0; i < 13; i++) {
     const endDate = getLastFriday(i * 14);
@@ -1250,6 +1725,47 @@ export async function seedMockupDemo() {
         matchPattern: "QUESTRADE",
         label: "investing",
       },
+    ],
+  });
+
+  const investingDestination = await prisma.savingsDestination.findFirstOrThrow({
+    where: { tenantId: tenant.id, matchPattern: "QUESTRADE" },
+  });
+
+  await prisma.budget.createMany({
+    data: [
+      { tenantId: tenant.id, categoryPrimary: "FOOD_AND_DRINK", amount: 950 },
+      { tenantId: tenant.id, categoryPrimary: "TRANSPORTATION", amount: 425 },
+      { tenantId: tenant.id, categoryPrimary: "TRAVEL", amount: 800 },
+      { tenantId: tenant.id, categoryPrimary: "ENTERTAINMENT", amount: 300 },
+    ],
+  });
+
+  await prisma.savingsGoal.createMany({
+    data: [
+      {
+        tenantId: tenant.id,
+        name: "Emergency fund",
+        targetAmount: 20000,
+        startDate: getDateDaysAgo(180),
+        targetDate: getDateDaysAgo(-180),
+        savingsDestinationId: investingDestination.id,
+      },
+      {
+        tenantId: tenant.id,
+        name: "Vacation fund",
+        targetAmount: 6000,
+        startDate: getDateDaysAgo(90),
+        targetDate: getDateDaysAgo(-120),
+      },
+    ],
+  });
+
+  await prisma.watchlistItem.createMany({
+    data: [
+      { tenantId: tenant.id, symbol: "AMD", name: "Advanced Micro Devices", exchange: "NASDAQ" },
+      { tenantId: tenant.id, symbol: "SHOP.TO", name: "Shopify", exchange: "TSX" },
+      { tenantId: tenant.id, symbol: "COST", name: "Costco Wholesale", exchange: "NASDAQ" },
     ],
   });
 
