@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { signOut } from "next-auth/react";
@@ -9,6 +9,8 @@ import {
   ArrowLeftRight,
   CalendarClock,
   CandlestickChart,
+  ChevronLeft,
+  ChevronRight,
   LayoutGrid,
   LogOut,
   PieChart,
@@ -19,6 +21,9 @@ import {
 } from "lucide-react";
 
 import styles from "./app-shell.module.scss";
+
+const COLLAPSED_KEY = "sidebar-collapsed";
+const COLLAPSED_W = "48px";
 
 export type SidebarUser = {
   name?: string | null;
@@ -37,128 +42,93 @@ type NavItem = {
 
 const ICON_SIZE = 14;
 
+type NavSection = {
+  label: string;
+  items: NavItem[];
+};
+
 export function Sidebar({ mode, user }: { mode: "private" | "demo"; user?: SidebarUser }) {
   const pathname = usePathname() ?? "/";
   const router = useRouter();
+  const [collapsed, setCollapsed] = useState(
+    () => typeof window !== "undefined" && localStorage.getItem(COLLAPSED_KEY) === "1"
+  );
 
-  const primary: NavItem[] =
-    mode === "private"
-      ? [
-          {
-            key: "dashboard",
-            label: "Dashboard",
-            href: "/app?home=1",
-            icon: <LayoutGrid size={ICON_SIZE} />,
-            kbd: "⌘1",
-          },
-          {
-            key: "accounts",
-            label: "Accounts",
-            href: "/app/accounts",
-            icon: <Wallet size={ICON_SIZE} />,
-            kbd: "⌘2",
-          },
-          {
-            key: "transactions",
-            label: "Transactions",
-            href: "/app/transactions",
-            icon: <ArrowLeftRight size={ICON_SIZE} />,
-            kbd: "⌘3",
-          },
-          {
-            key: "spending-insight",
-            label: "Spending Insight",
-            href: "/app/spending-insight",
-            icon: <PieChart size={ICON_SIZE} />,
-            kbd: "⌘4",
-          },
-          {
-            key: "portfolio",
-            label: "Portfolio",
-            href: "/app/portfolio",
-            icon: <TrendingUp size={ICON_SIZE} />,
-            kbd: "⌘5",
-          },
-          {
-            key: "markets",
-            label: "Markets",
-            href: "/app/markets",
-            icon: <CandlestickChart size={ICON_SIZE} />,
-            kbd: "⌘6",
-          },
-          {
-            key: "cycles",
-            label: "Pay cycles",
-            href: "/app/cycles",
-            icon: <CalendarClock size={ICON_SIZE} />,
-            kbd: "⌘7",
-          },
-          {
-            key: "budgets",
-            label: "Budgets & Goals",
-            href: "/app/budgets",
-            icon: <Target size={ICON_SIZE} />,
-            kbd: "⌘8",
-          },
-        ]
-      : [
-          {
-            key: "dashboard",
-            label: "Dashboard",
-            href: "/app?home=1",
-            icon: <LayoutGrid size={ICON_SIZE} />,
-            kbd: "⌘1",
-          },
-          {
-            key: "accounts",
-            label: "Accounts",
-            href: "/app/accounts",
-            icon: <Wallet size={ICON_SIZE} />,
-            kbd: "⌘2",
-          },
-          {
-            key: "transactions",
-            label: "Transactions",
-            href: "/app/transactions",
-            icon: <ArrowLeftRight size={ICON_SIZE} />,
-            kbd: "⌘3",
-          },
-          {
-            key: "spending-insight",
-            label: "Spending Insight",
-            href: "/app/spending-insight",
-            icon: <PieChart size={ICON_SIZE} />,
-            kbd: "⌘4",
-          },
-          {
-            key: "portfolio",
-            label: "Portfolio",
-            href: "/app/portfolio",
-            icon: <TrendingUp size={ICON_SIZE} />,
-            kbd: "⌘5",
-          },
-          {
-            key: "markets",
-            label: "Markets",
-            href: "/app/markets",
-            icon: <CandlestickChart size={ICON_SIZE} />,
-            kbd: "⌘6",
-          },
-          {
-            key: "cycles",
-            label: "Pay cycles",
-            href: "/app/cycles",
-            icon: <CalendarClock size={ICON_SIZE} />,
-            kbd: "⌘7",
-          },
-          {
-            key: "budgets",
-            label: "Budgets & Goals",
-            href: "/app/budgets",
-            icon: <Target size={ICON_SIZE} />,
-            kbd: "⌘8",
-          },
-        ];
+  useEffect(() => {
+    document.documentElement.style.setProperty("--sidebar-w", collapsed ? COLLAPSED_W : "");
+    localStorage.setItem(COLLAPSED_KEY, collapsed ? "1" : "0");
+  }, [collapsed]);
+
+  const overview: NavItem[] = [
+    {
+      key: "dashboard",
+      label: "Dashboard",
+      href: "/app?home=1",
+      icon: <LayoutGrid size={ICON_SIZE} />,
+      kbd: "⌘1",
+    },
+  ];
+
+  const banking: NavItem[] = [
+    {
+      key: "accounts",
+      label: "Accounts",
+      href: "/app/accounts",
+      icon: <Wallet size={ICON_SIZE} />,
+      kbd: "⌘2",
+    },
+    {
+      key: "transactions",
+      label: "Transactions",
+      href: "/app/transactions",
+      icon: <ArrowLeftRight size={ICON_SIZE} />,
+      kbd: "⌘3",
+    },
+    {
+      key: "spending-insight",
+      label: "Spending Insight",
+      href: "/app/spending-insight",
+      icon: <PieChart size={ICON_SIZE} />,
+      kbd: "⌘4",
+    },
+    {
+      key: "cycles",
+      label: "Pay Cycles",
+      href: "/app/cycles",
+      icon: <CalendarClock size={ICON_SIZE} />,
+      kbd: "⌘5",
+    },
+    {
+      key: "budgets",
+      label: "Budgets & Goals",
+      href: "/app/budgets",
+      icon: <Target size={ICON_SIZE} />,
+      kbd: "⌘6",
+    },
+  ];
+
+  const investing: NavItem[] = [
+    {
+      key: "portfolio",
+      label: "Portfolio",
+      href: "/app/portfolio",
+      icon: <TrendingUp size={ICON_SIZE} />,
+      kbd: "⌘7",
+    },
+    {
+      key: "markets",
+      label: "Markets",
+      href: "/app/markets",
+      icon: <CandlestickChart size={ICON_SIZE} />,
+      kbd: "⌘8",
+    },
+  ];
+
+  const sections: NavSection[] = [
+    { label: "Overview", items: overview },
+    { label: "Banking", items: banking },
+    { label: "Investing", items: investing },
+  ];
 
   const secondary: NavItem[] =
     mode === "private"
@@ -209,44 +179,52 @@ export function Sidebar({ mode, user }: { mode: "private" | "demo"; user?: Sideb
       .map((s) => s[0]?.toUpperCase() ?? "")
       .join("") || "—";
 
+  const renderItem = (item: NavItem) => (
+    <Link
+      key={item.key}
+      className={clsx(styles.navItem, isActive(item.href) && styles.active)}
+      href={item.href as never}
+      title={collapsed ? item.label : undefined}
+    >
+      <span className={styles.navIcon} style={{ width: ICON_SIZE, height: ICON_SIZE }}>
+        {item.icon}
+      </span>
+      <span className={styles.navLabel}>{item.label}</span>
+      {item.kbd ? <span className={styles.navKbd}>{item.kbd}</span> : null}
+    </Link>
+  );
+
   return (
-    <aside className={styles.sidebar}>
+    <aside className={clsx(styles.sidebar, collapsed && styles.collapsed)}>
       <div className={styles.brand}>
         <div className={styles.brandMark}>WYN</div>
         <div className={styles.brandName}>WYN Financial Ltd.</div>
       </div>
 
       <nav className={styles.nav}>
-        <div className={styles.navSection}>Workspace</div>
-        {primary.map((item) => (
-          <Link
-            key={item.key}
-            className={clsx(styles.navItem, isActive(item.href) && styles.active)}
-            href={item.href as never}
-          >
-            <span className={styles.navIcon} style={{ width: ICON_SIZE, height: ICON_SIZE }}>
-              {item.icon}
-            </span>
-            {item.label}
-            {item.kbd ? <span className={styles.navKbd}>{item.kbd}</span> : null}
-          </Link>
+        {sections.map((section) => (
+          <div key={section.label}>
+            <div className={styles.navSection}>{section.label}</div>
+            {section.items.map(renderItem)}
+          </div>
         ))}
 
+        <div className={styles.navSpacer} />
+
         <div className={styles.navSection}>{mode === "private" ? "Other" : "Auth"}</div>
-        {secondary.map((item) => (
-          <Link
-            key={item.key}
-            className={clsx(styles.navItem, isActive(item.href) && styles.active)}
-            href={item.href as never}
-          >
-            <span className={styles.navIcon} style={{ width: ICON_SIZE, height: ICON_SIZE }}>
-              {item.icon}
-            </span>
-            {item.label}
-            {item.kbd ? <span className={styles.navKbd}>{item.kbd}</span> : null}
-          </Link>
-        ))}
+        {secondary.map(renderItem)}
       </nav>
+
+      <button
+        className={styles.collapseToggle}
+        onClick={() => setCollapsed((c) => !c)}
+        type="button"
+        aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+        title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+      >
+        {collapsed ? <ChevronRight size={13} /> : <ChevronLeft size={13} />}
+        <span className={styles.navLabel}>Collapse</span>
+      </button>
 
       {mode === "private" && user ? (
         <div className={styles.sidebarFooter}>
