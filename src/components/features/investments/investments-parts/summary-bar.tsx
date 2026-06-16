@@ -10,7 +10,7 @@ export function SummaryBar({
 }) {
   const plPos = summary.plCAD >= 0;
   return (
-    <div className="summary-bar">
+    <div className="summary-bar" style={{ gridTemplateColumns: "repeat(3, 1fr)" }}>
       <div className="cell">
         <div className="lbl">Portfolio · CAD</div>
         <div className="val">{formatMoney(summary.portfolioCAD)}</div>
@@ -18,22 +18,13 @@ export function SummaryBar({
       <div className="cell">
         <div className="lbl">Open P&amp;L</div>
         <div className="val" style={{ color: plPos ? "var(--pos)" : "var(--neg)" }}>
-          {formatMoney(summary.plCAD, { sign: true })}
-        </div>
-      </div>
-      <div className="cell">
-        <div className="lbl">Open P&amp;L %</div>
-        <div className="val" style={{ color: plPos ? "var(--pos)" : "var(--neg)" }}>
-          {formatPercent(summary.plPct)}
+          {formatMoney(summary.plCAD, { sign: true })}{" "}
+          <span style={{ fontSize: "0.78em", opacity: 0.8 }}>({formatPercent(summary.plPct)})</span>
         </div>
       </div>
       <div className="cell">
         <div className="lbl">Net invested</div>
         <div className="val">{formatMoney(contributions.lifetimeNetCad)}</div>
-      </div>
-      <div className="cell">
-        <div className="lbl">Cash · CAD-eq.</div>
-        <div className="val">{formatMoney(summary.cashCAD)}</div>
       </div>
     </div>
   );
