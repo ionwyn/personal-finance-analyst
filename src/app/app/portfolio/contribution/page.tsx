@@ -2,7 +2,7 @@ import { getServerSession } from "next-auth";
 
 import { AppShell } from "@/components/layout/app-shell";
 import { ContributionView } from "@/components/features/investments/contribution-view";
-import { getInvestmentDashboardData } from "@/lib/investments/analytics";
+import { getPortfolioContributionData } from "@/lib/investments/analytics";
 import { authOptions } from "@/lib/auth";
 import { resolveSessionTenant } from "@/lib/tenant";
 
@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
 export default async function ContributionPage() {
   const session = await getServerSession(authOptions);
   const { tenantId, isDemo } = await resolveSessionTenant(session);
-  const data = await getInvestmentDashboardData(tenantId);
+  const contributions = await getPortfolioContributionData(tenantId);
 
   return (
     <AppShell
@@ -27,7 +27,7 @@ export default async function ContributionPage() {
             }
       }
     >
-      <ContributionView contributions={data.contributions} />
+      <ContributionView contributions={contributions} />
     </AppShell>
   );
 }

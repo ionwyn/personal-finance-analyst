@@ -1,4 +1,4 @@
-import { getMacroOverview, getMarketDataService, type MarketEvents } from "@/lib/market-data";
+import { getMacroOverview, getMarketDataService } from "@/lib/market-data";
 import { prisma } from "@/lib/prisma";
 
 import { loadInvestments } from "./loader";
@@ -11,22 +11,6 @@ import {
 // ─── Portfolio analytics ────────────────────────────────────────────────────
 
 const EVENTS_TOP_N = 20; // earnings calendar covers the largest N positions
-const CONCURRENCY = 6;
-
-async function mapLimit<T, R>(items: T[], limit: number, fn: (t: T) => Promise<R>): Promise<R[]> {
-  const out: R[] = new Array(items.length);
-  let next = 0;
-  await Promise.all(
-    Array.from({ length: Math.min(limit, items.length) }, async () => {
-      while (next < items.length) {
-        const idx = next++;
-        out[idx] = await fn(items[idx]);
-      }
-    })
-  );
-  return out;
-}
-
 export type SeriesPoint = {
   date: string;
   portfolio: number;
@@ -150,9 +134,10 @@ export async function getPortfolioAnalytics(
   const totalMv = aggs.reduce((s, a) => s + a.mvCad, 0);
 
   // ── market data (bounded concurrency; everything lands in the DB cache) ──
+  const symbols = aggs.map((a) => a.symbol);
   const [profiles, fundamentalsList, macro, performance] = await Promise.all([
-    mapLimit(aggs, CONCURRENCY, (a) => svc.getProfile(a.symbol).catch(() => null)),
-    mapLimit(aggs, CONCURRENCY, (a) => svc.getFundamentals(a.symbol).catch(() => null)),
+    svc.getProfiles(symbols).catch(() => symbols.map(() => null)),
+    svc.getFundamentalsForSymbols(symbols).catch(() => symbols.map(() => null)),
     getMacroOverview().catch(() => []),
     loadHistoricalPerformance(tenantId).catch(() => null),
   ]);
@@ -314,9 +299,9 @@ export async function getPortfolioAnalytics(
 
   // ── upcoming corporate calendar across the top of the book ──
   const top = aggs.slice(0, EVENTS_TOP_N);
-  const events = await mapLimit(top, CONCURRENCY, (a) =>
-    svc.getEvents(a.symbol).catch(() => null as MarketEvents | null)
-  );
+  const events = await svc
+    .getEventsForSymbols(top.map((a) => a.symbol))
+    .catch(() => top.map(() => null));
   const horizon = Date.now() + 60 * 24 * 60 * 60 * 1000;
   const calendar: CalendarEntry[] = [];
   top.forEach((a, i) => {

@@ -63,7 +63,7 @@ async function fetchSectors(
   if (totalMv <= 0) return [];
 
   const svc = getMarketDataService();
-  const profiles = await Promise.all(symbols.map((s) => svc.getProfile(s).catch(() => null)));
+  const profiles = await svc.getProfiles(symbols).catch(() => symbols.map(() => null));
 
   const sectorMv = new Map<string, number>();
   symbols.forEach((sym, i) => {
@@ -78,6 +78,13 @@ async function fetchSectors(
     .map(([name, mvCad]) => ({ name, mvCad, weightPct: (mvCad / totalMv) * 100 }))
     .sort((a, b) => b.mvCad - a.mvCad);
 }
+
+const EMPTY_CONTRIBUTIONS: ContributionData = {
+  lifetimeNetCad: 0,
+  lifetimeContributionCad: 0,
+  lifetimeWithdrawalCad: 0,
+  years: [],
+};
 
 async function fetchContributions(tenantId: string): Promise<ContributionData> {
   const raw = await prisma.brokerLedgerEntry.findMany({
@@ -147,6 +154,32 @@ async function fetchContributions(tenantId: string): Promise<ContributionData> {
 export async function getInvestmentDashboardData(
   tenantId?: string | null
 ): Promise<InvestmentDashboardData> {
+  return getInvestmentDashboardDataWithOptions(tenantId, {
+    includeSectors: true,
+    includeContributions: true,
+  });
+}
+
+export async function getPortfolioHoldingsData(
+  tenantId?: string | null
+): Promise<InvestmentDashboardData> {
+  return getInvestmentDashboardDataWithOptions(tenantId, {
+    includeSectors: false,
+    includeContributions: false,
+  });
+}
+
+export async function getPortfolioContributionData(
+  tenantId?: string | null
+): Promise<ContributionData> {
+  if (!tenantId) return EMPTY_CONTRIBUTIONS;
+  return fetchContributions(tenantId);
+}
+
+async function getInvestmentDashboardDataWithOptions(
+  tenantId: string | null | undefined,
+  options: { includeSectors: boolean; includeContributions: boolean }
+): Promise<InvestmentDashboardData> {
   const {
     accounts,
     connections,
@@ -177,15 +210,12 @@ export async function getInvestmentDashboardData(
   }, null);
 
   const [sectors, contributions] = await Promise.all([
-    tenantId ? fetchSectors(tenantId, holdings) : Promise.resolve([] as SectorSlice[]),
-    tenantId
+    tenantId && options.includeSectors
+      ? fetchSectors(tenantId, holdings)
+      : Promise.resolve([] as SectorSlice[]),
+    tenantId && options.includeContributions
       ? fetchContributions(tenantId)
-      : Promise.resolve({
-          lifetimeNetCad: 0,
-          lifetimeContributionCad: 0,
-          lifetimeWithdrawalCad: 0,
-          years: [],
-        } as ContributionData),
+      : Promise.resolve(EMPTY_CONTRIBUTIONS),
   ]);
 
   const summary = {

@@ -90,6 +90,13 @@ export type LoadedInvestments = {
   lastRunErrorMessage: string | null;
 };
 
+export type InvestmentConnectionSummary = {
+  connections: InvestmentConnection[];
+  lastSyncAt: string | null;
+};
+
+const inFlightLoads = new Map<string, Promise<LoadedInvestments>>();
+
 const STATUS_PRIORITY: Record<ConnectionStatus, number> = {
   ERROR: 4,
   DISABLED: 3,
@@ -107,7 +114,85 @@ function emptyHealth(): ConnectionHealth {
   };
 }
 
+export async function loadInvestmentConnectionSummary(
+  tenantId?: string | null
+): Promise<InvestmentConnectionSummary> {
+  if (!tenantId) return { connections: [], lastSyncAt: null };
+
+  const [connections, accountsRaw] = await Promise.all([
+    prisma.snapTradeConnection.findMany({
+      where: { tenantId },
+      orderBy: { createdAt: "asc" },
+    }),
+    prisma.snapTradeAccount.findMany({
+      where: { tenantId },
+      select: {
+        connectionId: true,
+        status: true,
+        holdingsInitialSyncComplete: true,
+      },
+    }),
+  ]);
+
+  const activeAccountsRaw = accountsRaw.filter(
+    (account) => !isClosedSnapTradeAccountStatus(account.status)
+  );
+  const accountsByConnection = new Map<string, { count: number; initialSyncIncomplete: number }>();
+  for (const account of activeAccountsRaw) {
+    const bucket = accountsByConnection.get(account.connectionId) ?? {
+      count: 0,
+      initialSyncIncomplete: 0,
+    };
+    bucket.count += 1;
+    if (!account.holdingsInitialSyncComplete) bucket.initialSyncIncomplete += 1;
+    accountsByConnection.set(account.connectionId, bucket);
+  }
+
+  const now = Date.now();
+  const connectionRows: InvestmentConnection[] = connections.map((connection) => {
+    const institution = connection.brokerageName ?? connection.name ?? "SnapTrade";
+    const bucket = accountsByConnection.get(connection.id) ?? {
+      count: 0,
+      initialSyncIncomplete: 0,
+    };
+    const lastSyncAt = connection.lastSyncAt?.toISOString() ?? null;
+    return {
+      id: connection.id,
+      institution,
+      institutionLogoBg: hashColor(institution),
+      institutionLogoText: logoText(institution),
+      status: connection.status as ConnectionStatus,
+      lastSyncAt,
+      isStale: isStaleSince(lastSyncAt, now),
+      errorCode: connection.errorCode,
+      errorMessage: connection.errorMessage,
+      accountCount: bucket.count,
+      initialSyncIncompleteCount: bucket.initialSyncIncomplete,
+    };
+  });
+
+  const lastSyncAt = connectionRows.reduce<string | null>((acc, connection) => {
+    if (!connection.lastSyncAt) return acc;
+    if (!acc) return connection.lastSyncAt;
+    return connection.lastSyncAt > acc ? connection.lastSyncAt : acc;
+  }, null);
+
+  return { connections: connectionRows, lastSyncAt };
+}
+
 export async function loadInvestments(tenantId?: string | null): Promise<LoadedInvestments> {
+  const key = tenantId ?? "__none__";
+  const inFlight = inFlightLoads.get(key);
+  if (inFlight) return inFlight;
+
+  const promise = loadInvestmentsUncached(tenantId).finally(() => {
+    inFlightLoads.delete(key);
+  });
+  inFlightLoads.set(key, promise);
+  return promise;
+}
+
+async function loadInvestmentsUncached(tenantId?: string | null): Promise<LoadedInvestments> {
   if (!tenantId) {
     return {
       accounts: [],

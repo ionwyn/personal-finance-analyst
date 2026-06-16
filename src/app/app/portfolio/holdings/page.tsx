@@ -2,7 +2,7 @@ import { getServerSession } from "next-auth";
 
 import { AppShell } from "@/components/layout/app-shell";
 import { HoldingsView } from "@/components/features/investments/holdings-view";
-import { getInvestmentDashboardData } from "@/lib/investments/analytics";
+import { getPortfolioHoldingsData } from "@/lib/investments/analytics";
 import { authOptions } from "@/lib/auth";
 import { resolveSessionTenant } from "@/lib/tenant";
 
@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
 export default async function HoldingsPage() {
   const session = await getServerSession(authOptions);
   const { tenantId, isDemo } = await resolveSessionTenant(session);
-  const data = await getInvestmentDashboardData(tenantId);
+  const data = await getPortfolioHoldingsData(tenantId);
 
   return (
     <AppShell

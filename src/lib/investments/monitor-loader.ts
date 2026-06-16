@@ -139,9 +139,9 @@ export async function getDeskMonitor(tenantId: string | null | undefined): Promi
       seeds.map((s) => s.symbol),
       QUOTE_MAX_AGE_MS
     ),
-    mapLimit(seeds, CONCURRENCY, (s) =>
-      s.isFund ? Promise.resolve(null) : svc.getEvents(s.symbol).catch(() => null)
-    ),
+    svc
+      .getEventsForSymbols(seeds.map((s) => (s.isFund ? "" : s.symbol)))
+      .catch(() => seeds.map(() => null)),
     mapLimit(seeds, CONCURRENCY, (s) =>
       covered(s) ? getEarningsHistory(s.symbol).catch(() => []) : Promise.resolve([])
     ),
