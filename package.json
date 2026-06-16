@@ -30,6 +30,7 @@
     "report:ledger-unification": "tsx scripts/report-ledger-unification.ts",
     "check:performance": "tsx scripts/check-performance.ts",
     "check:market-history": "tsx scripts/check-market-history.ts",
+    "measure:portfolio-markets": "tsx scripts/measure-portfolio-markets.ts",
     "seed:demo": "tsx scripts/seed-demo.ts",
     "backfill:cycles": "tsx scripts/backfill-cycles.ts",
     "secrets": "tsx scripts/print-secret.ts",
