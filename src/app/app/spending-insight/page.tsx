@@ -1,6 +1,7 @@
 import { getServerSession } from "next-auth";
 
 import { AppShell } from "@/components/layout/app-shell";
+import { SessionAppShell } from "@/components/layout/session-app-shell";
 import { SpendingInsightView } from "@/components/features/spending-insight/spending-insight-view";
 import { authOptions } from "@/lib/auth";
 import { getSpendingInsight } from "@/lib/spending/getSpendingInsight";
@@ -28,20 +29,8 @@ export default async function SpendingInsightPage() {
   ]);
 
   return (
-    <AppShell
-      mode={isDemo ? "demo" : "private"}
-      user={
-        isDemo
-          ? undefined
-          : {
-              name: session?.user?.name,
-              email: session?.user?.email,
-              image: session?.user?.image,
-              handle: session?.user?.email ?? undefined,
-            }
-      }
-    >
+    <SessionAppShell session={session} isDemo={isDemo}>
       <SpendingInsightView mtd={mtd} ytd={ytd} />
-    </AppShell>
+    </SessionAppShell>
   );
 }

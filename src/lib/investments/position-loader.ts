@@ -4,6 +4,7 @@ import { groupOf } from "./activity-types";
 import { loadSymbolIntel } from "./intel-loader";
 import { loadInvestments } from "./loader";
 import type { PositionActivityRow, PositionDetail, PositionLot } from "./types";
+import { toNullableNumber } from "./shared/decimal";
 
 const FUND_TYPES = new Set(["ETF", "MUTUAL FUND", "CEF", "FUND"]);
 
@@ -16,11 +17,6 @@ function sinceLabel(openedAt: string | null): string | null {
   const d = new Date(openedAt);
   if (Number.isNaN(d.getTime())) return null;
   return d.toLocaleString("en-US", { month: "short", year: "numeric" });
-}
-
-function nullableNumber(value: { toNumber(): number } | number | null | undefined) {
-  if (value == null) return null;
-  return typeof value === "number" ? value : value.toNumber();
 }
 
 function normalizeLedgerSymbol(value: string) {
@@ -146,13 +142,13 @@ export async function getPositionDetail(
       accountLabel: acct?.registration ?? (a.account?.accountCategory ?? "ACCT").toUpperCase(),
       description: a.name,
       units: a.units.isZero() ? null : a.units.toNumber(),
-      price: nullableNumber(a.unitPrice),
+      price: toNullableNumber(a.unitPrice),
       amountNative,
       amountCad,
       fee,
       tax,
       currency: a.nativeCurrency ?? "CAD",
-      fxRate: nullableNumber(a.fxRate),
+      fxRate: toNullableNumber(a.fxRate),
       tradeDate: a.tradeDate.toISOString(),
     };
   });

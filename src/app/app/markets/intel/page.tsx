@@ -1,6 +1,6 @@
 import { getServerSession } from "next-auth";
 
-import { AppShell } from "@/components/layout/app-shell";
+import { SessionAppShell } from "@/components/layout/session-app-shell";
 import { MonitorView } from "@/components/features/monitor/monitor-view";
 import { getWatchlist } from "@/lib/investments/markets-loader";
 import { getDeskMonitor } from "@/lib/investments/monitor-loader";
@@ -16,20 +16,8 @@ export default async function IntelPage() {
   const [data, watchlist] = await Promise.all([getDeskMonitor(tenantId), getWatchlist(tenantId)]);
 
   return (
-    <AppShell
-      mode={isDemo ? "demo" : "private"}
-      user={
-        isDemo
-          ? undefined
-          : {
-              name: session?.user?.name,
-              email: session?.user?.email,
-              image: session?.user?.image,
-              handle: session?.user?.email ?? undefined,
-            }
-      }
-    >
+    <SessionAppShell session={session} isDemo={isDemo}>
       <MonitorView data={data} watchlist={watchlist} canEdit={!isDemo} />
-    </AppShell>
+    </SessionAppShell>
   );
 }

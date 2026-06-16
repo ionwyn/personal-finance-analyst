@@ -1,6 +1,6 @@
 import { getServerSession } from "next-auth";
 
-import { AppShell } from "@/components/layout/app-shell";
+import { SessionAppShell } from "@/components/layout/session-app-shell";
 import {
   ExportCsvButton,
   TransactionsToolbar,
@@ -80,19 +80,7 @@ export default async function TransactionsPage({ searchParams }: Props) {
     .join(" · ");
 
   return (
-    <AppShell
-      mode={isDemo ? "demo" : "private"}
-      user={
-        isDemo
-          ? undefined
-          : {
-              name: session?.user?.name,
-              email: session?.user?.email,
-              image: session?.user?.image,
-              handle: session?.user?.email ?? undefined,
-            }
-      }
-    >
+    <SessionAppShell session={session} isDemo={isDemo}>
       <div className="page-header">
         <div>
           <div className="page-title">Transactions</div>
@@ -239,7 +227,7 @@ export default async function TransactionsPage({ searchParams }: Props) {
         </span>
         <span>↑↓ navigate · ⏎ open · / search</span>
       </div>
-    </AppShell>
+    </SessionAppShell>
   );
 }
 

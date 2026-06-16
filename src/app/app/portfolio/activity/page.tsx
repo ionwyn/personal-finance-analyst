@@ -1,6 +1,6 @@
 import { getServerSession } from "next-auth";
 
-import { AppShell } from "@/components/layout/app-shell";
+import { SessionAppShell } from "@/components/layout/session-app-shell";
 import { ActivityView } from "@/components/features/investments/activity-view";
 import { loadActivities } from "@/lib/investments/activities-loader";
 import { loadInvestmentConnectionSummary } from "@/lib/investments/loader";
@@ -19,19 +19,7 @@ export default async function ActivityPage() {
   ]);
 
   return (
-    <AppShell
-      mode={isDemo ? "demo" : "private"}
-      user={
-        isDemo
-          ? undefined
-          : {
-              name: session?.user?.name,
-              email: session?.user?.email,
-              image: session?.user?.image,
-              handle: session?.user?.email ?? undefined,
-            }
-      }
-    >
+    <SessionAppShell session={session} isDemo={isDemo}>
       <ActivityView
         rows={activities.rows}
         totalRowCount={activities.totalRowCount}
@@ -40,6 +28,6 @@ export default async function ActivityPage() {
         connections={investmentConnections.connections}
         lastSyncAt={investmentConnections.lastSyncAt}
       />
-    </AppShell>
+    </SessionAppShell>
   );
 }

@@ -3,6 +3,7 @@ import { isOpenMarketInsiderTransaction, openMarketInsiderValue } from "@/lib/ma
 import { prisma } from "@/lib/prisma";
 
 import { loadInvestments } from "./loader";
+import { mapLimit } from "./shared/concurrency";
 
 // ─── Insider tape — cross-holdings Form-4 feed (OpenInsider-style) ──────────
 // One row per open-market insider transaction across held + watch-only US
@@ -17,20 +18,6 @@ import { loadInvestments } from "./loader";
 
 const CONCURRENCY = 4;
 const WINDOW_DAYS = 180;
-
-async function mapLimit<T, R>(items: T[], limit: number, fn: (t: T) => Promise<R>): Promise<R[]> {
-  const out: R[] = new Array(items.length);
-  let next = 0;
-  await Promise.all(
-    Array.from({ length: Math.min(limit, items.length) }, async () => {
-      while (next < items.length) {
-        const idx = next++;
-        out[idx] = await fn(items[idx]);
-      }
-    })
-  );
-  return out;
-}
 
 export type InsiderTapeRow = {
   symbol: string;

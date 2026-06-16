@@ -2,7 +2,7 @@ import { getServerSession } from "next-auth";
 import { CreditCard, Landmark, TrendingUp } from "lucide-react";
 
 import { AccountRowMenu } from "@/components/actions/account-row-menu";
-import { AppShell } from "@/components/layout/app-shell";
+import { SessionAppShell } from "@/components/layout/session-app-shell";
 import { ItemActions } from "@/components/actions/item-actions";
 import { PlaidLinkButton } from "@/components/actions/plaid-link-button";
 import {
@@ -53,19 +53,7 @@ export default async function AccountsPage() {
     .join(" · ");
 
   return (
-    <AppShell
-      mode={isDemo ? "demo" : "private"}
-      user={
-        isDemo
-          ? undefined
-          : {
-              name: session?.user?.name,
-              email: session?.user?.email,
-              image: session?.user?.image,
-              handle: session?.user?.email ?? undefined,
-            }
-      }
-    >
+    <SessionAppShell session={session} isDemo={isDemo}>
       <PageHeader
         title="Accounts"
         subtitle={subLine}
@@ -147,7 +135,7 @@ export default async function AccountsPage() {
         <span>Plaid items stored encrypted at rest · webhook /api/webhooks/plaid online</span>
         <span>⌘R sync all · ⌘N link new</span>
       </div>
-    </AppShell>
+    </SessionAppShell>
   );
 }
 

@@ -1,6 +1,6 @@
 import { getServerSession } from "next-auth";
 
-import { AppShell } from "@/components/layout/app-shell";
+import { SessionAppShell } from "@/components/layout/session-app-shell";
 import { MarketsView } from "@/components/features/markets/markets-view";
 import { getMacroBoard } from "@/lib/investments/markets-loader";
 import { authOptions } from "@/lib/auth";
@@ -15,20 +15,8 @@ export default async function MarketsPage() {
   const data = await getMacroBoard();
 
   return (
-    <AppShell
-      mode={isDemo ? "demo" : "private"}
-      user={
-        isDemo
-          ? undefined
-          : {
-              name: session?.user?.name,
-              email: session?.user?.email,
-              image: session?.user?.image,
-              handle: session?.user?.email ?? undefined,
-            }
-      }
-    >
+    <SessionAppShell session={session} isDemo={isDemo}>
       <MarketsView data={data} />
-    </AppShell>
+    </SessionAppShell>
   );
 }

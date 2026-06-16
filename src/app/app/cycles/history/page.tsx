@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getServerSession } from "next-auth";
 
 import { AppShell } from "@/components/layout/app-shell";
+import { SessionAppShell } from "@/components/layout/session-app-shell";
 import { authOptions } from "@/lib/auth";
 import { closeOverdueCycles } from "@/lib/cycles/close";
 import { getCycleHistory } from "@/lib/cycles/getCycleHistory";
@@ -34,19 +35,7 @@ export default async function CycleHistoryPage() {
   const now = new Date();
 
   return (
-    <AppShell
-      mode={isDemo ? "demo" : "private"}
-      user={
-        isDemo
-          ? undefined
-          : {
-              name: session?.user?.name,
-              email: session?.user?.email,
-              image: session?.user?.image,
-              handle: session?.user?.email ?? undefined,
-            }
-      }
-    >
+    <SessionAppShell session={session} isDemo={isDemo}>
       <div className="page-header">
         <div>
           <div className="page-title">Cycle history</div>
@@ -140,6 +129,6 @@ export default async function CycleHistoryPage() {
         </span>
         <span>⌘5 current cycle</span>
       </div>
-    </AppShell>
+    </SessionAppShell>
   );
 }

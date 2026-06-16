@@ -21,6 +21,8 @@ import {
   type PerformanceLedgerEntry,
   type SecurityPriceSeries,
 } from "./performance";
+import { mapLimit } from "./shared/concurrency";
+import { toNullableNumber } from "./shared/decimal";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const COVERAGE_BUFFER_DAYS = 7;
@@ -78,11 +80,6 @@ function isoDate(date: Date | null): string | null {
   return date ? date.toISOString().slice(0, 10) : null;
 }
 
-function decimalNumber(value: { toNumber(): number } | number | null | undefined): number | null {
-  if (value == null) return null;
-  return typeof value === "number" ? value : value.toNumber();
-}
-
 function coverageIssuesFromJson(value: Prisma.JsonValue): HistoricalCoverageIssue[] {
   return Array.isArray(value) ? (value as HistoricalCoverageIssue[]) : [];
 }
@@ -93,20 +90,6 @@ function addDays(date: string, days: number): string {
 
 function daysBetween(start: string, end: string): number {
   return (Date.parse(`${end}T00:00:00.000Z`) - Date.parse(`${start}T00:00:00.000Z`)) / DAY_MS;
-}
-
-async function mapLimit<T, R>(items: T[], limit: number, fn: (item: T) => Promise<R>) {
-  const results = new Array<R>(items.length);
-  let next = 0;
-  await Promise.all(
-    Array.from({ length: Math.min(limit, items.length) }, async () => {
-      while (next < items.length) {
-        const index = next++;
-        results[index] = await fn(items[index]!);
-      }
-    })
-  );
-  return results;
 }
 
 function holdingIntervals(holdings: DailyHoldings[]): HoldingInterval[] {
@@ -236,31 +219,31 @@ async function loadStoredHistoricalPerformance(
     asOf: isoDate(summary.asOf)!,
     inceptionDate: isoDate(summary.inceptionDate),
     terminalDate: isoDate(summary.terminalDate),
-    terminalValueCad: decimalNumber(summary.terminalValueCad),
-    terminalSecuritiesValueCad: decimalNumber(summary.terminalSecuritiesValueCad),
-    terminalCashCad: decimalNumber(summary.terminalCashCad),
+    terminalValueCad: toNullableNumber(summary.terminalValueCad),
+    terminalSecuritiesValueCad: toNullableNumber(summary.terminalSecuritiesValueCad),
+    terminalCashCad: toNullableNumber(summary.terminalCashCad),
     syncedValueCad: summary.syncedValueCad.toNumber(),
     syncedSecuritiesValueCad: summary.syncedSecuritiesValueCad.toNumber(),
     syncedCashCad: summary.syncedCashCad.toNumber(),
-    terminalDifferenceCad: decimalNumber(summary.terminalDifferenceCad),
-    terminalDifferencePct: decimalNumber(summary.terminalDifferencePct),
-    cashDifferenceCad: decimalNumber(summary.cashDifferenceCad),
+    terminalDifferenceCad: toNullableNumber(summary.terminalDifferenceCad),
+    terminalDifferencePct: toNullableNumber(summary.terminalDifferencePct),
+    cashDifferenceCad: toNullableNumber(summary.cashDifferenceCad),
     terminalReconciled: summary.terminalReconciled,
     resolvedSymbols: summary.resolvedSymbols,
     lifetimeSymbols: summary.lifetimeSymbols,
     fxSource: "Bank of Canada FXUSDCAD",
     twr: {
-      "3M": decimalNumber(summary.twr3M),
-      "6M": decimalNumber(summary.twr6M),
-      "1Y": decimalNumber(summary.twr1Y),
-      ALL: decimalNumber(summary.twrAll),
+      "3M": toNullableNumber(summary.twr3M),
+      "6M": toNullableNumber(summary.twr6M),
+      "1Y": toNullableNumber(summary.twr1Y),
+      ALL: toNullableNumber(summary.twrAll),
     },
-    mwr: decimalNumber(summary.mwr),
+    mwr: toNullableNumber(summary.mwr),
     series: summary.points.map((point) => ({
       date: isoDate(point.date)!,
       portfolio: point.portfolio.toNumber(),
-      spx: decimalNumber(point.spx),
-      tsx: decimalNumber(point.tsx),
+      spx: toNullableNumber(point.spx),
+      tsx: toNullableNumber(point.tsx),
     })),
     coverageIssues: coverageIssuesFromJson(summary.coverageIssues),
   };

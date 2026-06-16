@@ -1,51 +1,9 @@
 import { prisma } from "@/lib/prisma";
 import { groupOf, type ActivityGroupKey } from "./activity-types";
+import { toNullableNumber } from "./shared/decimal";
+import { hashColor, logoText } from "./shared/logo";
 
 const ACTIVITY_CAP = 1000;
-
-const LOGO_PALETTE = [
-  "#a6192e",
-  "#0072c6",
-  "#1d1d1f",
-  "#0d8b3e",
-  "#00a4ef",
-  "#ed1a3b",
-  "#7ab55c",
-  "#4285f4",
-  "#ff6a00",
-  "#76b900",
-  "#1f3a93",
-  "#003168",
-  "#ff9900",
-  "#0668e1",
-  "#cc0000",
-  "#e21c2c",
-  "#000000",
-];
-
-function hashColor(value: string) {
-  let h = 0;
-  for (let i = 0; i < value.length; i++) {
-    h = (h * 31 + value.charCodeAt(i)) >>> 0;
-  }
-  return LOGO_PALETTE[h % LOGO_PALETTE.length] ?? "#1f3a93";
-}
-
-function logoText(name: string | null | undefined) {
-  return (
-    (name ?? "ST")
-      .split(/\s+/)
-      .filter(Boolean)
-      .slice(0, 2)
-      .map((part) => part[0]?.toUpperCase() ?? "")
-      .join("") || "ST"
-  );
-}
-
-function nullableNumber(value: { toNumber(): number } | number | null | undefined) {
-  if (value == null) return null;
-  return typeof value === "number" ? value : value.toNumber();
-}
 
 export type ActivityRow = {
   id: string;
@@ -166,11 +124,11 @@ export async function loadActivities(tenantId?: string | null): Promise<LoadedAc
         symbolLogoBg: activity.symbolNorm ? hashColor(activity.symbolNorm) : null,
         description: activity.name,
         units: activity.units.isZero() ? null : activity.units.toNumber(),
-        price: nullableNumber(activity.unitPrice),
+        price: toNullableNumber(activity.unitPrice),
         amount,
         fee,
         currency: "CAD",
-        fxRate: nullableNumber(activity.fxRate),
+        fxRate: toNullableNumber(activity.fxRate),
         tradeDate: activity.tradeDate.toISOString(),
         settlementDate: activity.settlementDate?.toISOString() ?? null,
         externalReferenceId: sourceReferences[0] ?? null,

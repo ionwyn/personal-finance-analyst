@@ -9,6 +9,7 @@ import { isOpenMarketInsiderTransaction, openMarketInsiderValue } from "@/lib/ma
 import { prisma } from "@/lib/prisma";
 
 import { loadInvestments } from "./loader";
+import { mapLimit } from "./shared/concurrency";
 
 // ─── Desk monitor — the whole book on one intelligence sheet ────────────────
 // One row per held symbol (plus watch-only tickers): quote, 52-week range,
@@ -19,20 +20,6 @@ import { loadInvestments } from "./loader";
 
 const QUOTE_MAX_AGE_MS = 15 * 60 * 1000;
 const CONCURRENCY = 4;
-
-async function mapLimit<T, R>(items: T[], limit: number, fn: (t: T) => Promise<R>): Promise<R[]> {
-  const out: R[] = new Array(items.length);
-  let next = 0;
-  await Promise.all(
-    Array.from({ length: Math.min(limit, items.length) }, async () => {
-      while (next < items.length) {
-        const idx = next++;
-        out[idx] = await fn(items[idx]);
-      }
-    })
-  );
-  return out;
-}
 
 export type MonitorRow = {
   symbol: string;
