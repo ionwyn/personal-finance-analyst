@@ -162,7 +162,7 @@ export async function loadActivities(tenantId?: string | null): Promise<LoadedAc
         institutionLogoText: logoText(institution),
         type,
         group: groupOf(type),
-        symbol: activity.symbolNorm ?? activity.symbol,
+        symbol: activity.symbolNorm ?? null,
         symbolLogoBg: activity.symbolNorm ? hashColor(activity.symbolNorm) : null,
         description: activity.name,
         units: activity.units.isZero() ? null : activity.units.toNumber(),
