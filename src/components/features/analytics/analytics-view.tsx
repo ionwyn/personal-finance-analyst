@@ -34,7 +34,7 @@ export function AnalyticsView({ data }: { data: PortfolioAnalytics }) {
           <PerfChartDynamic series={data.series} fxNote={data.fxNote} mwrPct={data.mwrPct} />
 
           {data.risk && (
-            <div className="ana-grid">
+            <div style={{ marginTop: 14 }}>
               <RiskPanel risk={data.risk} />
             </div>
           )}
