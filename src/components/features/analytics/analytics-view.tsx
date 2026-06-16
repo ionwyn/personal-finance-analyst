@@ -1,11 +1,9 @@
-"use client";
-
 import { PortfolioTabs } from "@/components/features/investments/portfolio-tabs";
 import type { PortfolioAnalytics } from "@/lib/investments/analytics-loader";
 
 import { CalendarPanel } from "./analytics-parts/calendar-panel";
-import { IncomePanel } from "./analytics-parts/income-panel";
-import { PerfChart } from "./analytics-parts/perf-chart";
+import { IncomePanelDynamic } from "./analytics-parts/income-panel-dynamic";
+import { PerfChartDynamic } from "./analytics-parts/perf-chart-dynamic";
 import { RiskPanel } from "./analytics-parts/risk-panel";
 
 export function AnalyticsView({ data }: { data: PortfolioAnalytics }) {
@@ -33,7 +31,7 @@ export function AnalyticsView({ data }: { data: PortfolioAnalytics }) {
         </div>
       ) : (
         <>
-          <PerfChart series={data.series} fxNote={data.fxNote} mwrPct={data.mwrPct} />
+          <PerfChartDynamic series={data.series} fxNote={data.fxNote} mwrPct={data.mwrPct} />
 
           {data.risk && (
             <div className="ana-grid">
@@ -42,7 +40,7 @@ export function AnalyticsView({ data }: { data: PortfolioAnalytics }) {
           )}
 
           <div className="ana-grid">
-            {data.income && <IncomePanel income={data.income} />}
+            {data.income && <IncomePanelDynamic income={data.income} />}
             <CalendarPanel calendar={data.calendar} />
           </div>
 

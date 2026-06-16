@@ -1,6 +1,4 @@
-"use client";
-
-import { SectorPanel } from "@/components/features/analytics/analytics-parts/sector-panel";
+import { SectorPanelDynamic } from "@/components/features/analytics/analytics-parts/sector-panel-dynamic";
 import { SnapTradeLinkButton, SnapTradeSyncButton } from "@/components/actions/snaptrade-actions";
 import { MoversPanel } from "@/components/features/markets/markets-parts/movers-panel";
 import { formatRelativeTime } from "@/lib/format";
@@ -51,7 +49,7 @@ export function InvestmentsView({
         fxUSDtoCAD={summary.fxUSDtoCAD}
       />
 
-      {sectors.length > 0 && <SectorPanel sectors={sectors} />}
+      {sectors.length > 0 && <SectorPanelDynamic sectors={sectors} />}
 
       <MoversPanel portfolio={pulse.portfolio} spx={pulse.spx ?? undefined} />
 

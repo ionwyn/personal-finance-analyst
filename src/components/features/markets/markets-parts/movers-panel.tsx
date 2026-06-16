@@ -1,5 +1,3 @@
-"use client";
-
 import Link from "next/link";
 
 import { SymLogo } from "@/components/shared/sym-logo";

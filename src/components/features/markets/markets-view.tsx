@@ -1,9 +1,7 @@
-"use client";
-
 import { MarketsTabs } from "@/components/features/markets/markets-tabs";
 import type { MacroBoard } from "@/lib/investments/markets-loader";
 
-import { CurvePanel } from "./markets-parts/curve-panel";
+import { CurvePanelDynamic } from "./markets-parts/curve-panel-dynamic";
 import { MacroPanel } from "./markets-parts/macro-panel";
 import { Tape } from "./markets-parts/tape";
 
@@ -35,7 +33,7 @@ export function MarketsView({ data }: { data: MacroBoard }) {
 
       <Tape tape={data.tape} />
 
-      <CurvePanel curve={data.curve} />
+      <CurvePanelDynamic curve={data.curve} />
 
       <MacroPanel macro={data.macro} />
 

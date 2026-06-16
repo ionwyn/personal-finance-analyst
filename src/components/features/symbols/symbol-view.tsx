@@ -5,12 +5,11 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ChevronLeft, Eye, EyeOff } from "lucide-react";
 
+import { FundamentalsLive, NewsList } from "@/components/features/positions/position-market";
 import {
-  FundamentalsLive,
-  NewsList,
-  PriceChart,
-  TechnicalsPanel,
-} from "@/components/features/positions/position-market";
+  PriceChartDynamic,
+  TechnicalsPanelDynamic,
+} from "@/components/features/positions/position-market-dynamic";
 import {
   EarningsPanel,
   FilingsPanel,
@@ -213,7 +212,7 @@ export function SymbolView({ data, canEdit }: { data: SymbolDetail; canEdit: boo
           >
             <div className="panel">
               <div className="panel-body" style={{ padding: "8px 4px 8px" }}>
-                <PriceChart md={md} avgNative={null} />
+                <PriceChartDynamic md={md} avgNative={null} />
               </div>
             </div>
           </Section>
@@ -254,7 +253,7 @@ export function SymbolView({ data, canEdit }: { data: SymbolDetail; canEdit: boo
             title="Optional context"
             meta="secondary for long-hold investors"
           >
-            <TechnicalsPanel md={md} />
+            <TechnicalsPanelDynamic md={md} />
           </Section>
 
           <Section id="news" eyebrow="05 · NEWS & EVENTS" title="Curated, relevance-weighted">
