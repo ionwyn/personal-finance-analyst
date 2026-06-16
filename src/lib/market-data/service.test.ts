@@ -3,24 +3,30 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { MarketDataProvider, SecurityProfile } from "./types";
 
 const mocks = vi.hoisted(() => ({
-  findUnique: vi.fn(),
-  upsert: vi.fn(),
+  quoteFindMany: vi.fn(),
+  quoteUpsert: vi.fn(),
+  profileFindUnique: vi.fn(),
+  profileFindMany: vi.fn(),
+  profileUpsert: vi.fn(),
   priceFindMany: vi.fn(),
-  priceUpsert: vi.fn(),
-  transaction: vi.fn(async (operations: unknown[]) => Promise.all(operations)),
+  executeRaw: vi.fn(async () => 0),
 }));
 
 vi.mock("@/lib/prisma", () => ({
   prisma: {
+    marketQuote: {
+      findMany: mocks.quoteFindMany,
+      upsert: mocks.quoteUpsert,
+    },
     marketProfile: {
-      findUnique: mocks.findUnique,
-      upsert: mocks.upsert,
+      findUnique: mocks.profileFindUnique,
+      findMany: mocks.profileFindMany,
+      upsert: mocks.profileUpsert,
     },
     marketPriceDay: {
       findMany: mocks.priceFindMany,
-      upsert: mocks.priceUpsert,
     },
-    $transaction: mocks.transaction,
+    $executeRaw: mocks.executeRaw,
   },
 }));
 
@@ -65,8 +71,8 @@ describe("MarketDataService profile cache", () => {
 
   it("refreshes a stale profile without refetching fresh fundamentals", async () => {
     const cached = cachedProfile();
-    mocks.findUnique.mockResolvedValue(cached);
-    mocks.upsert.mockResolvedValue(cached);
+    mocks.profileFindMany.mockResolvedValue([cached]);
+    mocks.profileUpsert.mockResolvedValue(cached);
 
     const freshProfile: SecurityProfile = {
       symbol: "AMD",
@@ -91,7 +97,7 @@ describe("MarketDataService profile cache", () => {
 
     expect(provider.getProfile).toHaveBeenCalledOnce();
     expect(provider.getFundamentals).not.toHaveBeenCalled();
-    expect(mocks.upsert).toHaveBeenCalledWith(
+    expect(mocks.profileUpsert).toHaveBeenCalledWith(
       expect.objectContaining({
         update: expect.objectContaining({
           description: "Fresh profile",
@@ -99,6 +105,91 @@ describe("MarketDataService profile cache", () => {
         }),
       })
     );
+  });
+});
+
+describe("MarketDataService quote cache", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("loads cached quotes in one query and refreshes only stale or missing symbols", async () => {
+    const now = new Date();
+    const stale = new Date(now.getTime() - 2 * 60 * 60 * 1000);
+    mocks.quoteFindMany.mockResolvedValue([
+      {
+        symbol: "AAPL",
+        provider: "yahoo",
+        currency: "USD",
+        price: 200,
+        change: 1,
+        changePct: 0.5,
+        open: null,
+        high52w: null,
+        low52w: null,
+        volume: null,
+        marketCap: null,
+        prevClose: null,
+        dayHigh: null,
+        dayLow: null,
+        avgVolume: null,
+        fetchedAt: now,
+        updatedAt: now,
+      },
+      {
+        symbol: "MSFT",
+        provider: "yahoo",
+        currency: "USD",
+        price: 300,
+        change: 0,
+        changePct: 0,
+        open: null,
+        high52w: null,
+        low52w: null,
+        volume: null,
+        marketCap: null,
+        prevClose: null,
+        dayHigh: null,
+        dayLow: null,
+        avgVolume: null,
+        fetchedAt: stale,
+        updatedAt: stale,
+      },
+    ]);
+    mocks.quoteUpsert.mockResolvedValue({});
+
+    const provider = {
+      getQuote: vi.fn(async (symbol: string) =>
+        symbol === "MSFT"
+          ? {
+              symbol,
+              currency: "USD",
+              price: 310,
+              change: 2,
+              changePct: 0.65,
+              open: null,
+              prevClose: null,
+              dayHigh: null,
+              dayLow: null,
+              high52w: null,
+              low52w: null,
+              volume: null,
+              avgVolume: null,
+              marketCap: null,
+              fetchedAt: now.toISOString(),
+            }
+          : null
+      ),
+    } as unknown as MarketDataProvider;
+
+    const service = new MarketDataService(provider);
+    const result = await service.getQuotes(["AAPL", "MSFT", "AAPL", "GOOG"]);
+
+    expect(mocks.quoteFindMany).toHaveBeenCalledOnce();
+    expect(provider.getQuote).toHaveBeenCalledTimes(2);
+    expect(provider.getQuote).toHaveBeenCalledWith("MSFT");
+    expect(provider.getQuote).toHaveBeenCalledWith("GOOG");
+    expect(result.map((quote) => quote?.price ?? null)).toEqual([200, 310, 200, null]);
   });
 });
 
@@ -141,7 +232,7 @@ describe("MarketDataService historical price cache", () => {
           fetchedAt: now,
         },
       ]);
-    mocks.priceUpsert.mockResolvedValue({});
+    mocks.executeRaw.mockResolvedValue(0);
 
     const provider = {
       getTimeSeriesRange: vi.fn().mockResolvedValue([
