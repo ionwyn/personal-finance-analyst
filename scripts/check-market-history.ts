@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 
 import { TenantKind } from "@prisma/client";
 
-import { loadHistoricalPerformance } from "../src/lib/investments/performance-loader";
+import { refreshHistoricalPerformance } from "../src/lib/investments/performance-loader";
 import { prisma } from "../src/lib/prisma";
 
 function parseTenantArgument() {
@@ -43,7 +43,7 @@ function finite(value: number | null): value is number {
 
 async function main() {
   const tenant = await resolveTenant(parseTenantArgument());
-  const result = await loadHistoricalPerformance(tenant.id);
+  const result = await refreshHistoricalPerformance(tenant.id);
   assert(result, `No historical performance data found for tenant ${tenant.slug}`);
   assert.equal(result.lifetimeSymbols, 49, `Expected 49 lifetime symbols`);
   assert.equal(result.resolvedSymbols, 49, `Resolved ${result.resolvedSymbols}/49 symbols`);

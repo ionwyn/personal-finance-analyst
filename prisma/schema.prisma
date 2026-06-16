@@ -87,6 +87,8 @@ model Tenant {
   brokerLedgerSources   BrokerLedgerSourceRecord[]
   brokerLedgerRuns      BrokerLedgerIngestionRun[]
   brokerLedgerCoverage  BrokerLedgerCoverage[]
+  performanceSummaries  PortfolioPerformanceSummary[]
+  performancePoints     PortfolioPerformancePoint[]
   payCycles             PayCycle[]
   recurringExpenses     RecurringExpense[]
   savingsDestinations   SavingsDestination[]
@@ -412,6 +414,7 @@ model SnapTradePosition {
   @@unique([accountId, symbol, currency])
   @@index([tenantId])
   @@index([accountId])
+  @@index([accountId, marketValueCad(sort: Desc)])
   @@index([symbol])
   @@index([assetType])
 }
@@ -499,7 +502,10 @@ model BrokerLedgerEntry {
   sourceRecords BrokerLedgerSourceRecord[]
 
   @@index([tenantId, tradeDate])
+  @@index([tenantId, tradeDate(sort: Desc), createdAt(sort: Desc)])
+  @@index([tenantId, activityType, tradeDate])
   @@index([tenantId, symbolNorm])
+  @@index([tenantId, symbolNorm, tradeDate(sort: Desc), createdAt(sort: Desc)])
   @@index([accountId, tradeDate])
 }
 
@@ -567,6 +573,7 @@ model BrokerLedgerSourceRecord {
   @@index([ledgerEntryId])
   @@index([ingestionRunId])
   @@index([provider, providerRecordId])
+  @@index([ledgerEntryId, provider, sourceKey])
 }
 
 model BrokerLedgerCoverage {
@@ -585,6 +592,60 @@ model BrokerLedgerCoverage {
   account SnapTradeAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
 
   @@index([tenantId, reconciliationStatus])
+}
+
+model PortfolioPerformanceSummary {
+  id                         String   @id @default(cuid())
+  tenantId                   String
+  asOf                       DateTime @db.Date
+  inceptionDate              DateTime? @db.Date
+  terminalDate               DateTime? @db.Date
+  terminalValueCad           Decimal? @db.Decimal(24, 10)
+  terminalSecuritiesValueCad Decimal? @db.Decimal(24, 10)
+  terminalCashCad            Decimal? @db.Decimal(24, 10)
+  syncedValueCad             Decimal  @db.Decimal(24, 10)
+  syncedSecuritiesValueCad   Decimal  @db.Decimal(24, 10)
+  syncedCashCad              Decimal  @db.Decimal(24, 10)
+  terminalDifferenceCad      Decimal? @db.Decimal(24, 10)
+  terminalDifferencePct      Decimal? @db.Decimal(18, 10)
+  cashDifferenceCad          Decimal? @db.Decimal(24, 10)
+  terminalReconciled         Boolean
+  resolvedSymbols            Int
+  lifetimeSymbols            Int
+  fxSource                   String
+  twr3M                      Decimal? @db.Decimal(18, 10)
+  twr6M                      Decimal? @db.Decimal(18, 10)
+  twr1Y                      Decimal? @db.Decimal(18, 10)
+  twrAll                     Decimal? @db.Decimal(18, 10)
+  mwr                        Decimal? @db.Decimal(18, 10)
+  coverageIssues             Json
+  generatedAt                DateTime @default(now())
+  updatedAt                  DateTime @updatedAt
+
+  tenant Tenant                      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  points PortfolioPerformancePoint[]
+
+  @@unique([tenantId, asOf])
+  @@index([tenantId, generatedAt])
+}
+
+model PortfolioPerformancePoint {
+  id                 String   @id @default(cuid())
+  tenantId           String
+  summaryId          String
+  date               DateTime @db.Date
+  portfolio          Decimal  @db.Decimal(24, 10)
+  spx                Decimal? @db.Decimal(24, 10)
+  tsx                Decimal? @db.Decimal(24, 10)
+  valueCad           Decimal? @db.Decimal(24, 10)
+  securitiesValueCad Decimal? @db.Decimal(24, 10)
+  cashCad            Decimal? @db.Decimal(24, 10)
+
+  tenant  Tenant                      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  summary PortfolioPerformanceSummary @relation(fields: [summaryId], references: [id], onDelete: Cascade)
+
+  @@unique([summaryId, date])
+  @@index([tenantId, date])
 }
 
 model SnapTradeSyncRun {

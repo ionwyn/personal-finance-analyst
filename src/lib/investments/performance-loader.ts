@@ -4,6 +4,7 @@ import {
   resolvePortfolioSecurity,
   type PricePoint,
 } from "@/lib/market-data";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 
 import {
@@ -68,6 +69,23 @@ type HoldingInterval = {
   startDate: string;
   endDate: string;
 };
+
+function dateOnly(date: string): Date {
+  return new Date(`${date}T00:00:00.000Z`);
+}
+
+function isoDate(date: Date | null): string | null {
+  return date ? date.toISOString().slice(0, 10) : null;
+}
+
+function decimalNumber(value: { toNumber(): number } | number | null | undefined): number | null {
+  if (value == null) return null;
+  return typeof value === "number" ? value : value.toNumber();
+}
+
+function coverageIssuesFromJson(value: Prisma.JsonValue): HistoricalCoverageIssue[] {
+  return Array.isArray(value) ? (value as HistoricalCoverageIssue[]) : [];
+}
 
 function addDays(date: string, days: number): string {
   return new Date(Date.parse(`${date}T00:00:00.000Z`) + days * DAY_MS).toISOString().slice(0, 10);
@@ -195,6 +213,60 @@ function fxCoverageIssues(
 }
 
 export async function loadHistoricalPerformance(
+  tenantId: string,
+  endDate = new Date().toISOString().slice(0, 10)
+): Promise<HistoricalPerformance | null> {
+  const stored = await loadStoredHistoricalPerformance(tenantId, endDate);
+  if (stored) return stored;
+  return refreshHistoricalPerformance(tenantId, endDate);
+}
+
+async function loadStoredHistoricalPerformance(
+  tenantId: string,
+  endDate: string
+): Promise<HistoricalPerformance | null> {
+  const summary = await prisma.portfolioPerformanceSummary.findUnique({
+    where: { tenantId_asOf: { tenantId, asOf: dateOnly(endDate) } },
+    include: { points: { orderBy: { date: "asc" } } },
+  });
+  if (!summary) return null;
+
+  return {
+    methodology: "total-portfolio",
+    asOf: isoDate(summary.asOf)!,
+    inceptionDate: isoDate(summary.inceptionDate),
+    terminalDate: isoDate(summary.terminalDate),
+    terminalValueCad: decimalNumber(summary.terminalValueCad),
+    terminalSecuritiesValueCad: decimalNumber(summary.terminalSecuritiesValueCad),
+    terminalCashCad: decimalNumber(summary.terminalCashCad),
+    syncedValueCad: summary.syncedValueCad.toNumber(),
+    syncedSecuritiesValueCad: summary.syncedSecuritiesValueCad.toNumber(),
+    syncedCashCad: summary.syncedCashCad.toNumber(),
+    terminalDifferenceCad: decimalNumber(summary.terminalDifferenceCad),
+    terminalDifferencePct: decimalNumber(summary.terminalDifferencePct),
+    cashDifferenceCad: decimalNumber(summary.cashDifferenceCad),
+    terminalReconciled: summary.terminalReconciled,
+    resolvedSymbols: summary.resolvedSymbols,
+    lifetimeSymbols: summary.lifetimeSymbols,
+    fxSource: "Bank of Canada FXUSDCAD",
+    twr: {
+      "3M": decimalNumber(summary.twr3M),
+      "6M": decimalNumber(summary.twr6M),
+      "1Y": decimalNumber(summary.twr1Y),
+      ALL: decimalNumber(summary.twrAll),
+    },
+    mwr: decimalNumber(summary.mwr),
+    series: summary.points.map((point) => ({
+      date: isoDate(point.date)!,
+      portfolio: point.portfolio.toNumber(),
+      spx: decimalNumber(point.spx),
+      tsx: decimalNumber(point.tsx),
+    })),
+    coverageIssues: coverageIssuesFromJson(summary.coverageIssues),
+  };
+}
+
+export async function refreshHistoricalPerformance(
   tenantId: string,
   endDate = new Date().toISOString().slice(0, 10)
 ): Promise<HistoricalPerformance | null> {
@@ -357,7 +429,7 @@ export async function loadHistoricalPerformance(
     tsx: tsxAligned[i] ?? null,
   }));
 
-  return {
+  const result: HistoricalPerformance = {
     methodology: "total-portfolio",
     asOf: endDate,
     inceptionDate: values[0]?.date ?? null,
@@ -385,4 +457,90 @@ export async function loadHistoricalPerformance(
         left.startDate.localeCompare(right.startDate) || left.symbol.localeCompare(right.symbol)
     ),
   };
+  await saveHistoricalPerformance(tenantId, result, values, securityValues, cash);
+  return result;
+}
+
+async function saveHistoricalPerformance(
+  tenantId: string,
+  result: HistoricalPerformance,
+  values: { date: string; valueCad: number }[],
+  securityValues: { date: string; valueCad: number }[],
+  cash: { date: string; cashCad: number }[]
+) {
+  const valueByDate = new Map(values.map((point) => [point.date, point.valueCad]));
+  const securitiesByDate = new Map(securityValues.map((point) => [point.date, point.valueCad]));
+  const cashByDate = new Map(cash.map((point) => [point.date, point.cashCad]));
+
+  await prisma.$transaction(async (tx) => {
+    const summary = await tx.portfolioPerformanceSummary.upsert({
+      where: { tenantId_asOf: { tenantId, asOf: dateOnly(result.asOf) } },
+      create: {
+        tenantId,
+        asOf: dateOnly(result.asOf),
+        inceptionDate: result.inceptionDate ? dateOnly(result.inceptionDate) : null,
+        terminalDate: result.terminalDate ? dateOnly(result.terminalDate) : null,
+        terminalValueCad: result.terminalValueCad,
+        terminalSecuritiesValueCad: result.terminalSecuritiesValueCad,
+        terminalCashCad: result.terminalCashCad,
+        syncedValueCad: result.syncedValueCad,
+        syncedSecuritiesValueCad: result.syncedSecuritiesValueCad,
+        syncedCashCad: result.syncedCashCad,
+        terminalDifferenceCad: result.terminalDifferenceCad,
+        terminalDifferencePct: result.terminalDifferencePct,
+        cashDifferenceCad: result.cashDifferenceCad,
+        terminalReconciled: result.terminalReconciled,
+        resolvedSymbols: result.resolvedSymbols,
+        lifetimeSymbols: result.lifetimeSymbols,
+        fxSource: result.fxSource,
+        twr3M: result.twr["3M"],
+        twr6M: result.twr["6M"],
+        twr1Y: result.twr["1Y"],
+        twrAll: result.twr.ALL,
+        mwr: result.mwr,
+        coverageIssues: result.coverageIssues as unknown as Prisma.InputJsonValue,
+      },
+      update: {
+        inceptionDate: result.inceptionDate ? dateOnly(result.inceptionDate) : null,
+        terminalDate: result.terminalDate ? dateOnly(result.terminalDate) : null,
+        terminalValueCad: result.terminalValueCad,
+        terminalSecuritiesValueCad: result.terminalSecuritiesValueCad,
+        terminalCashCad: result.terminalCashCad,
+        syncedValueCad: result.syncedValueCad,
+        syncedSecuritiesValueCad: result.syncedSecuritiesValueCad,
+        syncedCashCad: result.syncedCashCad,
+        terminalDifferenceCad: result.terminalDifferenceCad,
+        terminalDifferencePct: result.terminalDifferencePct,
+        cashDifferenceCad: result.cashDifferenceCad,
+        terminalReconciled: result.terminalReconciled,
+        resolvedSymbols: result.resolvedSymbols,
+        lifetimeSymbols: result.lifetimeSymbols,
+        fxSource: result.fxSource,
+        twr3M: result.twr["3M"],
+        twr6M: result.twr["6M"],
+        twr1Y: result.twr["1Y"],
+        twrAll: result.twr.ALL,
+        mwr: result.mwr,
+        coverageIssues: result.coverageIssues as unknown as Prisma.InputJsonValue,
+        generatedAt: new Date(),
+      },
+    });
+
+    await tx.portfolioPerformancePoint.deleteMany({ where: { summaryId: summary.id } });
+    if (result.series.length > 0) {
+      await tx.portfolioPerformancePoint.createMany({
+        data: result.series.map((point) => ({
+          tenantId,
+          summaryId: summary.id,
+          date: dateOnly(point.date),
+          portfolio: point.portfolio,
+          spx: point.spx,
+          tsx: point.tsx,
+          valueCad: valueByDate.get(point.date) ?? null,
+          securitiesValueCad: securitiesByDate.get(point.date) ?? null,
+          cashCad: cashByDate.get(point.date) ?? null,
+        })),
+      });
+    }
+  });
 }
