@@ -1,22 +1,13 @@
-import { getServerSession } from "next-auth";
-
-import { SessionAppShell } from "@/components/layout/session-app-shell";
 import { AnalyticsView } from "@/components/features/analytics/analytics-view";
-import { getPortfolioAnalytics } from "@/lib/investments/analytics-loader";
-import { authOptions } from "@/lib/auth";
-import { resolveSessionTenant } from "@/lib/tenant";
+import { getSessionTenant } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 
+// Only the cheap tenant resolution is awaited here; the expensive portfolio
+// analytics (TWR/MWR + external profiles) streams inside AnalyticsView's
+// <Suspense> boundary so the header paints immediately.
 export default async function PerformancePage() {
-  const session = await getServerSession(authOptions);
-  const { tenantId, isDemo } = await resolveSessionTenant(session);
+  const { tenantId } = await getSessionTenant();
 
-  const data = await getPortfolioAnalytics(tenantId);
-
-  return (
-    <SessionAppShell session={session} isDemo={isDemo}>
-      <AnalyticsView data={data} />
-    </SessionAppShell>
-  );
+  return <AnalyticsView tenantId={tenantId} />;
 }

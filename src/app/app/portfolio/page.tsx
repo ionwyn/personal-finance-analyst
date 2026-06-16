@@ -1,25 +1,16 @@
-import { getServerSession } from "next-auth";
-
-import { SessionAppShell } from "@/components/layout/session-app-shell";
 import { InvestmentsView } from "@/components/features/investments/investments-view";
 import { getInvestmentDashboardData } from "@/lib/investments/analytics";
 import { getPortfolioPulse } from "@/lib/investments/markets-loader";
-import { authOptions } from "@/lib/auth";
-import { resolveSessionTenant } from "@/lib/tenant";
+import { getSessionTenant } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 
 export default async function PortfolioPage() {
-  const session = await getServerSession(authOptions);
-  const { tenantId, isDemo } = await resolveSessionTenant(session);
+  const { tenantId } = await getSessionTenant();
   const [data, pulse] = await Promise.all([
     getInvestmentDashboardData(tenantId),
     getPortfolioPulse(tenantId),
   ]);
 
-  return (
-    <SessionAppShell session={session} isDemo={isDemo}>
-      <InvestmentsView data={data} pulse={pulse} />
-    </SessionAppShell>
-  );
+  return <InvestmentsView data={data} pulse={pulse} />;
 }

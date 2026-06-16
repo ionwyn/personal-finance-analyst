@@ -1,8 +1,6 @@
-import { getServerSession } from "next-auth";
 import { CreditCard, Landmark, TrendingUp } from "lucide-react";
 
 import { AccountRowMenu } from "@/components/actions/account-row-menu";
-import { SessionAppShell } from "@/components/layout/session-app-shell";
 import { ItemActions } from "@/components/actions/item-actions";
 import { PlaidLinkButton } from "@/components/actions/plaid-link-button";
 import {
@@ -14,17 +12,15 @@ import { SyncAllButton } from "@/components/actions/sync-all-button";
 import { PageHeader, StatusPill } from "@/components/ui";
 import { getDashboardData } from "@/lib/analytics";
 import { institutionKeyMatches, normalizeInstitutionName } from "@/lib/analytics/duplicates";
-import { authOptions } from "@/lib/auth";
 import { formatMoney, formatRelativeTime, formatYearMonth } from "@/lib/format";
-import { resolveSessionTenant } from "@/lib/tenant";
+import { getSessionTenant } from "@/lib/session";
 
 import styles from "./accounts.module.scss";
 
 export const dynamic = "force-dynamic";
 
 export default async function AccountsPage() {
-  const session = await getServerSession(authOptions);
-  const { tenantSlug, isDemo } = await resolveSessionTenant(session);
+  const { tenantSlug, isDemo } = await getSessionTenant();
   const data = await getDashboardData(tenantSlug);
   const institutions = data.institutions;
   const accountCount = institutions.reduce((s, i) => s + i.accounts.length, 0);
@@ -53,7 +49,7 @@ export default async function AccountsPage() {
     .join(" · ");
 
   return (
-    <SessionAppShell session={session} isDemo={isDemo}>
+    <>
       <PageHeader
         title="Accounts"
         subtitle={subLine}
@@ -135,7 +131,7 @@ export default async function AccountsPage() {
         <span>Plaid items stored encrypted at rest · webhook /api/webhooks/plaid online</span>
         <span>⌘R sync all · ⌘N link new</span>
       </div>
-    </SessionAppShell>
+    </>
   );
 }
 

@@ -1,26 +1,18 @@
-import { getServerSession } from "next-auth";
-
-import { AppShell } from "@/components/layout/app-shell";
-import { SessionAppShell } from "@/components/layout/session-app-shell";
 import { CycleView } from "@/components/features/cycles/cycle-view";
-import { authOptions } from "@/lib/auth";
 import { getCurrentCycleData } from "@/lib/cycles/getCurrentCycle";
 import { discoverRecurringCandidates } from "@/lib/cycles/discovery";
-import { resolveSessionTenant } from "@/lib/tenant";
+import { getSessionTenant } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 
 export default async function CyclesPage() {
-  const session = await getServerSession(authOptions);
-  const { tenantId, isDemo } = await resolveSessionTenant(session);
+  const { tenantId } = await getSessionTenant();
 
   if (!tenantId) {
     return (
-      <AppShell mode={isDemo ? "demo" : "private"}>
-        <section className="empty-state">
-          <h2>No tenant found</h2>
-        </section>
-      </AppShell>
+      <section className="empty-state">
+        <h2>No tenant found</h2>
+      </section>
     );
   }
 
@@ -30,7 +22,7 @@ export default async function CyclesPage() {
   ]);
 
   return (
-    <SessionAppShell session={session} isDemo={isDemo}>
+    <>
       {data ? (
         <CycleView data={data} discoveryCandidates={discoveryCandidates} />
       ) : (
@@ -47,6 +39,6 @@ export default async function CyclesPage() {
         </span>
         <span>⌘1 dashboard · settings ⚙</span>
       </div>
-    </SessionAppShell>
+    </>
   );
 }

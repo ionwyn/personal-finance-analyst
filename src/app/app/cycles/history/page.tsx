@@ -1,13 +1,9 @@
 import Link from "next/link";
-import { getServerSession } from "next-auth";
 
-import { AppShell } from "@/components/layout/app-shell";
-import { SessionAppShell } from "@/components/layout/session-app-shell";
-import { authOptions } from "@/lib/auth";
 import { closeOverdueCycles } from "@/lib/cycles/close";
 import { getCycleHistory } from "@/lib/cycles/getCycleHistory";
 import { formatMoney, formatUtcDate } from "@/lib/format";
-import { resolveSessionTenant } from "@/lib/tenant";
+import { getSessionTenant } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 
@@ -17,16 +13,13 @@ function toNumber(value: { toString(): string } | null | undefined): number {
 }
 
 export default async function CycleHistoryPage() {
-  const session = await getServerSession(authOptions);
-  const { tenantId, isDemo } = await resolveSessionTenant(session);
+  const { tenantId } = await getSessionTenant();
 
   if (!tenantId) {
     return (
-      <AppShell mode={isDemo ? "demo" : "private"}>
-        <section className="empty-state">
-          <h2>No tenant found</h2>
-        </section>
-      </AppShell>
+      <section className="empty-state">
+        <h2>No tenant found</h2>
+      </section>
     );
   }
 
@@ -35,7 +28,7 @@ export default async function CycleHistoryPage() {
   const now = new Date();
 
   return (
-    <SessionAppShell session={session} isDemo={isDemo}>
+    <>
       <div className="page-header">
         <div>
           <div className="page-title">Cycle history</div>
@@ -129,6 +122,6 @@ export default async function CycleHistoryPage() {
         </span>
         <span>⌘5 current cycle</span>
       </div>
-    </SessionAppShell>
+    </>
   );
 }

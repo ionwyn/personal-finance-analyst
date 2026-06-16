@@ -1,15 +1,13 @@
 import { redirect } from "next/navigation";
-import { getServerSession } from "next-auth";
 
-import { AppShell } from "@/components/layout/app-shell";
 import {
   SettingsShell,
   type SectionId,
   type SettingsConnections,
 } from "@/components/features/settings/settings-shell";
-import { authOptions } from "@/lib/auth";
 import { getDashboardData } from "@/lib/analytics";
 import { getSettingsData } from "@/lib/cycles/getSettings";
+import { getSession } from "@/lib/session";
 import { getSyncRuns } from "@/lib/settings/getSyncRuns";
 import { getUserTenant } from "@/lib/tenant";
 
@@ -29,7 +27,7 @@ export default async function SettingsPage({
 }: {
   searchParams: Promise<{ s?: string }>;
 }) {
-  const session = await getServerSession(authOptions);
+  const session = await getSession();
   if (!session?.user?.id) redirect("/signin");
 
   const tenant = await getUserTenant(session.user.id);
@@ -72,15 +70,7 @@ export default async function SettingsPage({
     : "pay-cycle";
 
   return (
-    <AppShell
-      mode="private"
-      user={{
-        name: session.user.name,
-        email: session.user.email,
-        image: session.user.image,
-        handle: session.user.email ?? undefined,
-      }}
-    >
+    <>
       <SettingsShell
         data={data}
         syncRuns={syncRuns}
@@ -98,6 +88,6 @@ export default async function SettingsPage({
         </span>
         <span>⌘1 dashboard</span>
       </div>
-    </AppShell>
+    </>
   );
 }

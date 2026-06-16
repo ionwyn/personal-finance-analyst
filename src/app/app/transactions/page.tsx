@@ -1,14 +1,10 @@
-import { getServerSession } from "next-auth";
-
-import { SessionAppShell } from "@/components/layout/session-app-shell";
 import {
   ExportCsvButton,
   TransactionsToolbar,
 } from "@/components/features/transactions/transactions-toolbar";
 import { getTransactionsForTenant } from "@/lib/analytics";
-import { authOptions } from "@/lib/auth";
 import { formatMoney, formatPlaidDate } from "@/lib/format";
-import { resolveSessionTenant } from "@/lib/tenant";
+import { getSessionTenant } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 
@@ -27,8 +23,7 @@ type Props = {
 };
 
 export default async function TransactionsPage({ searchParams }: Props) {
-  const session = await getServerSession(authOptions);
-  const { tenantSlug: slug, isDemo } = await resolveSessionTenant(session);
+  const { tenantSlug: slug } = await getSessionTenant();
   const params = await searchParams;
 
   const today = new Date();
@@ -80,7 +75,7 @@ export default async function TransactionsPage({ searchParams }: Props) {
     .join(" · ");
 
   return (
-    <SessionAppShell session={session} isDemo={isDemo}>
+    <>
       <div className="page-header">
         <div>
           <div className="page-title">Transactions</div>
@@ -227,7 +222,7 @@ export default async function TransactionsPage({ searchParams }: Props) {
         </span>
         <span>↑↓ navigate · ⏎ open · / search</span>
       </div>
-    </SessionAppShell>
+    </>
   );
 }
 

@@ -1,13 +1,10 @@
 import { redirect } from "next/navigation";
-import { getServerSession } from "next-auth";
 
-import { SessionAppShell } from "@/components/layout/session-app-shell";
 import { DashboardView } from "@/components/features/dashboard/dashboard-view";
 import { getDashboardData } from "@/lib/analytics";
-import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { getSessionTenant } from "@/lib/session";
 import { landingPath } from "@/lib/settings/landing";
-import { resolveSessionTenant } from "@/lib/tenant";
 
 export const dynamic = "force-dynamic";
 
@@ -16,8 +13,7 @@ export default async function AppPage({
 }: {
   searchParams: Promise<{ home?: string }>;
 }) {
-  const session = await getServerSession(authOptions);
-  const { tenantSlug, isDemo } = await resolveSessionTenant(session);
+  const { session, tenantSlug, isDemo } = await getSessionTenant();
 
   // Honor the user's default landing page (Settings → Display). `?home=1`
   // (the sidebar Dashboard link) bypasses it so the dashboard stays reachable.
@@ -33,9 +29,5 @@ export default async function AppPage({
 
   const data = await getDashboardData(tenantSlug);
 
-  return (
-    <SessionAppShell session={session} isDemo={isDemo}>
-      <DashboardView data={data} mode={isDemo ? "demo" : "private"} />
-    </SessionAppShell>
-  );
+  return <DashboardView data={data} mode={isDemo ? "demo" : "private"} />;
 }
