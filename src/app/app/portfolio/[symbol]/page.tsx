@@ -1,7 +1,7 @@
 import { getServerSession } from "next-auth";
 import { notFound } from "next/navigation";
 
-import { AppShell } from "@/components/layout/app-shell";
+import { SessionAppShell } from "@/components/layout/session-app-shell";
 import { PositionView } from "@/components/features/positions/position-view";
 import { SymbolView } from "@/components/features/symbols/symbol-view";
 import { getPositionDetail } from "@/lib/investments/position-loader";
@@ -22,20 +22,8 @@ export default async function PositionPage({ params }: { params: Promise<{ symbo
   if (!data && !symbolData) notFound();
 
   return (
-    <AppShell
-      mode={isDemo ? "demo" : "private"}
-      user={
-        isDemo
-          ? undefined
-          : {
-              name: session?.user?.name,
-              email: session?.user?.email,
-              image: session?.user?.image,
-              handle: session?.user?.email ?? undefined,
-            }
-      }
-    >
+    <SessionAppShell session={session} isDemo={isDemo}>
       {data ? <PositionView data={data} /> : <SymbolView data={symbolData!} canEdit={!isDemo} />}
-    </AppShell>
+    </SessionAppShell>
   );
 }

@@ -1,6 +1,7 @@
 import { getServerSession } from "next-auth";
 
 import { AppShell } from "@/components/layout/app-shell";
+import { SessionAppShell } from "@/components/layout/session-app-shell";
 import { CycleView } from "@/components/features/cycles/cycle-view";
 import { authOptions } from "@/lib/auth";
 import { getCurrentCycleData } from "@/lib/cycles/getCurrentCycle";
@@ -29,19 +30,7 @@ export default async function CyclesPage() {
   ]);
 
   return (
-    <AppShell
-      mode={isDemo ? "demo" : "private"}
-      user={
-        isDemo
-          ? undefined
-          : {
-              name: session?.user?.name,
-              email: session?.user?.email,
-              image: session?.user?.image,
-              handle: session?.user?.email ?? undefined,
-            }
-      }
-    >
+    <SessionAppShell session={session} isDemo={isDemo}>
       {data ? (
         <CycleView data={data} discoveryCandidates={discoveryCandidates} />
       ) : (
@@ -58,6 +47,6 @@ export default async function CyclesPage() {
         </span>
         <span>⌘1 dashboard · settings ⚙</span>
       </div>
-    </AppShell>
+    </SessionAppShell>
   );
 }

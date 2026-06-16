@@ -12,6 +12,8 @@ import type {
   InvestmentConnection,
   InvestmentPosition,
 } from "./types";
+import { toNullableNumber, toNumber } from "./shared/decimal";
+import { hashColor, logoText } from "./shared/logo";
 
 const STALE_MS = 24 * 60 * 60 * 1000;
 
@@ -20,55 +22,6 @@ function isStaleSince(iso: string | null | undefined, now: number) {
   const ts = new Date(iso).getTime();
   if (!Number.isFinite(ts)) return true;
   return now - ts > STALE_MS;
-}
-
-const LOGO_PALETTE = [
-  "#a6192e",
-  "#0072c6",
-  "#1d1d1f",
-  "#0d8b3e",
-  "#00a4ef",
-  "#ed1a3b",
-  "#7ab55c",
-  "#4285f4",
-  "#ff6a00",
-  "#76b900",
-  "#1f3a93",
-  "#003168",
-  "#ff9900",
-  "#0668e1",
-  "#cc0000",
-  "#e21c2c",
-  "#000000",
-];
-
-function hashColor(value: string): string {
-  let h = 0;
-  for (let i = 0; i < value.length; i++) {
-    h = (h * 31 + value.charCodeAt(i)) >>> 0;
-  }
-  return LOGO_PALETTE[h % LOGO_PALETTE.length] ?? "#1f3a93";
-}
-
-function numberValue(value: { toNumber(): number } | number | null | undefined) {
-  if (value == null) return 0;
-  return typeof value === "number" ? value : value.toNumber();
-}
-
-function nullableNumber(value: { toNumber(): number } | number | null | undefined) {
-  if (value == null) return null;
-  return typeof value === "number" ? value : value.toNumber();
-}
-
-function logoText(name: string | null | undefined) {
-  return (
-    (name ?? "ST")
-      .split(/\s+/)
-      .filter(Boolean)
-      .slice(0, 2)
-      .map((part) => part[0]?.toUpperCase() ?? "")
-      .join("") || "ST"
-  );
 }
 
 export type ConnectionHealth = {
@@ -238,13 +191,10 @@ async function loadInvestmentsUncached(tenantId?: string | null): Promise<Loaded
 
   const accounts: InvestmentAccount[] = activeAccountsRaw.map((account) => {
     const holdingsCAD = account.positions.reduce(
-      (sum, position) => sum + numberValue(position.marketValueCad),
+      (sum, position) => sum + toNumber(position.marketValueCad),
       0
     );
-    const cashCAD = account.balances.reduce(
-      (sum, balance) => sum + numberValue(balance.cashCad),
-      0
-    );
+    const cashCAD = account.balances.reduce((sum, balance) => sum + toNumber(balance.cashCad), 0);
     const institution = account.institutionName ?? account.connection.brokerageName ?? "SnapTrade";
     const lastSyncAt =
       account.connection.lastSyncAt?.toISOString() ??
@@ -296,15 +246,15 @@ async function loadInvestmentsUncached(tenantId?: string | null): Promise<Loaded
           type: position.assetType,
           exchange: position.exchange ?? "",
           currency: position.currency,
-          units: numberValue(position.units),
-          price: numberValue(position.price),
-          avgCost: nullableNumber(position.avgCost),
-          mvNative: numberValue(position.marketValueNative),
-          mvCAD: numberValue(position.marketValueCad),
-          costNative: nullableNumber(position.costNative),
-          costCAD: nullableNumber(position.costCad),
-          plCAD: nullableNumber(position.pnlCad),
-          plPct: nullableNumber(position.pnlPct),
+          units: toNumber(position.units),
+          price: toNumber(position.price),
+          avgCost: toNullableNumber(position.avgCost),
+          mvNative: toNumber(position.marketValueNative),
+          mvCAD: toNumber(position.marketValueCad),
+          costNative: toNullableNumber(position.costNative),
+          costCAD: toNullableNumber(position.costCad),
+          plCAD: toNullableNumber(position.pnlCad),
+          plPct: toNullableNumber(position.pnlPct),
           logoBg: hashColor(position.symbol),
           logoId: position.logo?.status === "READY" || position.logoId ? position.logoId : null,
         })
@@ -316,9 +266,9 @@ async function loadInvestmentsUncached(tenantId?: string | null): Promise<Loaded
     if (!account.tracked) continue;
     for (const balance of account.balances) {
       const existing = cashByCurrency.get(balance.currency);
-      const value = numberValue(balance.cash);
-      const valueCAD = numberValue(balance.cashCad);
-      const buyingPower = numberValue(balance.buyingPower);
+      const value = toNumber(balance.cash);
+      const valueCAD = toNumber(balance.cashCad);
+      const buyingPower = toNumber(balance.buyingPower);
       if (existing) {
         existing.value += value;
         existing.valueCAD += valueCAD;

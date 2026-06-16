@@ -1,6 +1,6 @@
 import { getServerSession } from "next-auth";
 
-import { AppShell } from "@/components/layout/app-shell";
+import { SessionAppShell } from "@/components/layout/session-app-shell";
 import { ContributionView } from "@/components/features/investments/contribution-view";
 import { getPortfolioContributionData } from "@/lib/investments/analytics";
 import { authOptions } from "@/lib/auth";
@@ -14,20 +14,8 @@ export default async function ContributionPage() {
   const contributions = await getPortfolioContributionData(tenantId);
 
   return (
-    <AppShell
-      mode={isDemo ? "demo" : "private"}
-      user={
-        isDemo
-          ? undefined
-          : {
-              name: session?.user?.name,
-              email: session?.user?.email,
-              image: session?.user?.image,
-              handle: session?.user?.email ?? undefined,
-            }
-      }
-    >
+    <SessionAppShell session={session} isDemo={isDemo}>
       <ContributionView contributions={contributions} />
-    </AppShell>
+    </SessionAppShell>
   );
 }
