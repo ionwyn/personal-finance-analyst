@@ -106,6 +106,14 @@
   height: 14px;
   opacity: 0.85;
   flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  svg {
+    width: 14px;
+    height: 14px;
+  }
 }
 
 .navLabel {
@@ -130,19 +138,27 @@
   flex: 1;
 }
 
-.collapseToggle {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  width: 100%;
-  padding: 8px 10px;
-  border-top: 1px solid var(--border);
+.navDivider {
+  margin: 8px 10px;
+  border: none;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.collapseBtn {
+  margin-left: auto;
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  display: grid;
+  place-items: center;
   color: var(--text-4);
-  font-size: 12px;
-  text-align: left;
-  transition: color 80ms ease;
+  flex-shrink: 0;
+  transition:
+    color 80ms ease,
+    background 80ms ease;
 
   &:hover {
+    background: var(--hover);
     color: var(--text-2);
   }
 }
@@ -215,7 +231,19 @@
     display: none;
   }
 
+  .brand {
+    justify-content: space-between;
+  }
+
+  .collapseBtn {
+    margin-left: 0;
+  }
+
   .navSection {
+    display: none;
+  }
+
+  .navDivider {
     display: none;
   }
 
@@ -229,16 +257,18 @@
 
   .navItem {
     justify-content: center;
-    padding: 6px 0;
+    padding: 9px 0;
   }
 
   .navIcon {
     opacity: 1;
-  }
+    width: 18px;
+    height: 18px;
 
-  .collapseToggle {
-    justify-content: center;
-    padding: 8px 0;
+    svg {
+      width: 18px;
+      height: 18px;
+    }
   }
 
   .userMeta {
