@@ -141,21 +141,19 @@ async function loadWatchlist(
   });
 }
 
-/** Macro board for Markets → Overview. Tenant-agnostic; all cache-served. */
-export async function getMacroBoard(): Promise<MacroBoard> {
+// Markets → Overview is split into four independent, cache-backed loaders so the
+// view can stream each panel behind its own <Suspense> boundary. On a cold cache
+// each fetches its own external source, so the header + faster panels paint while
+// slower ones resolve; on a warm cache they all return in milliseconds.
+
+/** Index tape ("pulse strip"). */
+export async function getTape(): Promise<TapeQuote[]> {
   const svc = getMarketDataService();
-
-  const [tapeQuotes, macro, canada, curve] = await Promise.all([
-    svc.getQuotes(
-      TAPE.map((t) => t.symbol),
-      TAPE_MAX_AGE_MS
-    ),
-    getMacroOverview().catch(() => [] as MacroIndicator[]),
-    getCanadaMacro().catch(() => [] as MacroIndicator[]),
-    getYieldCurve().catch(() => ({ points: [], asOf: null }) as YieldCurveData),
-  ]);
-
-  const tape: TapeQuote[] = TAPE.map((t, i) => {
+  const tapeQuotes = await svc.getQuotes(
+    TAPE.map((t) => t.symbol),
+    TAPE_MAX_AGE_MS
+  );
+  return TAPE.map((t, i) => {
     const q = tapeQuotes[i];
     return {
       id: t.id,
@@ -168,6 +166,31 @@ export async function getMacroBoard(): Promise<MacroBoard> {
       changePct: q?.changePct ?? null,
     };
   });
+}
+
+/** US Treasury yield curve (FRED). */
+export async function getCurveBoard(): Promise<YieldCurveData> {
+  return getYieldCurve().catch(() => ({ points: [], asOf: null }) as YieldCurveData);
+}
+
+/** US macro indicators (FRED). */
+export async function getMacroBoardUS(): Promise<MacroIndicator[]> {
+  return getMacroOverview().catch(() => [] as MacroIndicator[]);
+}
+
+/** Canada macro indicators (Statistics Canada). */
+export async function getMacroBoardCanada(): Promise<MacroIndicator[]> {
+  return getCanadaMacro().catch(() => [] as MacroIndicator[]);
+}
+
+/** Macro board for Markets → Overview. Tenant-agnostic; all cache-served. */
+export async function getMacroBoard(): Promise<MacroBoard> {
+  const [tape, macro, canada, curve] = await Promise.all([
+    getTape(),
+    getMacroBoardUS(),
+    getMacroBoardCanada(),
+    getCurveBoard(),
+  ]);
 
   return { tape, macro, canada, curve, asOf: new Date().toISOString() };
 }

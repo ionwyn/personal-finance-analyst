@@ -1,8 +1,16 @@
+import { Suspense } from "react";
+
 import { MarketsTabs } from "@/components/features/markets/markets-tabs";
-import type { MacroBoard } from "@/lib/investments/markets-loader";
+import {
+  getCurveBoard,
+  getMacroBoardCanada,
+  getMacroBoardUS,
+  getTape,
+} from "@/lib/investments/markets-loader";
 
 import { CurvePanelDynamic } from "./markets-parts/curve-panel-dynamic";
 import { MacroPanel } from "./markets-parts/macro-panel";
+import { CurveSkeleton, MacroSkeleton, TapeSkeleton } from "./markets-parts/markets-skeletons";
 import { Tape } from "./markets-parts/tape";
 
 function asOfLabel(iso: string): string {
@@ -15,7 +23,9 @@ function asOfLabel(iso: string): string {
   });
 }
 
-export function MarketsView({ data }: { data: MacroBoard }) {
+// The header renders immediately; each data panel streams in behind its own
+// <Suspense> boundary as its (independent, cache-backed) loader resolves.
+export function MarketsView() {
   return (
     <>
       <div className="page-header">
@@ -25,29 +35,59 @@ export function MarketsView({ data }: { data: MacroBoard }) {
             <MarketsTabs active="overview" />
           </div>
           <div className="page-sub">
-            INDICES · RATES · MACRO · AS OF {asOfLabel(data.asOf).toUpperCase()} · YAHOO FINANCE +
-            FRED + STATCAN
+            INDICES · RATES · MACRO · AS OF {asOfLabel(new Date().toISOString()).toUpperCase()} ·
+            YAHOO FINANCE + FRED + STATCAN
           </div>
         </div>
       </div>
 
-      <Tape tape={data.tape} />
+      <Suspense fallback={<TapeSkeleton />}>
+        <TapeSection />
+      </Suspense>
 
-      <CurvePanelDynamic curve={data.curve} />
+      <Suspense fallback={<CurveSkeleton />}>
+        <CurveSection />
+      </Suspense>
 
-      <MacroPanel macro={data.macro} />
+      <Suspense fallback={<MacroSkeleton />}>
+        <MacroSection />
+      </Suspense>
 
-      <MacroPanel
-        macro={data.canada}
-        title="Canada macro"
-        meta="STATISTICS CANADA · 12H CACHE"
-        order={["CA_OVERNIGHT", "CA_CPI_YOY", "CA_UNEMP", "CA_GDP_YOY"]}
-      />
+      <Suspense fallback={<MacroSkeleton />}>
+        <CanadaMacroSection />
+      </Suspense>
 
       <div className="foot-note">
         <span>Quotes delayed · cached 15 min · macro series cached 12 h</span>
         <span>Market data for context only — not financial advice</span>
       </div>
     </>
+  );
+}
+
+async function TapeSection() {
+  const tape = await getTape();
+  return <Tape tape={tape} />;
+}
+
+async function CurveSection() {
+  const curve = await getCurveBoard();
+  return <CurvePanelDynamic curve={curve} />;
+}
+
+async function MacroSection() {
+  const macro = await getMacroBoardUS();
+  return <MacroPanel macro={macro} />;
+}
+
+async function CanadaMacroSection() {
+  const canada = await getMacroBoardCanada();
+  return (
+    <MacroPanel
+      macro={canada}
+      title="Canada macro"
+      meta="STATISTICS CANADA · 12H CACHE"
+      order={["CA_OVERNIGHT", "CA_CPI_YOY", "CA_UNEMP", "CA_GDP_YOY"]}
+    />
   );
 }
