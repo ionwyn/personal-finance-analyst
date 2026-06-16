@@ -7,7 +7,7 @@ import type { SeriesPoint } from "@/lib/investments/analytics-loader";
 
 // ─── Portfolio vs benchmarks — TWR index rebased to 100 at window start ─────
 
-const WINDOWS = ["YTD", "3M", "6M", "1Y", "ALL"] as const;
+const WINDOWS = ["3M", "6M", "YTD", "1Y", "ALL"] as const;
 type Window = (typeof WINDOWS)[number];
 
 function windowCutoff(endDate: string, window: Window): string | null {
