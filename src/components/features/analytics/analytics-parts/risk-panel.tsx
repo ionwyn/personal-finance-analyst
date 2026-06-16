@@ -1,5 +1,3 @@
-"use client";
-
 import type { RiskStats } from "@/lib/investments/analytics-loader";
 
 // ─── Risk & concentration statistics ────────────────────────────────────────

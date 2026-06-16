@@ -5,13 +5,8 @@ import { useEffect, useState } from "react";
 import type { PositionDetail } from "@/lib/investments/types";
 
 import { SECTIONS } from "./format";
-import {
-  DecisionDeferred,
-  FundamentalsLive,
-  NewsList,
-  PriceChart,
-  TechnicalsPanel,
-} from "./position-market";
+import { DecisionDeferred, FundamentalsLive, NewsList } from "./position-market";
+import { PriceChartDynamic, TechnicalsPanelDynamic } from "./position-market-dynamic";
 import {
   EarningsPanel,
   FilingsPanel,
@@ -82,7 +77,11 @@ export function PositionView({ data: p }: { data: PositionDetail }) {
           >
             <div className="panel">
               <div className="panel-body" style={{ padding: "8px 4px 8px" }}>
-                <PriceChart md={p.marketData} avgNative={p.avgNative} activity={p.activity} />
+                <PriceChartDynamic
+                  md={p.marketData}
+                  avgNative={p.avgNative}
+                  activity={p.activity}
+                />
               </div>
             </div>
           </Section>
@@ -160,7 +159,7 @@ export function PositionView({ data: p }: { data: PositionDetail }) {
             title="Optional context"
             meta="secondary for long-hold investors"
           >
-            <TechnicalsPanel md={p.marketData} />
+            <TechnicalsPanelDynamic md={p.marketData} />
           </Section>
 
           <Section id="news" eyebrow="09 · NEWS & EVENTS" title="Curated, relevance-weighted">

@@ -1,5 +1,3 @@
-"use client";
-
 import Link from "next/link";
 
 import { MarketsTabs } from "@/components/features/markets/markets-tabs";

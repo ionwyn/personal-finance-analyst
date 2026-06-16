@@ -1,5 +1,3 @@
-"use client";
-
 import { Sparkline } from "@/components/shared/sparkline";
 import type { MacroGroup, MacroIndicator } from "@/lib/market-data";
 

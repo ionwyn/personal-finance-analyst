@@ -1,5 +1,3 @@
-"use client";
-
 import type { TapeQuote } from "@/lib/investments/markets-loader";
 
 // ─── Index tape — the pulse strip across the top of the Markets sheet ──────
