@@ -4,18 +4,23 @@ import {
   createContext,
   useCallback,
   useContext,
-  useEffect,
   useId,
   useMemo,
-  useRef,
   useState,
   type ReactNode,
 } from "react";
 import { useRouter } from "next/navigation";
+import dynamic from "next/dynamic";
 import { Loader2, Plus } from "lucide-react";
-import { usePlaidLink } from "react-plaid-link";
+import type { PlaidLinkOnSuccess } from "react-plaid-link";
 
 import { Button } from "@/components/ui";
+
+// react-plaid-link only loads once a link token is requested (on click).
+const PlaidLinkLauncher = dynamic(
+  () => import("./plaid-link-launcher").then((m) => m.PlaidLinkLauncher),
+  { ssr: false }
+);
 
 type PlaidMetadata = {
   institution?: {
@@ -39,11 +44,9 @@ export function PlaidLinkProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [activeButtonId, setActiveButtonId] = useState<string | null>(null);
-  const pendingOpenRef = useRef(false);
 
-  const { open, ready } = usePlaidLink({
-    token,
-    onSuccess: async (publicToken, metadata) => {
+  const handleSuccess = useCallback<PlaidLinkOnSuccess>(
+    async (publicToken, metadata) => {
       setLoading(true);
       setError(null);
       try {
@@ -62,16 +65,11 @@ export function PlaidLinkProvider({ children }: { children: ReactNode }) {
         setError(exchangeError instanceof Error ? exchangeError.message : "Plaid exchange failed.");
       } finally {
         setLoading(false);
+        setToken(null);
       }
     },
-  });
-
-  useEffect(() => {
-    if (pendingOpenRef.current && ready) {
-      pendingOpenRef.current = false;
-      open();
-    }
-  }, [open, ready]);
+    [router]
+  );
 
   const startLink = useCallback(async (buttonId: string) => {
     setLoading(true);
@@ -81,10 +79,8 @@ export function PlaidLinkProvider({ children }: { children: ReactNode }) {
       const response = await fetch("/api/plaid/link-token", { method: "POST" });
       if (!response.ok) throw new Error("Could not create a Plaid Link token.");
       const body = (await response.json()) as { link_token: string };
-      pendingOpenRef.current = true;
       setToken(body.link_token);
     } catch (linkError) {
-      pendingOpenRef.current = false;
       setError(linkError instanceof Error ? linkError.message : "Plaid Link failed.");
     } finally {
       setLoading(false);
@@ -96,7 +92,19 @@ export function PlaidLinkProvider({ children }: { children: ReactNode }) {
     [activeButtonId, error, loading, startLink]
   );
 
-  return <PlaidLinkContext.Provider value={value}>{children}</PlaidLinkContext.Provider>;
+  return (
+    <PlaidLinkContext.Provider value={value}>
+      {children}
+      {token ? (
+        <PlaidLinkLauncher
+          key={token}
+          token={token}
+          onSuccess={handleSuccess}
+          onExit={() => setToken(null)}
+        />
+      ) : null}
+    </PlaidLinkContext.Provider>
+  );
 }
 
 export function PlaidLinkButton({ compact = false }: { compact?: boolean }) {

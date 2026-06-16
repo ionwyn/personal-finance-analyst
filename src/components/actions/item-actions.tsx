@@ -1,44 +1,35 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
+import dynamic from "next/dynamic";
 import { KeyRound, RefreshCcw, Unlink } from "lucide-react";
-import { usePlaidLink } from "react-plaid-link";
+import type { PlaidLinkOnSuccess } from "react-plaid-link";
 
 import { Button } from "@/components/ui";
+
+// react-plaid-link only loads when a re-auth (update mode) flow starts.
+const PlaidLinkLauncher = dynamic(
+  () => import("./plaid-link-launcher").then((m) => m.PlaidLinkLauncher),
+  { ssr: false }
+);
 
 export function ItemActions({ itemId, status }: { itemId: string; status: string }) {
   const router = useRouter();
   const [busy, setBusy] = useState<"sync" | "unlink" | "reauth" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [reauthToken, setReauthToken] = useState<string | null>(null);
-  const pendingOpenRef = useRef(false);
 
-  const { open, ready } = usePlaidLink({
-    token: reauthToken,
-    onSuccess: async () => {
-      // Update mode repaired the item in place; pull fresh data and refresh.
-      try {
-        await fetch(`/api/plaid/items/${itemId}/sync`, { method: "POST" });
-      } catch {
-        // sync failure is non-fatal — the item is already re-authenticated
-      }
-      setReauthToken(null);
-      router.refresh();
-    },
-    onExit: () => {
-      setReauthToken(null);
-      setBusy(null);
-    },
-  });
-
-  useEffect(() => {
-    if (pendingOpenRef.current && reauthToken && ready) {
-      pendingOpenRef.current = false;
-      setBusy(null);
-      open();
+  const handleReauthSuccess = useCallback<PlaidLinkOnSuccess>(async () => {
+    // Update mode repaired the item in place; pull fresh data and refresh.
+    try {
+      await fetch(`/api/plaid/items/${itemId}/sync`, { method: "POST" });
+    } catch {
+      // sync failure is non-fatal — the item is already re-authenticated
     }
-  }, [open, ready, reauthToken]);
+    setReauthToken(null);
+    router.refresh();
+  }, [itemId, router]);
 
   async function sync() {
     setBusy("sync");
@@ -63,10 +54,8 @@ export function ItemActions({ itemId, status }: { itemId: string; status: string
       });
       if (!response.ok) throw new Error("Could not start re-authentication.");
       const body = (await response.json()) as { link_token: string };
-      pendingOpenRef.current = true;
       setReauthToken(body.link_token);
     } catch (reauthError) {
-      pendingOpenRef.current = false;
       setError(reauthError instanceof Error ? reauthError.message : "Re-authentication failed.");
       setBusy(null);
     }
@@ -128,6 +117,18 @@ export function ItemActions({ itemId, status }: { itemId: string; status: string
         Unlink
       </Button>
       {error ? <span className="inline-error">{error}</span> : null}
+      {reauthToken ? (
+        <PlaidLinkLauncher
+          key={reauthToken}
+          token={reauthToken}
+          onSuccess={handleReauthSuccess}
+          onExit={() => {
+            setReauthToken(null);
+            setBusy(null);
+          }}
+          onOpen={() => setBusy(null)}
+        />
+      ) : null}
     </>
   );
 }
