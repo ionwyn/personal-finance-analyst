@@ -184,11 +184,9 @@ export function Sidebar({ mode, user }: { mode: "private" | "demo"; user?: Sideb
       key={item.key}
       className={clsx(styles.navItem, isActive(item.href) && styles.active)}
       href={item.href as never}
-      title={collapsed ? item.label : undefined}
+      title={item.label}
     >
-      <span className={styles.navIcon} style={{ width: ICON_SIZE, height: ICON_SIZE }}>
-        {item.icon}
-      </span>
+      <span className={styles.navIcon}>{item.icon}</span>
       <span className={styles.navLabel}>{item.label}</span>
       {item.kbd ? <span className={styles.navKbd}>{item.kbd}</span> : null}
     </Link>
@@ -199,11 +197,21 @@ export function Sidebar({ mode, user }: { mode: "private" | "demo"; user?: Sideb
       <div className={styles.brand}>
         <div className={styles.brandMark}>WYN</div>
         <div className={styles.brandName}>WYN Financial Ltd.</div>
+        <button
+          className={styles.collapseBtn}
+          onClick={() => setCollapsed((c) => !c)}
+          type="button"
+          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+        >
+          {collapsed ? <ChevronRight size={12} /> : <ChevronLeft size={12} />}
+        </button>
       </div>
 
       <nav className={styles.nav}>
-        {sections.map((section) => (
+        {sections.map((section, i) => (
           <div key={section.label}>
+            {i === 2 && <div className={styles.navDivider} />}
             <div className={styles.navSection}>{section.label}</div>
             {section.items.map(renderItem)}
           </div>
@@ -214,17 +222,6 @@ export function Sidebar({ mode, user }: { mode: "private" | "demo"; user?: Sideb
         <div className={styles.navSection}>{mode === "private" ? "Other" : "Auth"}</div>
         {secondary.map(renderItem)}
       </nav>
-
-      <button
-        className={styles.collapseToggle}
-        onClick={() => setCollapsed((c) => !c)}
-        type="button"
-        aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-        title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-      >
-        {collapsed ? <ChevronRight size={13} /> : <ChevronLeft size={13} />}
-        <span className={styles.navLabel}>Collapse</span>
-      </button>
 
       {mode === "private" && user ? (
         <div className={styles.sidebarFooter}>
