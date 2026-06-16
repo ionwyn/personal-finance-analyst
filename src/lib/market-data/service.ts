@@ -1,4 +1,6 @@
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { recordMarketDataCache } from "./stats";
 import type {
   AnalystConsensus,
   DividendPayment,
@@ -39,6 +41,10 @@ function isStale(fetchedAt: Date, ttlMs: number): boolean {
 function n(v: { toNumber(): number } | number | null | undefined): number | null {
   if (v == null) return null;
   return typeof v === "number" ? v : v.toNumber();
+}
+
+function uniqSymbols(symbols: string[]): string[] {
+  return [...new Set(symbols.map((symbol) => symbol.trim()).filter(Boolean))];
 }
 
 function historicalDateTime(date: string): number {
@@ -213,29 +219,7 @@ export class MarketDataService {
   // ── Quote ────────────────────────────────────────────────────────────
 
   async getQuote(symbol: string, maxAgeMs: number = TTL.quote): Promise<MarketQuote | null> {
-    const cached = await prisma.marketQuote.findUnique({ where: { symbol } });
-    if (cached && !isStale(cached.updatedAt, maxAgeMs)) {
-      return {
-        symbol,
-        currency: cached.currency ?? "USD",
-        price: n(cached.price) ?? 0,
-        change: n(cached.change) ?? 0,
-        changePct: n(cached.changePct) ?? 0,
-        open: n(cached.open),
-        prevClose: n(cached.prevClose),
-        dayHigh: n(cached.dayHigh),
-        dayLow: n(cached.dayLow),
-        high52w: n(cached.high52w),
-        low52w: n(cached.low52w),
-        volume: cached.volume != null ? Number(cached.volume) : null,
-        avgVolume: cached.avgVolume != null ? Number(cached.avgVolume) : null,
-        marketCap: n(cached.marketCap),
-        fetchedAt: cached.fetchedAt.toISOString(),
-      };
-    }
-    const fresh = await this.provider.getQuote(symbol);
-    if (fresh) await this.saveQuote(fresh);
-    return fresh;
+    return (await this.getQuotes([symbol], maxAgeMs))[0] ?? null;
   }
 
   /** Batched getQuote — preserves input order; null for symbols that fail. */
@@ -243,7 +227,64 @@ export class MarketDataService {
     symbols: string[],
     maxAgeMs: number = TTL.quote
   ): Promise<(MarketQuote | null)[]> {
-    return Promise.all(symbols.map((s) => this.getQuote(s, maxAgeMs).catch(() => null)));
+    const unique = uniqSymbols(symbols);
+    if (unique.length === 0) return symbols.map(() => null);
+
+    const cachedRows = await prisma.marketQuote.findMany({
+      where: { symbol: { in: unique } },
+    });
+    const cachedBySymbol = new Map(cachedRows.map((row) => [row.symbol, row]));
+    const bySymbol = new Map<string, MarketQuote | null>();
+    const refresh: string[] = [];
+
+    for (const symbol of unique) {
+      const cached = cachedBySymbol.get(symbol);
+      if (cached && !isStale(cached.updatedAt, maxAgeMs)) {
+        recordMarketDataCache("quote", "hit");
+        bySymbol.set(symbol, this.quoteFromRow(symbol, cached));
+      } else {
+        recordMarketDataCache("quote", cached ? "stale" : "miss");
+        refresh.push(symbol);
+      }
+    }
+
+    await Promise.all(
+      refresh.map(async (symbol) => {
+        try {
+          recordMarketDataCache("quote", "providerFetch");
+          const fresh = await this.provider.getQuote(symbol);
+          if (fresh) await this.saveQuote(fresh);
+          bySymbol.set(symbol, fresh);
+        } catch {
+          bySymbol.set(symbol, null);
+        }
+      })
+    );
+
+    return symbols.map((symbol) => bySymbol.get(symbol.trim()) ?? null);
+  }
+
+  private quoteFromRow(
+    symbol: string,
+    cached: NonNullable<Awaited<ReturnType<typeof prisma.marketQuote.findUnique>>>
+  ) {
+    return {
+      symbol,
+      currency: cached.currency ?? "USD",
+      price: n(cached.price) ?? 0,
+      change: n(cached.change) ?? 0,
+      changePct: n(cached.changePct) ?? 0,
+      open: n(cached.open),
+      prevClose: n(cached.prevClose),
+      dayHigh: n(cached.dayHigh),
+      dayLow: n(cached.dayLow),
+      high52w: n(cached.high52w),
+      low52w: n(cached.low52w),
+      volume: cached.volume != null ? Number(cached.volume) : null,
+      avgVolume: cached.avgVolume != null ? Number(cached.avgVolume) : null,
+      marketCap: n(cached.marketCap),
+      fetchedAt: cached.fetchedAt.toISOString(),
+    };
   }
 
   private async saveQuote(q: MarketQuote) {
@@ -273,49 +314,127 @@ export class MarketDataService {
   // ── Profile + Fundamentals (stored together in MarketProfile) ────────
 
   async getProfile(symbol: string): Promise<SecurityProfile | null> {
-    const cached = await prisma.marketProfile.findUnique({ where: { symbol } });
-    if (cached?.profileFetchedAt && !isStale(cached.profileFetchedAt, TTL.profile)) {
-      return {
-        symbol,
-        name: cached.name,
-        sector: cached.sector,
-        industry: cached.industry,
-        country: cached.country,
-        description: cached.description,
-        fetchedAt: cached.profileFetchedAt.toISOString(),
-      };
+    return (await this.getProfiles([symbol]))[0] ?? null;
+  }
+
+  async getProfiles(symbols: string[]): Promise<(SecurityProfile | null)[]> {
+    const unique = uniqSymbols(symbols);
+    if (unique.length === 0) return symbols.map(() => null);
+
+    const cachedRows = await prisma.marketProfile.findMany({
+      where: { symbol: { in: unique } },
+    });
+    const cachedBySymbol = new Map(cachedRows.map((row) => [row.symbol, row]));
+    const bySymbol = new Map<string, SecurityProfile | null>();
+    const refresh: string[] = [];
+
+    for (const symbol of unique) {
+      const cached = cachedBySymbol.get(symbol);
+      if (cached?.profileFetchedAt && !isStale(cached.profileFetchedAt, TTL.profile)) {
+        recordMarketDataCache("profile", "hit");
+        bySymbol.set(symbol, this.profileFromRow(symbol, cached));
+      } else {
+        recordMarketDataCache("profile", cached ? "stale" : "miss");
+        refresh.push(symbol);
+      }
     }
-    const fresh = await this.provider.getProfile(symbol);
-    if (fresh) await this.upsertProfile(symbol, { profile: fresh });
-    return fresh;
+
+    await Promise.all(
+      refresh.map(async (symbol) => {
+        try {
+          recordMarketDataCache("profile", "providerFetch");
+          const fresh = await this.provider.getProfile(symbol);
+          if (fresh) await this.upsertProfile(symbol, { profile: fresh });
+          bySymbol.set(symbol, fresh);
+        } catch {
+          bySymbol.set(symbol, null);
+        }
+      })
+    );
+
+    return symbols.map((symbol) => bySymbol.get(symbol.trim()) ?? null);
   }
 
   async getFundamentals(symbol: string): Promise<SecurityFundamentals | null> {
-    const cached = await prisma.marketProfile.findUnique({ where: { symbol } });
-    if (cached?.fundamentalsFetchedAt && !isStale(cached.fundamentalsFetchedAt, TTL.profile)) {
-      return {
-        symbol,
-        isFund: cached.isFund,
-        peRatio: n(cached.peRatio),
-        forwardPe: n(cached.forwardPe),
-        pbRatio: n(cached.pbRatio),
-        evEbitda: n(cached.evEbitda),
-        revenueGrowthPct: n(cached.revenueGrowthPct),
-        epsGrowthPct: n(cached.epsGrowthPct),
-        grossMarginPct: n(cached.grossMarginPct),
-        operatingMarginPct: n(cached.operatingMarginPct),
-        freeCashFlow: n(cached.freeCashFlow),
-        dividendYieldPct: n(cached.dividendYieldPct),
-        expenseRatioPct: n(cached.expenseRatioPct),
-        aum: n(cached.aum),
-        holdingsCount: cached.holdingsCount,
-        beta: n(cached.beta),
-        fetchedAt: cached.fundamentalsFetchedAt.toISOString(),
-      };
+    return (await this.getFundamentalsForSymbols([symbol]))[0] ?? null;
+  }
+
+  async getFundamentalsForSymbols(symbols: string[]): Promise<(SecurityFundamentals | null)[]> {
+    const unique = uniqSymbols(symbols);
+    if (unique.length === 0) return symbols.map(() => null);
+
+    const cachedRows = await prisma.marketProfile.findMany({
+      where: { symbol: { in: unique } },
+    });
+    const cachedBySymbol = new Map(cachedRows.map((row) => [row.symbol, row]));
+    const bySymbol = new Map<string, SecurityFundamentals | null>();
+    const refresh: string[] = [];
+
+    for (const symbol of unique) {
+      const cached = cachedBySymbol.get(symbol);
+      if (cached?.fundamentalsFetchedAt && !isStale(cached.fundamentalsFetchedAt, TTL.profile)) {
+        recordMarketDataCache("fundamentals", "hit");
+        bySymbol.set(symbol, this.fundamentalsFromRow(symbol, cached));
+      } else {
+        recordMarketDataCache("fundamentals", cached ? "stale" : "miss");
+        refresh.push(symbol);
+      }
     }
-    const fresh = await this.provider.getFundamentals(symbol);
-    if (fresh) await this.upsertProfile(symbol, { fundamentals: fresh });
-    return fresh;
+
+    await Promise.all(
+      refresh.map(async (symbol) => {
+        try {
+          recordMarketDataCache("fundamentals", "providerFetch");
+          const fresh = await this.provider.getFundamentals(symbol);
+          if (fresh) await this.upsertProfile(symbol, { fundamentals: fresh });
+          bySymbol.set(symbol, fresh);
+        } catch {
+          bySymbol.set(symbol, null);
+        }
+      })
+    );
+
+    return symbols.map((symbol) => bySymbol.get(symbol.trim()) ?? null);
+  }
+
+  private profileFromRow(
+    symbol: string,
+    cached: NonNullable<Awaited<ReturnType<typeof prisma.marketProfile.findUnique>>>
+  ): SecurityProfile {
+    return {
+      symbol,
+      name: cached.name,
+      sector: cached.sector,
+      industry: cached.industry,
+      country: cached.country,
+      description: cached.description,
+      fetchedAt: cached.profileFetchedAt!.toISOString(),
+    };
+  }
+
+  private fundamentalsFromRow(
+    symbol: string,
+    cached: NonNullable<Awaited<ReturnType<typeof prisma.marketProfile.findUnique>>>
+  ): SecurityFundamentals {
+    return {
+      symbol,
+      isFund: cached.isFund,
+      peRatio: n(cached.peRatio),
+      forwardPe: n(cached.forwardPe),
+      pbRatio: n(cached.pbRatio),
+      evEbitda: n(cached.evEbitda),
+      revenueGrowthPct: n(cached.revenueGrowthPct),
+      epsGrowthPct: n(cached.epsGrowthPct),
+      grossMarginPct: n(cached.grossMarginPct),
+      operatingMarginPct: n(cached.operatingMarginPct),
+      freeCashFlow: n(cached.freeCashFlow),
+      dividendYieldPct: n(cached.dividendYieldPct),
+      expenseRatioPct: n(cached.expenseRatioPct),
+      aum: n(cached.aum),
+      holdingsCount: cached.holdingsCount,
+      beta: n(cached.beta),
+      fetchedAt: cached.fundamentalsFetchedAt!.toISOString(),
+    };
   }
 
   private async upsertProfile(
@@ -418,11 +537,15 @@ export class MarketDataService {
     const needsRefresh =
       !coversStart || !coversEnd || !newest || isStale(newest.fetchedAt, TTL.series);
     if (needsRefresh) {
+      recordMarketDataCache("series", rows.length > 0 ? "stale" : "miss");
+      recordMarketDataCache("series", "providerFetch");
       const fresh = await this.provider.getTimeSeriesRange(symbol, range);
       if (fresh.length > 0) {
         await this.saveTimeSeries(symbol, fresh);
         rows = await loadRows();
       }
+    } else {
+      recordMarketDataCache("series", "hit");
     }
 
     return rows.map((r) => ({
@@ -438,33 +561,28 @@ export class MarketDataService {
   private async saveTimeSeries(symbol: string, points: PricePoint[]) {
     if (points.length === 0) return;
     const fetchedAt = new Date();
-    for (let offset = 0; offset < points.length; offset += 250) {
-      const batch = points.slice(offset, offset + 250);
-      await prisma.$transaction(
-        batch.map((p) =>
-          prisma.marketPriceDay.upsert({
-            where: { symbol_date: { symbol, date: p.date } },
-            create: {
-              symbol,
-              date: p.date,
-              close: p.close,
-              open: p.open,
-              high: p.high,
-              low: p.low,
-              volume: p.volume != null ? BigInt(Math.round(p.volume)) : null,
-              fetchedAt,
-            },
-            update: {
-              close: p.close,
-              open: p.open,
-              high: p.high,
-              low: p.low,
-              volume: p.volume != null ? BigInt(Math.round(p.volume)) : null,
-              fetchedAt,
-            },
-          })
-        )
+    // Bulk upsert: one INSERT ... ON CONFLICT per chunk instead of N statements
+    // inside an interactive transaction (which blew the 5s timeout). New rows get
+    // a generated id; ON CONFLICT DO UPDATE never rewrites existing ids.
+    for (let offset = 0; offset < points.length; offset += 500) {
+      const batch = points.slice(offset, offset + 500);
+      const rows = batch.map(
+        (p) =>
+          Prisma.sql`(gen_random_uuid()::text, ${symbol}, ${p.date}, ${p.close}, ${p.open}, ${p.high}, ${p.low}, ${
+            p.volume != null ? BigInt(Math.round(p.volume)) : null
+          }, ${fetchedAt})`
       );
+      await prisma.$executeRaw`
+        INSERT INTO "MarketPriceDay" ("id", "symbol", "date", "close", "open", "high", "low", "volume", "fetchedAt")
+        VALUES ${Prisma.join(rows)}
+        ON CONFLICT ("symbol", "date") DO UPDATE SET
+          "close" = EXCLUDED."close",
+          "open" = EXCLUDED."open",
+          "high" = EXCLUDED."high",
+          "low" = EXCLUDED."low",
+          "volume" = EXCLUDED."volume",
+          "fetchedAt" = EXCLUDED."fetchedAt"
+      `;
     }
   }
 
@@ -477,6 +595,7 @@ export class MarketDataService {
     });
     const newest = cached[0];
     if (newest && !isStale(newest.fetchedAt, TTL.news)) {
+      recordMarketDataCache("news", "hit");
       // Stored rows are already filtered & classified — just re-rank and cap.
       const items: RankedNewsItem[] = cached.map((c) => ({
         title: c.title,
@@ -496,6 +615,8 @@ export class MarketDataService {
       });
       return items.slice(0, count);
     }
+    recordMarketDataCache("news", cached.length > 0 ? "stale" : "miss");
+    recordMarketDataCache("news", "providerFetch");
     // Fetch extra so relevance filtering still leaves a full set.
     const fresh = await this.provider.getNews(symbol, count * 3);
     const ranked = rankNews(symbol, fresh).slice(0, count);
@@ -526,36 +647,98 @@ export class MarketDataService {
   // ── Events (earnings / dividend calendar) ────────────────────────────
 
   async getEvents(symbol: string): Promise<MarketEvents | null> {
-    const cached = await prisma.marketEvents.findUnique({ where: { symbol } });
-    if (cached && !isStale(cached.updatedAt, TTL.events)) {
-      return {
+    return (await this.getEventsForSymbols([symbol]))[0] ?? null;
+  }
+
+  async getEventsForSymbols(symbols: string[]): Promise<(MarketEvents | null)[]> {
+    const unique = uniqSymbols(symbols);
+    if (unique.length === 0) return symbols.map(() => null);
+
+    const cachedRows = await prisma.marketEvents.findMany({
+      where: { symbol: { in: unique } },
+    });
+    const cachedBySymbol = new Map(cachedRows.map((row) => [row.symbol, row]));
+    const bySymbol = new Map<string, MarketEvents | null>();
+    const refresh: string[] = [];
+
+    for (const symbol of unique) {
+      const cached = cachedBySymbol.get(symbol);
+      if (cached && !isStale(cached.updatedAt, TTL.events)) {
+        recordMarketDataCache("events", "hit");
+        bySymbol.set(symbol, this.eventsFromRow(symbol, cached));
+      } else {
+        recordMarketDataCache("events", cached ? "stale" : "miss");
+        refresh.push(symbol);
+      }
+    }
+
+    await Promise.all(
+      refresh.map(async (symbol) => {
+        try {
+          recordMarketDataCache("events", "providerFetch");
+          const fresh = await this.provider.getEvents(symbol);
+          if (fresh) await this.saveEvents(fresh);
+          else await this.saveEmptyEvents(symbol);
+          bySymbol.set(symbol, fresh);
+        } catch {
+          bySymbol.set(symbol, null);
+        }
+      })
+    );
+
+    return symbols.map((symbol) => bySymbol.get(symbol.trim()) ?? null);
+  }
+
+  private eventsFromRow(
+    symbol: string,
+    cached: NonNullable<Awaited<ReturnType<typeof prisma.marketEvents.findUnique>>>
+  ): MarketEvents {
+    return {
+      symbol,
+      nextEarnings: cached.nextEarnings?.toISOString() ?? null,
+      exDividend: cached.exDividend?.toISOString() ?? null,
+      dividendDate: cached.dividendDate?.toISOString() ?? null,
+      fetchedAt: cached.fetchedAt.toISOString(),
+    };
+  }
+
+  private async saveEvents(fresh: MarketEvents) {
+    await prisma.marketEvents.upsert({
+      where: { symbol: fresh.symbol },
+      create: {
+        symbol: fresh.symbol,
+        nextEarnings: fresh.nextEarnings ? new Date(fresh.nextEarnings) : null,
+        exDividend: fresh.exDividend ? new Date(fresh.exDividend) : null,
+        dividendDate: fresh.dividendDate ? new Date(fresh.dividendDate) : null,
+        fetchedAt: new Date(fresh.fetchedAt),
+      },
+      update: {
+        nextEarnings: fresh.nextEarnings ? new Date(fresh.nextEarnings) : null,
+        exDividend: fresh.exDividend ? new Date(fresh.exDividend) : null,
+        dividendDate: fresh.dividendDate ? new Date(fresh.dividendDate) : null,
+        fetchedAt: new Date(fresh.fetchedAt),
+      },
+    });
+  }
+
+  private async saveEmptyEvents(symbol: string) {
+    const fetchedAt = new Date();
+    await prisma.marketEvents.upsert({
+      where: { symbol },
+      create: {
         symbol,
-        nextEarnings: cached.nextEarnings?.toISOString() ?? null,
-        exDividend: cached.exDividend?.toISOString() ?? null,
-        dividendDate: cached.dividendDate?.toISOString() ?? null,
-        fetchedAt: cached.fetchedAt.toISOString(),
-      };
-    }
-    const fresh = await this.provider.getEvents(symbol);
-    if (fresh) {
-      await prisma.marketEvents.upsert({
-        where: { symbol },
-        create: {
-          symbol,
-          nextEarnings: fresh.nextEarnings ? new Date(fresh.nextEarnings) : null,
-          exDividend: fresh.exDividend ? new Date(fresh.exDividend) : null,
-          dividendDate: fresh.dividendDate ? new Date(fresh.dividendDate) : null,
-          fetchedAt: new Date(fresh.fetchedAt),
-        },
-        update: {
-          nextEarnings: fresh.nextEarnings ? new Date(fresh.nextEarnings) : null,
-          exDividend: fresh.exDividend ? new Date(fresh.exDividend) : null,
-          dividendDate: fresh.dividendDate ? new Date(fresh.dividendDate) : null,
-          fetchedAt: new Date(fresh.fetchedAt),
-        },
-      });
-    }
-    return fresh;
+        nextEarnings: null,
+        exDividend: null,
+        dividendDate: null,
+        fetchedAt,
+      },
+      update: {
+        nextEarnings: null,
+        exDividend: null,
+        dividendDate: null,
+        fetchedAt,
+      },
+    });
   }
 
   // ── Analyst consensus ─────────────────────────────────────────────────
@@ -563,6 +746,7 @@ export class MarketDataService {
   async getAnalyst(symbol: string): Promise<AnalystConsensus | null> {
     const cached = await prisma.marketAnalyst.findUnique({ where: { symbol } });
     if (cached && !isStale(cached.updatedAt, TTL.analyst)) {
+      recordMarketDataCache("analyst", "hit");
       return {
         symbol,
         targetLow: n(cached.targetLow),
@@ -579,6 +763,8 @@ export class MarketDataService {
         fetchedAt: cached.fetchedAt.toISOString(),
       };
     }
+    recordMarketDataCache("analyst", cached ? "stale" : "miss");
+    recordMarketDataCache("analyst", "providerFetch");
     const fresh = await this.provider.getAnalyst(symbol);
     if (fresh) {
       const data = {
@@ -613,8 +799,11 @@ export class MarketDataService {
     });
     const newest = cached.at(-1);
     if (newest && !isStale(newest.fetchedAt, TTL.dividends)) {
+      recordMarketDataCache("dividends", "hit");
       return cached.map((d) => ({ date: d.date, amount: n(d.amount)! }));
     }
+    recordMarketDataCache("dividends", cached.length > 0 ? "stale" : "miss");
+    recordMarketDataCache("dividends", "providerFetch");
     const fresh = await this.provider.getDividends(symbol, DIVIDEND_LOOKBACK_DAYS);
     if (fresh.length > 0) {
       await prisma.$transaction([
