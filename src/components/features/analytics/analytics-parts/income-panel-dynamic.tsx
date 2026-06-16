@@ -3,14 +3,13 @@
 import dynamic from "next/dynamic";
 import type { ReactNode } from "react";
 
+import { SkeletonChartPanel } from "@/components/shared/skeleton";
 import type { IncomeStats } from "@/lib/investments/analytics-loader";
-
-const LoadingPanel = () => <div className="panel" style={{ minHeight: 270 }} />;
 
 export const IncomePanelDynamic = dynamic(
   () => import("./income-panel").then((mod) => mod.IncomePanel),
   {
     ssr: false,
-    loading: LoadingPanel,
+    loading: () => <SkeletonChartPanel variant="bar" height={220} />,
   }
 ) as (props: { income: IncomeStats }) => ReactNode;
