@@ -27,7 +27,7 @@ export const metadata: Metadata = {
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  // Read the per-request nonce set by middleware. This also opts every route
+  // Read the per-request nonce set by proxy. This also opts every route
   // into dynamic rendering, so the strict nonce-based CSP applies everywhere
   // (static prerenders can't carry a per-request nonce).
   const nonce = (await headers()).get("x-nonce") ?? undefined;

@@ -1,9 +1,9 @@
 import type { NextConfig } from "next";
 
-// Content-Security-Policy is set per-request in src/middleware.ts so it can
+// Content-Security-Policy is set per-request in src/proxy.ts so it can
 // carry a unique nonce (enabling a strict, no-'unsafe-inline' script-src).
 // The static headers below still apply to all responses, including the static
-// assets that the middleware matcher excludes.
+// assets that the proxy matcher excludes.
 const nextConfig: NextConfig = {
   typedRoutes: true,
   sassOptions: {

@@ -57,7 +57,7 @@ function generateNonce(): string {
   return btoa(binary);
 }
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // API routes: enforce the global rate-limit envelope (skip health probes),
