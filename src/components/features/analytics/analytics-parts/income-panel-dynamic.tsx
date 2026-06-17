@@ -3,13 +3,18 @@
 import dynamic from "next/dynamic";
 import type { ReactNode } from "react";
 
-import { SkeletonChartPanel } from "@/components/shared/skeleton";
-import type { IncomeStats } from "@/lib/investments/analytics-loader";
+import { SkeletonChart } from "@/components/shared/skeleton";
 
-export const IncomePanelDynamic = dynamic(
-  () => import("./income-panel").then((mod) => mod.IncomePanel),
+import type { IncomeChartPoint } from "./income-chart";
+
+export const IncomeChartDynamic = dynamic(
+  () => import("./income-chart").then((mod) => mod.IncomeChart),
   {
     ssr: false,
-    loading: () => <SkeletonChartPanel variant="bar" height={220} />,
+    loading: () => (
+      <div style={{ width: "100%", height: 120 }}>
+        <SkeletonChart variant="bar" />
+      </div>
+    ),
   }
-) as (props: { income: IncomeStats }) => ReactNode;
+) as (props: { data: IncomeChartPoint[] }) => ReactNode;

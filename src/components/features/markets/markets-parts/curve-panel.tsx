@@ -1,46 +1,8 @@
-"use client";
-
-import {
-  CartesianGrid,
-  Line,
-  LineChart,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
-
 import type { YieldCurveData } from "@/lib/market-data";
 
+import { CurveChartDynamic } from "./curve-panel-dynamic";
+
 // ─── US Treasury yield curve — today vs 1M vs 1Y ago ───────────────────────
-
-type CurveTipPayload = { name?: string; value?: number; stroke?: string };
-
-function CurveTooltip({
-  active,
-  payload,
-  label,
-}: {
-  active?: boolean;
-  payload?: CurveTipPayload[];
-  label?: string;
-}) {
-  if (!active || !payload?.length) return null;
-  return (
-    <div className="tt">
-      <div className="tt-label">{label} tenor</div>
-      {payload.map((p) => (
-        <div key={p.name} className="tt-row">
-          <span className="k">
-            <i className="tt-sw" style={{ background: p.stroke }} />
-            {p.name}
-          </span>
-          <span className="v">{p.value?.toFixed(2)}%</span>
-        </div>
-      ))}
-    </div>
-  );
-}
 
 export function CurvePanel({ curve }: { curve: YieldCurveData }) {
   const data = curve.points.map((p) => ({
@@ -71,51 +33,7 @@ export function CurvePanel({ curve }: { curve: YieldCurveData }) {
           <div className="mkt-empty">Yield curve unavailable.</div>
         ) : (
           <>
-            <div style={{ width: "100%", height: 216 }}>
-              <ResponsiveContainer initialDimension={{ width: 1, height: 1 }}>
-                <LineChart data={data} margin={{ top: 8, right: 8, bottom: 0, left: -2 }}>
-                  <CartesianGrid stroke="var(--border-subtle)" vertical={false} />
-                  <XAxis
-                    dataKey="tenor"
-                    tickLine={false}
-                    axisLine={false}
-                    tick={{ fontSize: 10, fill: "var(--text-3)" }}
-                  />
-                  <YAxis
-                    domain={[lo, hi]}
-                    tickLine={false}
-                    axisLine={false}
-                    width={44}
-                    tick={{ fontSize: 10, fill: "var(--text-3)" }}
-                    tickFormatter={(v: number) => v.toFixed(1) + "%"}
-                  />
-                  <Tooltip content={<CurveTooltip />} />
-                  <Line
-                    type="monotone"
-                    dataKey="1Y ago"
-                    stroke="var(--text-4)"
-                    strokeWidth={1.2}
-                    strokeDasharray="2 3"
-                    dot={false}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="1M ago"
-                    stroke="var(--info)"
-                    strokeWidth={1.2}
-                    strokeDasharray="4 3"
-                    dot={false}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="Today"
-                    stroke="var(--accent)"
-                    strokeWidth={1.8}
-                    dot={false}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
+            <CurveChartDynamic data={data} domain={[lo, hi]} />
             <div className="mkt-curve-foot">
               <div className="mkt-curve-legend">
                 <span>

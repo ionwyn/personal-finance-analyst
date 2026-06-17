@@ -3,13 +3,18 @@
 import dynamic from "next/dynamic";
 import type { ReactNode } from "react";
 
-import { SkeletonChartPanel } from "@/components/shared/skeleton";
-import type { YieldCurveData } from "@/lib/market-data";
+import { SkeletonChart } from "@/components/shared/skeleton";
 
-export const CurvePanelDynamic = dynamic(
-  () => import("./curve-panel").then((mod) => mod.CurvePanel),
+import type { CurveChartPoint } from "./curve-chart";
+
+export const CurveChartDynamic = dynamic(
+  () => import("./curve-chart").then((mod) => mod.CurveChart),
   {
     ssr: false,
-    loading: () => <SkeletonChartPanel variant="area" height={216} />,
+    loading: () => (
+      <div style={{ width: "100%", height: 216 }}>
+        <SkeletonChart variant="area" />
+      </div>
+    ),
   }
-) as (props: { curve: YieldCurveData }) => ReactNode;
+) as (props: { data: CurveChartPoint[]; domain: [number, number] }) => ReactNode;

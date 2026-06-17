@@ -5,7 +5,7 @@ import { getPortfolioAnalytics } from "@/lib/investments/analytics-loader";
 
 import { AnalyticsBodySkeleton } from "./analytics-parts/analytics-skeletons";
 import { CalendarPanel } from "./analytics-parts/calendar-panel";
-import { IncomePanelDynamic } from "./analytics-parts/income-panel-dynamic";
+import { IncomePanel } from "./analytics-parts/income-panel";
 import { PerfChartDynamic } from "./analytics-parts/perf-chart-dynamic";
 import { RiskPanel } from "./analytics-parts/risk-panel";
 
@@ -61,7 +61,7 @@ async function AnalyticsBody({ tenantId }: { tenantId: string | null | undefined
       )}
 
       <div className="ana-grid">
-        {data.income && <IncomePanelDynamic income={data.income} />}
+        {data.income && <IncomePanel income={data.income} />}
         <CalendarPanel calendar={data.calendar} />
       </div>
 

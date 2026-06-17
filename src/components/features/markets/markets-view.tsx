@@ -8,7 +8,7 @@ import {
   getTape,
 } from "@/lib/investments/markets-loader";
 
-import { CurvePanelDynamic } from "./markets-parts/curve-panel-dynamic";
+import { CurvePanel } from "./markets-parts/curve-panel";
 import { MacroPanel } from "./markets-parts/macro-panel";
 import { CurveSkeleton, MacroSkeleton, TapeSkeleton } from "./markets-parts/markets-skeletons";
 import { Tape } from "./markets-parts/tape";
@@ -72,7 +72,7 @@ async function TapeSection() {
 
 async function CurveSection() {
   const curve = await getCurveBoard();
-  return <CurvePanelDynamic curve={curve} />;
+  return <CurvePanel curve={curve} />;
 }
 
 async function MacroSection() {
