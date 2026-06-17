@@ -27,7 +27,7 @@ export function SectorPanel({ sectors }: { sectors: SectorSlice[] }) {
   }));
 
   return (
-    <div className="panel">
+    <div className="panel" style={{ marginBottom: 16 }}>
       <div className="panel-head">
         <div className="panel-title">Sector exposure</div>
         <div className="panel-meta">DIRECT HOLDINGS · FUND LOOK-THROUGH NOT APPLIED</div>
