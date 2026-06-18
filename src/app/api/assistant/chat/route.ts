@@ -89,7 +89,7 @@ export async function POST(request: Request) {
         );
         logger.info({ planRaw }, "assistant plan raw output");
         const plan = planSchema.safeParse(JSON.parse(planRaw));
-        if (plan.success && plan.data.needsTransactions) {
+        if (plan.success && plan.data.intent === "transaction_list") {
           const result = await fetchScopedTransactions(tenantSlug, plan.data.filters ?? {});
           rowsBlock = serializeRows(result, facts.currency);
           logger.info(

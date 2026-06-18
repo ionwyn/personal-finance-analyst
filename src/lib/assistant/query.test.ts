@@ -36,15 +36,24 @@ function fakeRows(n: number) {
 
 describe("assistant plan schema", () => {
   it("accepts a valid summary-only plan", () => {
-    expect(planSchema.parse({ needsTransactions: false }).needsTransactions).toBe(false);
+    expect(planSchema.parse({ intent: "summary" }).intent).toBe("summary");
   });
 
   it("accepts valid filters", () => {
     const p = planSchema.parse({
-      needsTransactions: true,
+      intent: "transaction_list",
       filters: { q: "amazon", from: "2026-05-01", bucket: "spending", amountMin: 50 },
     });
     expect(p.filters?.q).toBe("amazon");
+  });
+
+  it("normalizes the old boolean plan shape", () => {
+    expect(planSchema.parse({ needsTransactions: false }).intent).toBe("summary");
+    expect(planSchema.parse({ needsTransactions: true }).intent).toBe("transaction_list");
+  });
+
+  it("rejects an unknown intent", () => {
+    expect(planSchema.safeParse({ intent: "investment_advice" }).success).toBe(false);
   });
 
   it("strips unknown filter fields rather than passing them through", () => {

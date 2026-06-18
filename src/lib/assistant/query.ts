@@ -71,11 +71,33 @@ export const filtersSchema = z.object({
   amountMax: z.number().nonnegative().optional(),
 });
 
+export const PLAN_INTENTS = [
+  "summary",
+  "transaction_list",
+  "top_merchants",
+  "top_categories",
+  "merchant_breakdown",
+  "prove_previous_answer",
+] as const;
+export type PlanIntent = (typeof PLAN_INTENTS)[number];
+
 /** The plan-step output schema the model must produce as JSON. */
-export const planSchema = z.object({
-  needsTransactions: z.boolean(),
+const intentPlanSchema = z.object({
+  intent: z.enum(PLAN_INTENTS),
   filters: filtersSchema.optional(),
 });
+
+const legacyPlanSchema = z
+  .object({
+    needsTransactions: z.boolean(),
+    filters: filtersSchema.optional(),
+  })
+  .transform(({ needsTransactions, filters }) => ({
+    intent: (needsTransactions ? "transaction_list" : "summary") satisfies PlanIntent,
+    filters,
+  }));
+
+export const planSchema = z.union([intentPlanSchema, legacyPlanSchema]);
 
 /** Drop blank/whitespace-only string filters the model sometimes emits. */
 function clean(value: string | undefined): string | undefined {
