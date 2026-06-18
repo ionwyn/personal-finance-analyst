@@ -128,7 +128,7 @@ export type InvestmentSummary = {
   failingConnectionCount: number;
 };
 
-export type SectorSlice = { name: string; mvCad: number; weightPct: number };
+export type SectorSlice = { name: string; mvCad: number; weightPct: number; pnlCad: number | null };
 
 export type ContributionMonth = { month: string; contributionCad: number; withdrawalCad: number };
 export type ContributionYear = {

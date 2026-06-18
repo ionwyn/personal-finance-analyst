@@ -50,11 +50,15 @@ async function fetchSectors(
   tenantId: string,
   holdings: { symbol: string; type: string; mvCAD: number }[]
 ): Promise<SectorSlice[]> {
-  const bySymbol = new Map<string, { type: string; mvCad: number }>();
+  const bySymbol = new Map<string, { type: string; mvCad: number; pnlCad: number | null }>();
   for (const h of holdings) {
     const cur = bySymbol.get(h.symbol);
-    if (cur) cur.mvCad += h.mvCAD;
-    else bySymbol.set(h.symbol, { type: h.type, mvCad: h.mvCAD });
+    if (cur) {
+      cur.mvCad += h.mvCAD;
+      if (h.plCAD != null) cur.pnlCad = (cur.pnlCad ?? 0) + h.plCAD;
+    } else {
+      bySymbol.set(h.symbol, { type: h.type, mvCad: h.mvCAD, pnlCad: h.plCAD ?? null });
+    }
   }
   const symbols = [...bySymbol.keys()];
   if (symbols.length === 0) return [];
@@ -65,17 +69,28 @@ async function fetchSectors(
   const svc = getMarketDataService();
   const profiles = await svc.getProfiles(symbols).catch(() => symbols.map(() => null));
 
-  const sectorMv = new Map<string, number>();
+  const sectorMv = new Map<string, { mv: number; pnl: number | null }>();
   symbols.forEach((sym, i) => {
     const entry = bySymbol.get(sym)!;
     const sector =
       profiles[i]?.sector ??
       (FUND_TYPES.has(entry.type.toUpperCase()) ? "Funds & ETFs" : "Unclassified");
-    sectorMv.set(sector, (sectorMv.get(sector) ?? 0) + entry.mvCad);
+    const cur = sectorMv.get(sector);
+    if (cur) {
+      cur.mv += entry.mvCad;
+      if (entry.pnlCad != null) cur.pnl = (cur.pnl ?? 0) + entry.pnlCad;
+    } else {
+      sectorMv.set(sector, { mv: entry.mvCad, pnl: entry.pnlCad });
+    }
   });
 
   return [...sectorMv.entries()]
-    .map(([name, mvCad]) => ({ name, mvCad, weightPct: (mvCad / totalMv) * 100 }))
+    .map(([name, { mv: mvCad, pnl: pnlCad }]) => ({
+      name,
+      mvCad,
+      weightPct: (mvCad / totalMv) * 100,
+      pnlCad,
+    }))
     .sort((a, b) => b.mvCad - a.mvCad);
 }
 

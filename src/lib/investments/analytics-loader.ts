@@ -31,7 +31,7 @@ export type RiskStats = {
   holdingsCount: number;
 };
 
-export type SectorSlice = { name: string; mvCad: number; weightPct: number };
+export type SectorSlice = { name: string; mvCad: number; weightPct: number; pnlCad: number | null };
 
 export type IncomeMonth = { month: string; amountCad: number }; // YYYY-MM
 
@@ -112,6 +112,7 @@ export async function getPortfolioAnalytics(
     units: number;
     currency: string;
     mvCad: number;
+    pnlCad: number | null;
   };
   const bySymbol = new Map<string, Agg>();
   for (const h of holdings) {
@@ -119,6 +120,7 @@ export async function getPortfolioAnalytics(
     if (cur) {
       cur.units += h.units;
       cur.mvCad += h.mvCAD;
+      if (h.plCAD != null) cur.pnlCad = (cur.pnlCad ?? 0) + h.plCAD;
     } else {
       bySymbol.set(h.symbol, {
         symbol: h.symbol,
@@ -127,6 +129,7 @@ export async function getPortfolioAnalytics(
         units: h.units,
         currency: h.currency.toUpperCase(),
         mvCad: h.mvCAD,
+        pnlCad: h.plCAD ?? null,
       });
     }
   }
@@ -216,20 +219,27 @@ export async function getPortfolioAnalytics(
 
   // ── sector exposure (funds bucketed separately) ──
   const FUND_TYPES = new Set(["ETF", "MUTUAL FUND", "CEF", "FUND"]);
-  const sectorMv = new Map<string, number>();
+  const sectorMv = new Map<string, { mv: number; pnl: number | null }>();
   aggs.forEach((a, i) => {
     const sector =
       profiles[i]?.sector ??
       (FUND_TYPES.has(a.type.toUpperCase()) || fundamentalsList[i]?.aum != null
         ? "Funds & ETFs"
         : "Unclassified");
-    sectorMv.set(sector, (sectorMv.get(sector) ?? 0) + a.mvCad);
+    const cur = sectorMv.get(sector);
+    if (cur) {
+      cur.mv += a.mvCad;
+      if (a.pnlCad != null) cur.pnl = (cur.pnl ?? 0) + a.pnlCad;
+    } else {
+      sectorMv.set(sector, { mv: a.mvCad, pnl: a.pnlCad ?? null });
+    }
   });
   const sectors: SectorSlice[] = [...sectorMv.entries()]
-    .map(([name, mvCad]) => ({
+    .map(([name, { mv: mvCad, pnl: pnlCad }]) => ({
       name,
       mvCad,
       weightPct: totalMv > 0 ? (mvCad / totalMv) * 100 : 0,
+      pnlCad,
     }))
     .sort((a, b) => b.mvCad - a.mvCad);
 

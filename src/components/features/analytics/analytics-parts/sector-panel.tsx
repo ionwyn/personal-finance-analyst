@@ -18,6 +18,14 @@ const SECTOR_COLORS = [
 const money0 = (v: number) =>
   "$" + Math.abs(v).toLocaleString("en-US", { maximumFractionDigits: 0 });
 
+const pnlLabel = (pnl: number | null, mv: number) => {
+  if (pnl == null || mv === 0) return null;
+  const sign = pnl >= 0 ? "+" : "−";
+  const abs = Math.abs(pnl).toLocaleString("en-US", { maximumFractionDigits: 0 });
+  const pct = (Math.abs(pnl / (mv - pnl)) * 100).toFixed(1);
+  return { text: `${sign}$${abs} (${sign}${pct}%)`, positive: pnl >= 0 };
+};
+
 export function SectorPanel({ sectors }: { sectors: SectorSlice[] }) {
   if (sectors.length === 0) return null;
 
@@ -36,14 +44,22 @@ export function SectorPanel({ sectors }: { sectors: SectorSlice[] }) {
         <div className="sector-donut-layout">
           <SectorChartDynamic data={data} />
           <div className="sector-legend">
-            {data.map((s) => (
-              <div key={s.name} className="sector-legend-row">
-                <i className="sw" style={{ background: s.color }} />
-                <span className="nm">{s.name}</span>
-                <span className="pct">{s.weightPct.toFixed(1)}%</span>
-                <span className="mv">{money0(s.mvCad)}</span>
-              </div>
-            ))}
+            {data.map((s) => {
+              const pl = pnlLabel(s.pnlCad, s.mvCad);
+              return (
+                <div key={s.name} className="sector-legend-row">
+                  <i className="sw" style={{ background: s.color }} />
+                  <span className="nm">{s.name}</span>
+                  <span className="pct">{s.weightPct.toFixed(1)}%</span>
+                  <span className="mv">{money0(s.mvCad)}</span>
+                  {pl ? (
+                    <span className={`pl ${pl.positive ? "pos" : "neg"}`}>{pl.text}</span>
+                  ) : (
+                    <span className="pl" />
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>
