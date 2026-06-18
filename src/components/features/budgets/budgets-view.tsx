@@ -123,12 +123,16 @@ function CapRow({
 
 function GoalCard({
   g,
+  busy,
   onEdit,
   onRemove,
+  onSaveManual,
 }: {
   g: GoalProgress;
+  busy: boolean;
   onEdit: () => void;
   onRemove: () => void;
+  onSaveManual: (amount: number) => void;
 }) {
   const range =
     g.startDate || g.targetDate
@@ -151,7 +155,24 @@ function GoalCard({
         </div>
       </div>
       <div className={styles.goalAmts}>
-        <span className={styles.goalCurrent}>{formatCurrency(g.saved)}</span>
+        {g.tracked ? (
+          <span className={styles.goalCurrent}>{formatCurrency(g.saved)}</span>
+        ) : (
+          <input
+            type="number"
+            min={0}
+            step={100}
+            defaultValue={g.manualAmount}
+            disabled={busy}
+            aria-label={`${g.name} saved amount`}
+            className={`${styles.capInput} ${styles.goalCurrent}`}
+            style={{ width: 130, fontSize: 18, padding: "3px 8px" }}
+            onBlur={(e) => {
+              const v = Number(e.target.value);
+              if (Number.isFinite(v) && v >= 0 && v !== g.manualAmount) onSaveManual(v);
+            }}
+          />
+        )}
         <span className={styles.goalTarget}>/ {formatCurrency(g.target)}</span>
         <span className={styles.goalPct}>{Math.round(g.pct)}%</span>
       </div>
@@ -340,6 +361,7 @@ export function BudgetsView({ data }: { data: BudgetGoalData }) {
                 <GoalCard
                   key={g.id}
                   g={g}
+                  busy={busy}
                   onEdit={() =>
                     setGoal({
                       id: g.id,
@@ -353,6 +375,11 @@ export function BudgetsView({ data }: { data: BudgetGoalData }) {
                   }
                   onRemove={() => {
                     void run(() => api(`/api/settings/savings-goals/${g.id}`, "DELETE"));
+                  }}
+                  onSaveManual={(amount) => {
+                    void run(() =>
+                      api(`/api/settings/savings-goals/${g.id}`, "PATCH", { manualAmount: amount })
+                    );
                   }}
                 />
               ))}
