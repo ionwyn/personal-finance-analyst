@@ -10,12 +10,24 @@ import styles from "./assistant-view.module.scss";
 
 type ChatRole = "user" | "assistant";
 type AssistantMode = "fact" | "reasoning";
-type Msg = { role: ChatRole; content: string; thinking?: string };
+type Msg = { role: ChatRole; content: string; thinking?: string; evidence?: string };
 
 // Stream sentinels mirrored from lib/assistant/ollama.ts: thinking tokens are
 // prefixed with \x02, answer tokens with \x03. Only used in reasoning mode.
 const THINK_SEP = "\x02";
 const ANSWER_SEP = "\x03";
+const EVIDENCE_SEP = "\x04";
+
+function decodeEvidenceFrame(encoded: string): string | undefined {
+  try {
+    const binary = atob(encoded);
+    const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0));
+    const data = JSON.parse(new TextDecoder().decode(bytes)) as { evidence?: string };
+    return data.evidence;
+  } catch {
+    return undefined;
+  }
+}
 
 function formatElapsed(seconds: number): string {
   const m = Math.floor(seconds / 60);
@@ -111,7 +123,11 @@ export function AssistantView() {
       // thinking-only reply) the server's schema would reject.
       const payload = next
         .filter((m) => m.content.trim().length > 0)
-        .map((m) => ({ role: m.role, content: m.content }));
+        .map((m) => ({
+          role: m.role,
+          content: m.content,
+          ...(m.evidence ? { evidence: m.evidence } : {}),
+        }));
       const res = await fetch("/api/assistant/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -127,13 +143,35 @@ export function AssistantView() {
       const decoder = new TextDecoder();
       let contentAcc = "";
       let thinkingAcc = "";
+      let evidenceAcc: string | undefined;
+      let evidenceBuffer = "";
+      let waitingForEvidenceFrame = true;
       // Reasoning streams interleave thinking (\x02) and answer (\x03) spans;
       // DeepSeek emits thinking first, so default the cursor to "thinking".
       let target: "thinking" | "answer" = "thinking";
       for (;;) {
         const { done, value } = await reader.read();
         if (done) break;
-        const chunk = decoder.decode(value, { stream: true });
+        let chunk = decoder.decode(value, { stream: true });
+
+        if (waitingForEvidenceFrame) {
+          const combined = evidenceBuffer + chunk;
+          if (combined.startsWith(EVIDENCE_SEP)) {
+            const end = combined.indexOf("\n");
+            if (end === -1) {
+              evidenceBuffer = combined;
+              continue;
+            }
+            evidenceAcc = decodeEvidenceFrame(combined.slice(1, end));
+            evidenceBuffer = "";
+            waitingForEvidenceFrame = false;
+            chunk = combined.slice(end + 1);
+          } else {
+            evidenceBuffer = "";
+            waitingForEvidenceFrame = false;
+            chunk = combined;
+          }
+        }
 
         if (mode === "reasoning") {
           let i = 0;
@@ -162,6 +200,7 @@ export function AssistantView() {
             role: "assistant",
             content: contentAcc,
             thinking: thinkingAcc || undefined,
+            evidence: evidenceAcc,
           };
           return copy;
         });
@@ -179,6 +218,7 @@ export function AssistantView() {
               ? "(The model produced only reasoning, no answer. Try again, or switch to Fact mode.)"
               : "(No response. Is the local model running?)",
             thinking: thinkingAcc || undefined,
+            evidence: evidenceAcc,
           };
           return copy;
         });

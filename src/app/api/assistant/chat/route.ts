@@ -38,12 +38,45 @@ const bodySchema = z.object({
       z.object({
         role: z.enum(["user", "assistant"]),
         content: z.string().min(1).max(2000),
+        evidence: z.string().max(20000).optional(),
       })
     )
     .min(1)
     .max(20),
   mode: z.enum(["fact", "reasoning"]).default("fact"),
 });
+
+const EVIDENCE_SEP = "\x04";
+
+function withEvidenceMetadata(
+  stream: ReadableStream<Uint8Array>,
+  evidence: string | undefined
+): ReadableStream<Uint8Array> {
+  if (!evidence) return stream;
+
+  const reader = stream.getReader();
+  const encoder = new TextEncoder();
+  const frame = `${EVIDENCE_SEP}${Buffer.from(JSON.stringify({ evidence }), "utf8").toString("base64")}\n`;
+
+  return new ReadableStream<Uint8Array>({
+    async start(controller) {
+      controller.enqueue(encoder.encode(frame));
+      try {
+        for (;;) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          controller.enqueue(value);
+        }
+        controller.close();
+      } catch (error) {
+        controller.error(error);
+      }
+    },
+    cancel() {
+      reader.cancel().catch(() => {});
+    },
+  });
+}
 
 export async function POST(request: Request) {
   return withRequestLogging(request, { route: "/api/assistant/chat" }, async () => {
@@ -73,6 +106,9 @@ export async function POST(request: Request) {
     const factModel = getOllamaModelFact();
     const reasoningModel = getOllamaModelReasoning();
     const lastUser = [...history].reverse().find((m) => m.role === "user");
+    const priorEvidence = [...history]
+      .reverse()
+      .find((m) => m.role === "assistant" && m.evidence)?.evidence;
     if (!lastUser) {
       return NextResponse.json({ error: "No user message" }, { status: 400 });
     }
@@ -97,7 +133,22 @@ export async function POST(request: Request) {
         const plan = planSchema.safeParse(JSON.parse(planRaw));
         if (plan.success) {
           const filters = plan.data.filters ?? {};
-          if (
+          if (plan.data.intent === "prove_previous_answer") {
+            rowsBlock = priorEvidence
+              ? `PREVIOUS ANSWER EVIDENCE retained from the prior assistant turn:\n${priorEvidence}`
+              : "PREVIOUS ANSWER EVIDENCE: none was retained for the prior assistant turn.";
+            logger.info(
+              {
+                plan: plan.data,
+                evidence: {
+                  kind: "previous_answer",
+                  retained: Boolean(priorEvidence),
+                  characters: rowsBlock.length,
+                },
+              },
+              "assistant previous evidence reused"
+            );
+          } else if (
             plan.data.intent === "transaction_list" ||
             plan.data.intent === "merchant_breakdown"
           ) {
@@ -164,7 +215,7 @@ export async function POST(request: Request) {
         mode === "reasoning"
           ? await streamChatWithThinking(messages, { model: reasoningModel, temperature: 0.55 })
           : await streamChatText(messages, { model: factModel, temperature: 0.3 });
-      return new Response(stream, {
+      return new Response(withEvidenceMetadata(stream, rowsBlock), {
         headers: {
           "Content-Type": "text/plain; charset=utf-8",
           "Cache-Control": "no-store",
