@@ -1,16 +1,27 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+const prismaMock = vi.hoisted(() => ({
+  tenant: { findUnique: vi.fn() },
+  plaidTransaction: { findMany: vi.fn() },
+}));
+
 vi.mock("@/lib/analytics", () => ({
   getTransactionsForTenant: vi.fn(),
 }));
 
+vi.mock("@/lib/prisma", () => ({
+  prisma: prismaMock,
+}));
+
 import { getTransactionsForTenant } from "@/lib/analytics";
 import {
+  fetchTopAggregates,
   fetchScopedTransactions,
   filtersSchema,
   MAX_ROWS,
   planSchema,
   resolvePeriod,
+  serializeAggregateRows,
   serializeRows,
 } from "@/lib/assistant/query";
 
@@ -96,7 +107,11 @@ describe("resolvePeriod", () => {
 });
 
 describe("fetchScopedTransactions", () => {
-  beforeEach(() => mockGet.mockReset());
+  beforeEach(() => {
+    mockGet.mockReset();
+    prismaMock.tenant.findUnique.mockReset();
+    prismaMock.plaidTransaction.findMany.mockReset();
+  });
 
   it("hard-caps rows at MAX_ROWS and projects to a minimal shape", async () => {
     mockGet.mockResolvedValue({ rows: fakeRows(120), total: 120 } as never);
@@ -182,5 +197,101 @@ describe("fetchScopedTransactions", () => {
     expect(
       serializeRows({ rows: [], total: 0, truncated: false, sumAmount: 0, resolvedCategory: null })
     ).toContain("none found");
+  });
+});
+
+describe("fetchTopAggregates", () => {
+  beforeEach(() => {
+    mockGet.mockReset();
+    prismaMock.tenant.findUnique.mockReset();
+    prismaMock.plaidTransaction.findMany.mockReset();
+  });
+
+  function dbTxn(input: { merchant: string; amount: number; date?: string; category?: string }) {
+    return {
+      name: input.merchant.toUpperCase(),
+      merchantName: input.merchant,
+      amount: input.amount,
+      date: new Date(`${input.date ?? "2026-06-15"}T12:00:00.000Z`),
+      categoryPrimary: input.category ?? "FOOD_AND_DRINK",
+      categoryDetailed: null,
+      txnType: "expense",
+      removed: false,
+      supersededById: null,
+      account: { tracked: true },
+    };
+  }
+
+  it("computes and sorts top merchant totals for a custom date range", async () => {
+    prismaMock.tenant.findUnique.mockResolvedValue({ id: "tenant-1" });
+    prismaMock.plaidTransaction.findMany.mockResolvedValue([
+      dbTxn({ merchant: "Marche Barcelo Inc.", amount: 879.49 }),
+      dbTxn({ merchant: "Amazon", amount: 200 }),
+      dbTxn({ merchant: "Amazon", amount: 437.49, date: "2026-06-16" }),
+      dbTxn({ merchant: "Uber Eats", amount: 285.5 }),
+      dbTxn({ merchant: "Gpcanadaca Mta", amount: 270 }),
+      dbTxn({ merchant: "Intermarche Beaubien", amount: 294.2 }),
+    ]);
+
+    const result = await fetchTopAggregates(
+      "personal",
+      { from: "2026-06-01", to: "2026-06-18", bucket: "spending" },
+      "merchant",
+      5,
+      new Date("2026-06-18T12:00:00.000Z")
+    );
+
+    expect(prismaMock.plaidTransaction.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          tenantId: "tenant-1",
+          date: {
+            gte: new Date("2026-06-01T00:00:00.000Z"),
+            lte: new Date("2026-06-18T23:59:59.999Z"),
+          },
+        }),
+      })
+    );
+    expect(result.rows.map((row) => [row.label, row.amount, row.count])).toEqual([
+      ["Marche Barcelo Inc.", 879.49, 1],
+      ["Amazon", 637.49, 2],
+      ["Intermarche Beaubien", 294.2, 1],
+      ["Uber Eats", 285.5, 1],
+      ["Gpcanadaca Mta", 270, 1],
+    ]);
+    expect(result.sumAmount).toBe(2366.68);
+  });
+
+  it("serializes aggregate evidence with supporting source rows", () => {
+    const block = serializeAggregateRows(
+      {
+        kind: "merchant",
+        rows: [
+          {
+            label: "Marche Barcelo Inc.",
+            amount: 879.49,
+            count: 1,
+            rows: [
+              {
+                date: "2026-06-15",
+                name: "Marche Barcelo Inc.",
+                amount: 879.49,
+                category: "Food and Drink",
+              },
+            ],
+          },
+        ],
+        totalGroups: 1,
+        totalTransactions: 1,
+        sumAmount: 879.49,
+        resolvedCategory: null,
+        truncated: false,
+      },
+      "CAD"
+    );
+
+    expect(block).toContain("TOP MERCHANTS");
+    expect(block).toContain("server-computed totals");
+    expect(block).toContain("source row: 2026-06-15 | Marche Barcelo Inc.");
   });
 });

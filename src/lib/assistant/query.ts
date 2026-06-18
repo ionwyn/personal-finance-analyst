@@ -1,8 +1,11 @@
 import { endOfMonth, format, startOfMonth, startOfYear, subDays, subMonths } from "date-fns";
+import type { Prisma } from "@prisma/client";
 import { z } from "zod";
 
 import { getTransactionsForTenant } from "@/lib/analytics";
+import { numberValue } from "@/lib/analytics/dashboard-helpers";
 import { prisma } from "@/lib/prisma";
+import { categorizeForSpending } from "@/lib/spending/classify";
 import { formatCategoryName } from "@/lib/spending/category";
 
 // ─── Constrained transaction-row lookup ────────────────────────────────────
@@ -105,6 +108,39 @@ function clean(value: string | undefined): string | undefined {
   return t ? t : undefined;
 }
 
+async function resolveFilterArgs(
+  tenantSlug: string,
+  filters: ScopedFilters,
+  now: Date
+): Promise<{
+  q: string | undefined;
+  category: string | undefined;
+  resolvedCategory: string | null;
+  from: string | undefined;
+  to: string | undefined;
+}> {
+  let categoryArg: string | undefined;
+  let qArg = clean(filters.q);
+  let resolvedCategory: string | null = null;
+
+  const categoryTerm = clean(filters.category);
+  if (categoryTerm) {
+    resolvedCategory = await resolveCategory(tenantSlug, categoryTerm);
+    if (resolvedCategory) {
+      categoryArg = resolvedCategory;
+    } else if (!qArg) {
+      // No taxonomy match — fall back to a keyword search on the raw term.
+      qArg = categoryTerm;
+    }
+  }
+
+  const periodRange = filters.period ? resolvePeriod(filters.period, now) : {};
+  const from = clean(filters.from) ?? periodRange.from;
+  const to = clean(filters.to) ?? periodRange.to;
+
+  return { q: qArg, category: categoryArg, resolvedCategory, from, to };
+}
+
 export type AssistantPlan = z.infer<typeof planSchema>;
 export type ScopedFilters = z.infer<typeof filtersSchema>;
 
@@ -121,6 +157,30 @@ export type ScopedResult = {
   truncated: boolean;
   sumAmount: number;
   resolvedCategory: string | null;
+};
+
+type MatchingRow = ScopedRow & {
+  rawCategory: string;
+  normalizedAmount: number;
+};
+
+export type AggregateKind = "merchant" | "category";
+
+export type AggregateRow = {
+  label: string;
+  amount: number;
+  count: number;
+  rows: ScopedRow[];
+};
+
+export type AggregateResult = {
+  kind: AggregateKind;
+  rows: AggregateRow[];
+  totalGroups: number;
+  totalTransactions: number;
+  sumAmount: number;
+  resolvedCategory: string | null;
+  truncated: boolean;
 };
 
 const CATEGORY_STOPWORDS = new Set(["and", "the", "of", "or", "a", "to"]);
@@ -178,33 +238,14 @@ export async function fetchScopedTransactions(
   filters: ScopedFilters,
   now: Date = new Date()
 ): Promise<ScopedResult> {
-  let categoryArg: string | undefined;
-  let qArg = clean(filters.q);
-  let resolvedCategory: string | null = null;
-
-  const categoryTerm = clean(filters.category);
-  if (categoryTerm) {
-    resolvedCategory = await resolveCategory(tenantSlug, categoryTerm);
-    if (resolvedCategory) {
-      categoryArg = resolvedCategory;
-    } else if (!qArg) {
-      // No taxonomy match — fall back to a keyword search on the raw term.
-      qArg = categoryTerm;
-    }
-  }
-
-  // A named period sets the date window; an explicit from/to the model emitted
-  // overrides it (the user named real calendar dates).
-  const periodRange = filters.period ? resolvePeriod(filters.period, now) : {};
-  const from = clean(filters.from) ?? periodRange.from;
-  const to = clean(filters.to) ?? periodRange.to;
+  const args = await resolveFilterArgs(tenantSlug, filters, now);
 
   const { rows } = await getTransactionsForTenant({
     tenantSlug,
-    q: qArg,
-    category: categoryArg,
-    from,
-    to,
+    q: args.q,
+    category: args.category,
+    from: args.from,
+    to: args.to,
     bucket: filters.bucket,
     amountMin: filters.amountMin == null ? undefined : String(filters.amountMin),
     amountMax: filters.amountMax == null ? undefined : String(filters.amountMax),
@@ -229,8 +270,160 @@ export async function fetchScopedTransactions(
     total,
     truncated: rows.length > MAX_ROWS,
     sumAmount,
-    resolvedCategory,
+    resolvedCategory: args.resolvedCategory,
   };
+}
+
+async function fetchMatchingTransactionsForAggregation(
+  tenantSlug: string,
+  filters: ScopedFilters,
+  now: Date
+): Promise<{ rows: MatchingRow[]; resolvedCategory: string | null }> {
+  const tenant = await prisma.tenant.findUnique({ where: { slug: tenantSlug } });
+  if (!tenant) return { rows: [], resolvedCategory: null };
+
+  const args = await resolveFilterArgs(tenantSlug, filters, now);
+  const where: Prisma.PlaidTransactionWhereInput = {
+    tenantId: tenant.id,
+    removed: false,
+    account: { is: { tracked: true } },
+  };
+
+  if (args.q) {
+    where.OR = [
+      { name: { contains: args.q, mode: "insensitive" } },
+      { merchantName: { contains: args.q, mode: "insensitive" } },
+      { categoryPrimary: { contains: args.q, mode: "insensitive" } },
+    ];
+  }
+
+  if (args.from || args.to) {
+    where.date = {
+      gte: args.from ? new Date(`${args.from}T00:00:00.000Z`) : undefined,
+      lte: args.to ? new Date(`${args.to}T23:59:59.999Z`) : undefined,
+    };
+  }
+
+  if (args.category) where.categoryPrimary = args.category;
+
+  const transactions = await prisma.plaidTransaction.findMany({
+    where,
+    include: { account: true },
+    orderBy: { date: "desc" },
+  });
+
+  const amountMin = filters.amountMin ?? null;
+  const amountMax = filters.amountMax ?? null;
+
+  const rows = transactions
+    .map((t) => {
+      const amount = numberValue(t.amount);
+      const normalizedAmount = Math.round(Math.abs(amount) * 100) / 100;
+      const rawCategory = t.categoryPrimary ?? "Uncategorized";
+      return {
+        date: t.date.toISOString().slice(0, 10),
+        name: t.merchantName ?? t.name,
+        amount,
+        category: formatCategoryName(rawCategory),
+        rawCategory,
+        normalizedAmount,
+        bucket: categorizeForSpending(t),
+      };
+    })
+    .filter((r) => {
+      if (filters.bucket && r.bucket !== filters.bucket) return false;
+      if (amountMin !== null && r.normalizedAmount < amountMin) return false;
+      if (amountMax !== null && r.normalizedAmount > amountMax) return false;
+      return true;
+    })
+    .map(({ bucket: _bucket, ...row }) => row);
+
+  return { rows, resolvedCategory: args.resolvedCategory };
+}
+
+/**
+ * Compute top merchant/category aggregates on the server. The model receives
+ * ranked totals and supporting rows; it should not group or add transactions.
+ */
+export async function fetchTopAggregates(
+  tenantSlug: string,
+  filters: ScopedFilters,
+  kind: AggregateKind,
+  limit = 5,
+  now: Date = new Date()
+): Promise<AggregateResult> {
+  const scopedFilters = { ...filters, bucket: filters.bucket ?? "spending" };
+  const { rows, resolvedCategory } = await fetchMatchingTransactionsForAggregation(
+    tenantSlug,
+    scopedFilters,
+    now
+  );
+  const groups = new Map<string, { amount: number; count: number; rows: ScopedRow[] }>();
+
+  for (const row of rows) {
+    const label = kind === "merchant" ? row.name : row.category;
+    const current = groups.get(label) ?? { amount: 0, count: 0, rows: [] };
+    current.amount += row.normalizedAmount;
+    current.count += 1;
+    if (current.rows.length < 5) {
+      current.rows.push({
+        date: row.date,
+        name: row.name,
+        amount: row.normalizedAmount,
+        category: row.category,
+      });
+    }
+    groups.set(label, current);
+  }
+
+  const aggregateRows = [...groups.entries()]
+    .map(([label, group]) => ({
+      label,
+      amount: Math.round(group.amount * 100) / 100,
+      count: group.count,
+      rows: group.rows,
+    }))
+    .sort((a, b) => b.amount - a.amount || a.label.localeCompare(b.label));
+
+  return {
+    kind,
+    rows: aggregateRows.slice(0, limit),
+    totalGroups: aggregateRows.length,
+    totalTransactions: rows.length,
+    sumAmount: Math.round(rows.reduce((sum, row) => sum + row.normalizedAmount, 0) * 100) / 100,
+    resolvedCategory,
+    truncated: aggregateRows.length > limit,
+  };
+}
+
+export function serializeAggregateRows(result: AggregateResult, currency = "CAD"): string {
+  const noun = result.kind === "merchant" ? "MERCHANTS" : "CATEGORIES";
+  const label = result.resolvedCategory
+    ? `category ${formatCategoryName(result.resolvedCategory)}`
+    : "that query";
+
+  if (result.rows.length === 0) {
+    return `TOP ${noun}: none found for ${label}.`;
+  }
+
+  const lines = [
+    `TOP ${noun} for ${label} — server-computed totals ` +
+      `(showing ${result.rows.length} of ${result.totalGroups}${result.truncated ? ", truncated" : ""}; ` +
+      `${result.totalTransactions} matching transactions; combined total = ${currency} ${result.sumAmount.toLocaleString("en-CA")}):`,
+  ];
+
+  for (const row of result.rows) {
+    lines.push(
+      `- ${row.label}: ${currency} ${row.amount.toLocaleString("en-CA")} across ${row.count} transaction${row.count === 1 ? "" : "s"}`
+    );
+    for (const source of row.rows) {
+      lines.push(
+        `  - source row: ${source.date} | ${source.name} | ${currency} ${source.amount.toLocaleString("en-CA")} | ${source.category}`
+      );
+    }
+  }
+
+  return lines.join("\n");
 }
 
 /** Serialise scoped rows into a compact block for the narration prompt. */

@@ -15,7 +15,13 @@ import {
   buildPlanPrompt,
   buildReasoningNarrationPrompt,
 } from "@/lib/assistant/prompt";
-import { fetchScopedTransactions, planSchema, serializeRows } from "@/lib/assistant/query";
+import {
+  fetchScopedTransactions,
+  fetchTopAggregates,
+  planSchema,
+  serializeAggregateRows,
+  serializeRows,
+} from "@/lib/assistant/query";
 import { authOptions } from "@/lib/auth";
 import { getOllamaModelFact, getOllamaModelReasoning } from "@/lib/env";
 import { parseJson } from "@/lib/http";
@@ -89,24 +95,53 @@ export async function POST(request: Request) {
         );
         logger.info({ planRaw }, "assistant plan raw output");
         const plan = planSchema.safeParse(JSON.parse(planRaw));
-        if (plan.success && plan.data.intent === "transaction_list") {
-          const result = await fetchScopedTransactions(tenantSlug, plan.data.filters ?? {});
-          rowsBlock = serializeRows(result, facts.currency);
-          logger.info(
-            {
-              plan: plan.data,
-              evidence: {
-                rowCount: result.rows.length,
-                total: result.total,
-                truncated: result.truncated,
-                sumAmount: result.sumAmount,
-                resolvedCategory: result.resolvedCategory,
+        if (plan.success) {
+          const filters = plan.data.filters ?? {};
+          if (
+            plan.data.intent === "transaction_list" ||
+            plan.data.intent === "merchant_breakdown"
+          ) {
+            const result = await fetchScopedTransactions(tenantSlug, filters);
+            rowsBlock = serializeRows(result, facts.currency);
+            logger.info(
+              {
+                plan: plan.data,
+                evidence: {
+                  kind: "transactions",
+                  rowCount: result.rows.length,
+                  total: result.total,
+                  truncated: result.truncated,
+                  sumAmount: result.sumAmount,
+                  resolvedCategory: result.resolvedCategory,
+                },
               },
-            },
-            "assistant transaction evidence fetched"
-          );
-        } else if (plan.success) {
-          logger.info({ plan: plan.data }, "assistant plan selected summary-only answer");
+              "assistant transaction evidence fetched"
+            );
+          } else if (
+            plan.data.intent === "top_merchants" ||
+            plan.data.intent === "top_categories"
+          ) {
+            const kind = plan.data.intent === "top_merchants" ? "merchant" : "category";
+            const result = await fetchTopAggregates(tenantSlug, filters, kind);
+            rowsBlock = serializeAggregateRows(result, facts.currency);
+            logger.info(
+              {
+                plan: plan.data,
+                evidence: {
+                  kind,
+                  rowCount: result.rows.length,
+                  totalGroups: result.totalGroups,
+                  totalTransactions: result.totalTransactions,
+                  truncated: result.truncated,
+                  sumAmount: result.sumAmount,
+                  resolvedCategory: result.resolvedCategory,
+                },
+              },
+              "assistant aggregate evidence fetched"
+            );
+          } else {
+            logger.info({ plan: plan.data }, "assistant plan selected summary-only answer");
+          }
         } else {
           logger.warn({ planRaw, issues: plan.error.issues }, "assistant plan validation failed");
         }
