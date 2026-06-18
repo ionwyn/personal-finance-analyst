@@ -19,7 +19,7 @@ import { fetchScopedTransactions, planSchema, serializeRows } from "@/lib/assist
 import { authOptions } from "@/lib/auth";
 import { getOllamaModelFact, getOllamaModelReasoning } from "@/lib/env";
 import { parseJson } from "@/lib/http";
-import { setLogContext, withRequestLogging } from "@/lib/logger";
+import { logger, safeError, setLogContext, withRequestLogging } from "@/lib/logger";
 import { validateRequestOrigin } from "@/lib/origin";
 import { rateLimitRequest } from "@/lib/rate-limit";
 import { resolveSessionTenant } from "@/lib/tenant";
@@ -87,12 +87,31 @@ export async function POST(request: Request) {
           ],
           { model: factModel }
         );
+        logger.info({ planRaw }, "assistant plan raw output");
         const plan = planSchema.safeParse(JSON.parse(planRaw));
         if (plan.success && plan.data.needsTransactions) {
           const result = await fetchScopedTransactions(tenantSlug, plan.data.filters ?? {});
           rowsBlock = serializeRows(result, facts.currency);
+          logger.info(
+            {
+              plan: plan.data,
+              evidence: {
+                rowCount: result.rows.length,
+                total: result.total,
+                truncated: result.truncated,
+                sumAmount: result.sumAmount,
+                resolvedCategory: result.resolvedCategory,
+              },
+            },
+            "assistant transaction evidence fetched"
+          );
+        } else if (plan.success) {
+          logger.info({ plan: plan.data }, "assistant plan selected summary-only answer");
+        } else {
+          logger.warn({ planRaw, issues: plan.error.issues }, "assistant plan validation failed");
         }
-      } catch {
+      } catch (error) {
+        logger.warn({ error: safeError(error) }, "assistant plan step failed");
         // Plan step failed or returned junk → fall back to summaries-only answer.
       }
 
