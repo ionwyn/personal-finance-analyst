@@ -336,7 +336,14 @@ async function fetchMatchingTransactionsForAggregation(
       if (amountMax !== null && r.normalizedAmount > amountMax) return false;
       return true;
     })
-    .map(({ bucket: _bucket, ...row }) => row);
+    .map((r) => ({
+      date: r.date,
+      name: r.name,
+      amount: r.amount,
+      category: r.category,
+      rawCategory: r.rawCategory,
+      normalizedAmount: r.normalizedAmount,
+    }));
 
   return { rows, resolvedCategory: args.resolvedCategory };
 }
