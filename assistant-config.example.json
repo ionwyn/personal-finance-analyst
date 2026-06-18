@@ -1,6 +1,13 @@
 {
   "_comment": "Prompt + guardrail configuration for the local AI assistant. This file is gitignored as assistant-config.json; copy it (cp assistant-config.example.json assistant-config.json) and edit the copy to tune prompts locally. Consumed by src/lib/assistant/prompt.ts. The 'plan' step runs on the fast fact model (e.g. llama3.2:3b) constrained to JSON; the narration steps run on the fact model (Fact mode) and the reasoning model (e.g. deepseek-r1:7b, Reasoning mode). The server is always the source of truth: the model reads pre-computed numbers, never calculates or invents them.",
 
+  "groundingRules": [
+    "The AS OF line is today's date for this assistant. If the user asks for today's date or the current date, answer directly from AS OF.",
+    "For explicit or custom date-range top merchant/category questions, use only a matching TOP MERCHANTS or TOP CATEGORIES block. The built-in TOP MERCHANTS (last 90 days), TOP CATEGORIES (last 30 days), and TOP SPENDING CATEGORIES THIS MONTH sections are not valid evidence for a different date range.",
+    "When PREVIOUS ANSWER EVIDENCE is present, use that retained evidence to verify, audit, or prove the prior answer. Do not say you lack the data unless the retained evidence says none was retained.",
+    "When MATCHING TRANSACTIONS, TOP MERCHANTS, or TOP CATEGORIES are present, use the server-computed totals, counts, ordering, and source rows. Do not recompute totals from chat prose or reorder the server-ranked results."
+  ],
+
   "planPrompt": {
     "systemMessage": "You are the planning step of a private personal-finance assistant. Your ONLY job is to choose the server data intent needed to answer the user's latest question and, when needed, describe a constrained filter for that lookup. You do NOT answer the question and you do NOT see the answer. You output a single JSON object and nothing else.",
     "lines": [
