@@ -1,0 +1,109 @@
+import type { AssistantPlan } from "@/lib/assistant/query";
+
+export type AssistantEvalCase = {
+  id: string;
+  prompt: string;
+  description: string;
+  expectedPlan: AssistantPlan;
+  evidenceKind?: "transactions" | "top_merchants" | "top_categories" | "previous_answer";
+  priorEvidence?: string;
+  groundingMustMention?: string[];
+};
+
+export const assistantEvalCases = [
+  {
+    id: "date-today",
+    prompt: "what's the date today",
+    description: "Date questions should answer from the AS OF fact instead of refusing.",
+    expectedPlan: { intent: "summary" },
+    groundingMustMention: ["AS OF", "today's date"],
+  },
+  {
+    id: "net-worth-summary",
+    prompt: "What's my current net worth?",
+    description: "Built-in balance summaries should not trigger row lookups.",
+    expectedPlan: { intent: "summary" },
+  },
+  {
+    id: "investment-biggest-winner",
+    prompt: "Which of my investments is up the most?",
+    description: "Built-in investment extrema should be answered from summary facts.",
+    expectedPlan: { intent: "summary" },
+  },
+  {
+    id: "investment-advice-guardrail",
+    prompt: "Should I sell VFV and buy AAPL?",
+    description: "Investment recommendations stay in summary mode and rely on narration guardrails.",
+    expectedPlan: { intent: "summary" },
+    groundingMustMention: ["must NOT give investment advice"],
+  },
+  {
+    id: "custom-range-top-merchants",
+    prompt: "From June 1 2026 until June 18 2026, count top 5 merchants I spend to",
+    description: "Custom date-range top merchants require server-computed aggregate evidence.",
+    expectedPlan: {
+      intent: "top_merchants",
+      filters: { from: "2026-06-01", to: "2026-06-18", bucket: "spending" },
+    },
+    evidenceKind: "top_merchants",
+    groundingMustMention: ["TOP MERCHANTS", "server-computed totals"],
+  },
+  {
+    id: "top-categories-last-month",
+    prompt: "What categories drove my spending last month?",
+    description: "Custom period category rankings require server-computed aggregate evidence.",
+    expectedPlan: {
+      intent: "top_categories",
+      filters: { period: "last_month", bucket: "spending" },
+    },
+    evidenceKind: "top_categories",
+    groundingMustMention: ["TOP CATEGORIES", "server-computed totals"],
+  },
+  {
+    id: "merchant-breakdown-followup",
+    prompt: "Show transactions from Marche Barcelo this month",
+    description: "Merchant drill-downs should fetch bounded source transaction rows.",
+    expectedPlan: {
+      intent: "merchant_breakdown",
+      filters: { q: "Marche Barcelo", period: "this_month", bucket: "spending" },
+    },
+    evidenceKind: "transactions",
+    groundingMustMention: ["MATCHING TRANSACTIONS"],
+  },
+  {
+    id: "high-value-last-month",
+    prompt: "Show me my transactions over $200 last month",
+    description: "Amount-bounded row lookups should keep server-side filters explicit.",
+    expectedPlan: {
+      intent: "transaction_list",
+      filters: { period: "last_month", bucket: "spending", amountMin: 200 },
+    },
+    evidenceKind: "transactions",
+  },
+  {
+    id: "recent-grocery-purchases",
+    prompt: "What were my biggest grocery purchases recently?",
+    description: "Natural language category terms should remain category filters, not broad q terms.",
+    expectedPlan: {
+      intent: "transaction_list",
+      filters: { category: "Food and Drink", period: "last_90_days", bucket: "spending" },
+    },
+    evidenceKind: "transactions",
+  },
+  {
+    id: "prove-prior-answer",
+    prompt: "That's not possible. Prove it",
+    description: "Challenge turns should reuse retained evidence instead of inventing or refusing.",
+    expectedPlan: { intent: "prove_previous_answer" },
+    evidenceKind: "previous_answer",
+    priorEvidence:
+      "TOP MERCHANTS for that query — server-computed totals (showing 1 of 1; 1 matching transactions; combined total = CAD 879.49):\n- Marche Barcelo Inc.: CAD 879.49 across 1 transaction\n  - source row: 2026-06-15 | Marche Barcelo Inc. | CAD 879.49 | Food and Drink",
+    groundingMustMention: ["PREVIOUS ANSWER EVIDENCE"],
+  },
+] satisfies AssistantEvalCase[];
+
+export function getAssistantEvalCase(id: string): AssistantEvalCase {
+  const match = assistantEvalCases.find((item) => item.id === id);
+  if (!match) throw new Error(`Unknown assistant eval case: ${id}`);
+  return match;
+}

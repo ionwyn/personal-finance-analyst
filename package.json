@@ -16,6 +16,7 @@
     "prepare": "husky",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "test:assistant-evals": "vitest run src/lib/assistant/evals.test.ts",
     "test:watch": "vitest",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
