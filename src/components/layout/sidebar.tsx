@@ -68,6 +68,13 @@ export function Sidebar({ mode, user }: { mode: "private" | "demo"; user?: Sideb
       label: "Dashboard",
       href: "/app?home=1",
       icon: <LayoutGrid size={ICON_SIZE} />,
+      kbd: "⌘0",
+    },
+    {
+      key: "assistant",
+      label: "Assistant",
+      href: "/app/assistant",
+      icon: <Sparkles size={ICON_SIZE} />,
       kbd: "⌘1",
     },
     {
@@ -137,12 +144,6 @@ export function Sidebar({ mode, user }: { mode: "private" | "demo"; user?: Sideb
       label: "Supply Chain",
       href: "/app/supply-chain",
       icon: <Network size={ICON_SIZE} />,
-    },
-    {
-      key: "assistant",
-      label: "Assistant",
-      href: "/app/assistant",
-      icon: <Sparkles size={ICON_SIZE} />,
     },
   ];
 
