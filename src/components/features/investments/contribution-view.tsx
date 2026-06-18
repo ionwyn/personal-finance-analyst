@@ -6,6 +6,7 @@ import { SnapTradeLinkButton, SnapTradeSyncButton } from "@/components/actions/s
 import { formatMoney } from "@/lib/format";
 import type { ContributionData, ContributionYear } from "@/lib/investments/types";
 
+import { ContributionChart } from "./contribution-chart";
 import { PortfolioTabs } from "./portfolio-tabs";
 
 function YearRow({
@@ -111,6 +112,8 @@ export function ContributionView({ contributions }: { contributions: Contributio
           <div className="val">{formatMoney(contributions.lifetimeWithdrawalCad)}</div>
         </div>
       </div>
+
+      {contributions.years.length > 0 && <ContributionChart contributions={contributions} />}
 
       {contributions.years.length === 0 ? (
         <div className="panel">
