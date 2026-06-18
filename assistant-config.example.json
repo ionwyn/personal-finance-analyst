@@ -5,7 +5,7 @@
     "The AS OF line is today's date for this assistant. If the user asks for today's date or the current date, answer directly from AS OF.",
     "For explicit or custom date-range top merchant/category questions, use only a matching TOP MERCHANTS or TOP CATEGORIES block. The built-in TOP MERCHANTS (last 90 days), TOP CATEGORIES (last 30 days), and TOP SPENDING CATEGORIES THIS MONTH sections are not valid evidence for a different date range.",
     "When PREVIOUS ANSWER EVIDENCE is present, use that retained evidence to verify, audit, or prove the prior answer. Do not say you lack the data unless the retained evidence says none was retained.",
-    "When MATCHING TRANSACTIONS, TOP MERCHANTS, or TOP CATEGORIES are present, use the server-computed totals, counts, ordering, and source rows. Do not recompute totals from chat prose or reorder the server-ranked results."
+    "When MATCHING TRANSACTIONS, TOP MERCHANTS, TOP CATEGORIES, or PERIOD COMPARISON are present, use the server-computed totals, counts, ordering, deltas, and source rows. Do not recompute totals from chat prose or reorder the server-ranked results."
   ],
 
   "planPrompt": {
@@ -20,9 +20,10 @@
       "- top_merchants: the user asks for top merchants over a specific/custom date range or with specific filters.",
       "- top_categories: the user asks for top categories over a specific/custom date range or with specific filters.",
       "- merchant_breakdown: the user asks why a merchant total is what it is or asks for the transactions behind one merchant total.",
+      "- period_comparison: the user asks to compare periods or explain why spending, income, a category, or a merchant changed between periods.",
       "- prove_previous_answer: the user challenges, asks to prove, verify, source, or audit the immediately previous assistant answer.",
       "",
-      "For transaction_list, top_merchants, top_categories, merchant_breakdown, and prove_previous_answer, populate filters using ONLY these keys when the latest user message supplies or implies them (omit any you do not need):",
+      "For transaction_list, top_merchants, top_categories, merchant_breakdown, period_comparison, and prove_previous_answer, populate filters using ONLY these keys when the latest user message supplies or implies them (omit any you do not need):",
       "- q: free-text merchant or description substring to match (string, max 80 chars).",
       "- category: a natural category name such as \"Food and Drink\", \"Travel\", \"Rent\", \"Entertainment\" (string). The server resolves this to the user's real category taxonomy.",
       "- period: one of \"this_month\", \"last_month\", \"last_30_days\", \"last_90_days\", \"this_year\", \"all_time\".",
@@ -47,6 +48,8 @@
       "Q: \"From June 1 2026 until June 18 2026, count top 5 merchants I spend to\" -> {\"intent\": \"top_merchants\", \"filters\": {\"from\": \"2026-06-01\", \"to\": \"2026-06-18\", \"bucket\": \"spending\"}}",
       "Q: \"What categories drove my spending last month?\" -> {\"intent\": \"top_categories\", \"filters\": {\"period\": \"last_month\", \"bucket\": \"spending\"}}",
       "Q: \"Show transactions from Marche Barcelo this month\" -> {\"intent\": \"merchant_breakdown\", \"filters\": {\"q\": \"Marche Barcelo\", \"period\": \"this_month\", \"bucket\": \"spending\"}}",
+      "Q: \"Why is my spending higher this month than last month?\" -> {\"intent\": \"period_comparison\", \"filters\": {\"period\": \"this_month\", \"bucket\": \"spending\"}}",
+      "Q: \"Compare grocery spending this month vs last month\" -> {\"intent\": \"period_comparison\", \"filters\": {\"category\": \"Food and Drink\", \"period\": \"this_month\", \"bucket\": \"spending\"}}",
       "Q: \"That's not possible. Prove it\" -> {\"intent\": \"prove_previous_answer\"}"
     ]
   },

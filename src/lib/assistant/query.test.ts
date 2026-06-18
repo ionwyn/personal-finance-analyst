@@ -15,13 +15,16 @@ vi.mock("@/lib/prisma", () => ({
 
 import { getTransactionsForTenant } from "@/lib/analytics";
 import {
+  fetchPeriodComparison,
   fetchTopAggregates,
   fetchScopedTransactions,
   filtersSchema,
   MAX_ROWS,
   planSchema,
+  resolveComparisonWindow,
   resolvePeriod,
   serializeAggregateRows,
+  serializePeriodComparison,
   serializeRows,
 } from "@/lib/assistant/query";
 
@@ -103,6 +106,31 @@ describe("resolvePeriod", () => {
 
   it("leaves all_time unbounded", () => {
     expect(resolvePeriod("all_time", now)).toEqual({});
+  });
+});
+
+describe("resolveComparisonWindow", () => {
+  const now = new Date("2026-06-18T12:00:00.000Z");
+
+  it("compares this month to the same dates last month", () => {
+    expect(resolveComparisonWindow({ period: "this_month" }, now)).toEqual({
+      current: { label: "current month to date", from: "2026-06-01", to: "2026-06-18" },
+      previous: { label: "same period last month", from: "2026-05-01", to: "2026-05-18" },
+    });
+  });
+
+  it("compares last month to the month before last", () => {
+    expect(resolveComparisonWindow({ period: "last_month" }, now)).toEqual({
+      current: { label: "last month", from: "2026-05-01", to: "2026-05-31" },
+      previous: { label: "month before last", from: "2026-04-01", to: "2026-04-30" },
+    });
+  });
+
+  it("compares explicit ranges to the immediately preceding equal-length range", () => {
+    expect(resolveComparisonWindow({ from: "2026-06-10", to: "2026-06-18" }, now)).toEqual({
+      current: { label: "this month", from: "2026-06-10", to: "2026-06-18" },
+      previous: { label: "previous comparable period", from: "2026-06-01", to: "2026-06-09" },
+    });
   });
 });
 
@@ -293,5 +321,74 @@ describe("fetchTopAggregates", () => {
     expect(block).toContain("TOP MERCHANTS");
     expect(block).toContain("server-computed totals");
     expect(block).toContain("source row: 2026-06-15 | Marche Barcelo Inc.");
+  });
+});
+
+describe("fetchPeriodComparison", () => {
+  beforeEach(() => {
+    mockGet.mockReset();
+    prismaMock.tenant.findUnique.mockReset();
+    prismaMock.plaidTransaction.findMany.mockReset();
+  });
+
+  function dbTxn(input: { merchant: string; amount: number; date: string; category?: string }) {
+    return {
+      name: input.merchant.toUpperCase(),
+      merchantName: input.merchant,
+      amount: input.amount,
+      date: new Date(`${input.date}T12:00:00.000Z`),
+      categoryPrimary: input.category ?? "SHOPS",
+      categoryDetailed: null,
+      txnType: "expense",
+      removed: false,
+      supersededById: null,
+      account: { tracked: true },
+    };
+  }
+
+  it("computes totals, deltas, and drivers for a month-to-date comparison", async () => {
+    prismaMock.tenant.findUnique.mockResolvedValue({ id: "tenant-1" });
+    prismaMock.plaidTransaction.findMany
+      .mockResolvedValueOnce([
+        dbTxn({ merchant: "Amazon", amount: 500, date: "2026-06-12" }),
+        dbTxn({ merchant: "Grocery", amount: 100, date: "2026-06-13", category: "FOOD_AND_DRINK" }),
+      ])
+      .mockResolvedValueOnce([
+        dbTxn({ merchant: "Amazon", amount: 200, date: "2026-05-12" }),
+        dbTxn({ merchant: "Grocery", amount: 150, date: "2026-05-13", category: "FOOD_AND_DRINK" }),
+      ]);
+
+    const result = await fetchPeriodComparison(
+      "personal",
+      { period: "this_month", bucket: "spending" },
+      new Date("2026-06-18T12:00:00.000Z")
+    );
+
+    const calls = prismaMock.plaidTransaction.findMany.mock.calls;
+    expect(calls[0][0].where.date).toEqual({
+      gte: new Date("2026-06-01T00:00:00.000Z"),
+      lte: new Date("2026-06-18T23:59:59.999Z"),
+    });
+    expect(calls[1][0].where.date).toEqual({
+      gte: new Date("2026-05-01T00:00:00.000Z"),
+      lte: new Date("2026-05-18T23:59:59.999Z"),
+    });
+    expect(result.current.amount).toBe(600);
+    expect(result.previous.amount).toBe(350);
+    expect(result.deltaAmount).toBe(250);
+    expect(result.deltaPct).toBe(71.43);
+    expect(result.deltaAvgAmount).toBe(125);
+    expect(result.merchantDrivers[0]).toEqual(
+      expect.objectContaining({ label: "Amazon", deltaAmount: 300 })
+    );
+    expect(result.categoryDrivers[0]).toEqual(
+      expect.objectContaining({ label: "Shops", deltaAmount: 300 })
+    );
+
+    const block = serializePeriodComparison(result, "CAD");
+    expect(block).toContain("PERIOD COMPARISON");
+    expect(block).toContain("MERCHANT DRIVERS");
+    expect(block).toContain("CATEGORY DRIVERS");
+    expect(block).toContain("Change: +CAD 250");
   });
 });

@@ -1,4 +1,15 @@
-import { endOfMonth, format, startOfMonth, startOfYear, subDays, subMonths } from "date-fns";
+import {
+  addDays,
+  differenceInCalendarDays,
+  endOfMonth,
+  format,
+  isBefore,
+  startOfMonth,
+  startOfYear,
+  subDays,
+  subMonths,
+  subYears,
+} from "date-fns";
 import type { Prisma } from "@prisma/client";
 import { z } from "zod";
 
@@ -80,6 +91,7 @@ export const PLAN_INTENTS = [
   "top_merchants",
   "top_categories",
   "merchant_breakdown",
+  "period_comparison",
   "prove_previous_answer",
 ] as const;
 export type PlanIntent = (typeof PLAN_INTENTS)[number];
@@ -182,6 +194,136 @@ export type AggregateResult = {
   resolvedCategory: string | null;
   truncated: boolean;
 };
+
+export type PeriodComparisonGroup = {
+  label: string;
+  currentAmount: number;
+  previousAmount: number;
+  deltaAmount: number;
+  deltaPct: number | null;
+  currentCount: number;
+  previousCount: number;
+};
+
+export type PeriodComparisonResult = {
+  current: {
+    label: string;
+    from: string;
+    to: string;
+    amount: number;
+    count: number;
+    avgAmount: number;
+  };
+  previous: {
+    label: string;
+    from: string;
+    to: string;
+    amount: number;
+    count: number;
+    avgAmount: number;
+  };
+  deltaAmount: number;
+  deltaPct: number | null;
+  deltaCount: number;
+  deltaAvgAmount: number;
+  merchantDrivers: PeriodComparisonGroup[];
+  categoryDrivers: PeriodComparisonGroup[];
+  resolvedCategory: string | null;
+};
+
+type ComparisonWindow = {
+  current: { label: string; from: string; to: string };
+  previous: { label: string; from: string; to: string };
+};
+
+function iso(d: Date): string {
+  return format(d, "yyyy-MM-dd");
+}
+
+function parseIsoDate(s: string): Date {
+  const [year, month, day] = s.split("-").map(Number);
+  return new Date(year, month - 1, day);
+}
+
+function sameDayInMonth(monthDate: Date, day: number): Date {
+  const end = endOfMonth(monthDate);
+  return new Date(monthDate.getFullYear(), monthDate.getMonth(), Math.min(day, end.getDate()));
+}
+
+function previousAdjacentWindow(from: string, to: string): { from: string; to: string } {
+  const currentFrom = parseIsoDate(from);
+  const currentTo = parseIsoDate(to);
+  const days = differenceInCalendarDays(currentTo, currentFrom) + 1;
+  const previousTo = addDays(currentFrom, -1);
+  return {
+    from: iso(addDays(previousTo, -(days - 1))),
+    to: iso(previousTo),
+  };
+}
+
+export function resolveComparisonWindow(
+  filters: ScopedFilters,
+  now: Date = new Date()
+): ComparisonWindow {
+  const period = filters.period ?? "this_month";
+  const periodRange = resolvePeriod(period, now);
+  let from = clean(filters.from) ?? periodRange.from ?? iso(startOfMonth(now));
+  let to = clean(filters.to) ?? periodRange.to ?? iso(now);
+
+  if (isBefore(parseIsoDate(to), parseIsoDate(from))) {
+    [from, to] = [to, from];
+  }
+
+  if (!filters.from && !filters.to && period === "this_month") {
+    const previousMonth = subMonths(now, 1);
+    return {
+      current: { label: "current month to date", from, to },
+      previous: {
+        label: "same period last month",
+        from: iso(startOfMonth(previousMonth)),
+        to: iso(sameDayInMonth(previousMonth, now.getDate())),
+      },
+    };
+  }
+
+  if (!filters.from && !filters.to && period === "last_month") {
+    const currentMonth = subMonths(now, 1);
+    const previousMonth = subMonths(now, 2);
+    return {
+      current: {
+        label: "last month",
+        from: iso(startOfMonth(currentMonth)),
+        to: iso(endOfMonth(currentMonth)),
+      },
+      previous: {
+        label: "month before last",
+        from: iso(startOfMonth(previousMonth)),
+        to: iso(endOfMonth(previousMonth)),
+      },
+    };
+  }
+
+  if (!filters.from && !filters.to && period === "this_year") {
+    return {
+      current: { label: "current year to date", from, to },
+      previous: {
+        label: "same period last year",
+        from: iso(subYears(parseIsoDate(from), 1)),
+        to: iso(subYears(parseIsoDate(to), 1)),
+      },
+    };
+  }
+
+  const previous = previousAdjacentWindow(from, to);
+  return {
+    current: {
+      label: period === "all_time" ? "current period" : period.replaceAll("_", " "),
+      from,
+      to,
+    },
+    previous: { label: "previous comparable period", ...previous },
+  };
+}
 
 const CATEGORY_STOPWORDS = new Set(["and", "the", "of", "or", "a", "to"]);
 
@@ -401,6 +543,189 @@ export async function fetchTopAggregates(
     resolvedCategory,
     truncated: aggregateRows.length > limit,
   };
+}
+
+function roundCurrency(n: number): number {
+  return Math.round(n * 100) / 100;
+}
+
+function pctChange(current: number, previous: number): number | null {
+  if (previous === 0) return null;
+  return roundCurrency(((current - previous) / previous) * 100);
+}
+
+function summarizePeriod(
+  label: string,
+  from: string,
+  to: string,
+  rows: MatchingRow[]
+): PeriodComparisonResult["current"] {
+  const amount = roundCurrency(rows.reduce((sum, row) => sum + row.normalizedAmount, 0));
+  return {
+    label,
+    from,
+    to,
+    amount,
+    count: rows.length,
+    avgAmount: rows.length === 0 ? 0 : roundCurrency(amount / rows.length),
+  };
+}
+
+function groupComparisonRows(rows: MatchingRow[], kind: AggregateKind) {
+  const groups = new Map<string, { amount: number; count: number }>();
+  for (const row of rows) {
+    const label = kind === "merchant" ? row.name : row.category;
+    const current = groups.get(label) ?? { amount: 0, count: 0 };
+    current.amount += row.normalizedAmount;
+    current.count += 1;
+    groups.set(label, current);
+  }
+  return groups;
+}
+
+function buildComparisonDrivers(
+  currentRows: MatchingRow[],
+  previousRows: MatchingRow[],
+  kind: AggregateKind,
+  limit = 5
+): PeriodComparisonGroup[] {
+  const current = groupComparisonRows(currentRows, kind);
+  const previous = groupComparisonRows(previousRows, kind);
+  const labels = new Set([...current.keys(), ...previous.keys()]);
+
+  return [...labels]
+    .map((label) => {
+      const c = current.get(label) ?? { amount: 0, count: 0 };
+      const p = previous.get(label) ?? { amount: 0, count: 0 };
+      const currentAmount = roundCurrency(c.amount);
+      const previousAmount = roundCurrency(p.amount);
+      const deltaAmount = roundCurrency(currentAmount - previousAmount);
+      return {
+        label,
+        currentAmount,
+        previousAmount,
+        deltaAmount,
+        deltaPct: pctChange(currentAmount, previousAmount),
+        currentCount: c.count,
+        previousCount: p.count,
+      };
+    })
+    .filter((row) => row.currentAmount !== 0 || row.previousAmount !== 0)
+    .sort(
+      (a, b) => Math.abs(b.deltaAmount) - Math.abs(a.deltaAmount) || a.label.localeCompare(b.label)
+    )
+    .slice(0, limit);
+}
+
+export async function fetchPeriodComparison(
+  tenantSlug: string,
+  filters: ScopedFilters,
+  now: Date = new Date()
+): Promise<PeriodComparisonResult> {
+  const scopedFilters = { ...filters, bucket: filters.bucket ?? "spending" };
+  const window = resolveComparisonWindow(scopedFilters, now);
+  const [current, previous] = await Promise.all([
+    fetchMatchingTransactionsForAggregation(
+      tenantSlug,
+      {
+        ...scopedFilters,
+        period: undefined,
+        from: window.current.from,
+        to: window.current.to,
+      },
+      now
+    ),
+    fetchMatchingTransactionsForAggregation(
+      tenantSlug,
+      {
+        ...scopedFilters,
+        period: undefined,
+        from: window.previous.from,
+        to: window.previous.to,
+      },
+      now
+    ),
+  ]);
+
+  const currentSummary = summarizePeriod(
+    window.current.label,
+    window.current.from,
+    window.current.to,
+    current.rows
+  );
+  const previousSummary = summarizePeriod(
+    window.previous.label,
+    window.previous.from,
+    window.previous.to,
+    previous.rows
+  );
+
+  return {
+    current: currentSummary,
+    previous: previousSummary,
+    deltaAmount: roundCurrency(currentSummary.amount - previousSummary.amount),
+    deltaPct: pctChange(currentSummary.amount, previousSummary.amount),
+    deltaCount: currentSummary.count - previousSummary.count,
+    deltaAvgAmount: roundCurrency(currentSummary.avgAmount - previousSummary.avgAmount),
+    merchantDrivers: buildComparisonDrivers(current.rows, previous.rows, "merchant"),
+    categoryDrivers: buildComparisonDrivers(current.rows, previous.rows, "category"),
+    resolvedCategory: current.resolvedCategory ?? previous.resolvedCategory,
+  };
+}
+
+function money(n: number, currency: string): string {
+  return `${currency} ${n.toLocaleString("en-CA")}`;
+}
+
+function signedMoney(n: number, currency: string): string {
+  const sign = n >= 0 ? "+" : "-";
+  return `${sign}${money(Math.abs(n), currency)}`;
+}
+
+function signedCount(n: number): string {
+  return `${n >= 0 ? "+" : ""}${n}`;
+}
+
+function pctLabel(n: number | null): string {
+  if (n == null) return "n/a";
+  return `${n >= 0 ? "+" : ""}${n}%`;
+}
+
+function serializeDrivers(
+  title: string,
+  rows: PeriodComparisonGroup[],
+  currency: string
+): string[] {
+  if (rows.length === 0) return [`${title}: none.`];
+  return [
+    `${title}:`,
+    ...rows.map(
+      (row) =>
+        `- ${row.label}: current ${money(row.currentAmount, currency)} across ${row.currentCount} tx; ` +
+        `previous ${money(row.previousAmount, currency)} across ${row.previousCount} tx; ` +
+        `change ${signedMoney(row.deltaAmount, currency)} (${pctLabel(row.deltaPct)})`
+    ),
+  ];
+}
+
+export function serializePeriodComparison(
+  result: PeriodComparisonResult,
+  currency = "CAD"
+): string {
+  const label = result.resolvedCategory
+    ? `category ${formatCategoryName(result.resolvedCategory)}`
+    : "that query";
+  const lines = [
+    `PERIOD COMPARISON for ${label} — server-computed comparison:`,
+    `- Current (${result.current.label}, ${result.current.from} to ${result.current.to}): ${money(result.current.amount, currency)} across ${result.current.count} transaction${result.current.count === 1 ? "" : "s"}; average ${money(result.current.avgAmount, currency)}`,
+    `- Previous (${result.previous.label}, ${result.previous.from} to ${result.previous.to}): ${money(result.previous.amount, currency)} across ${result.previous.count} transaction${result.previous.count === 1 ? "" : "s"}; average ${money(result.previous.avgAmount, currency)}`,
+    `- Change: ${signedMoney(result.deltaAmount, currency)} (${pctLabel(result.deltaPct)}); transactions ${signedCount(result.deltaCount)}; average transaction ${signedMoney(result.deltaAvgAmount, currency)}`,
+    "",
+    ...serializeDrivers("MERCHANT DRIVERS", result.merchantDrivers, currency),
+    "",
+    ...serializeDrivers("CATEGORY DRIVERS", result.categoryDrivers, currency),
+  ];
+  return lines.join("\n");
 }
 
 export function serializeAggregateRows(result: AggregateResult, currency = "CAD"): string {

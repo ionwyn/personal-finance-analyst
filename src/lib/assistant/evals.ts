@@ -5,7 +5,12 @@ export type AssistantEvalCase = {
   prompt: string;
   description: string;
   expectedPlan: AssistantPlan;
-  evidenceKind?: "transactions" | "top_merchants" | "top_categories" | "previous_answer";
+  evidenceKind?:
+    | "transactions"
+    | "top_merchants"
+    | "top_categories"
+    | "period_comparison"
+    | "previous_answer";
   priorEvidence?: string;
   groundingMustMention?: string[];
 };
@@ -33,7 +38,8 @@ export const assistantEvalCases = [
   {
     id: "investment-advice-guardrail",
     prompt: "Should I sell VFV and buy AAPL?",
-    description: "Investment recommendations stay in summary mode and rely on narration guardrails.",
+    description:
+      "Investment recommendations stay in summary mode and rely on narration guardrails.",
     expectedPlan: { intent: "summary" },
     groundingMustMention: ["must NOT give investment advice"],
   },
@@ -83,12 +89,35 @@ export const assistantEvalCases = [
   {
     id: "recent-grocery-purchases",
     prompt: "What were my biggest grocery purchases recently?",
-    description: "Natural language category terms should remain category filters, not broad q terms.",
+    description:
+      "Natural language category terms should remain category filters, not broad q terms.",
     expectedPlan: {
       intent: "transaction_list",
       filters: { category: "Food and Drink", period: "last_90_days", bucket: "spending" },
     },
     evidenceKind: "transactions",
+  },
+  {
+    id: "spending-period-comparison",
+    prompt: "Why is my spending higher this month than last month?",
+    description: "Period comparison questions should get server-computed deltas and drivers.",
+    expectedPlan: {
+      intent: "period_comparison",
+      filters: { period: "this_month", bucket: "spending" },
+    },
+    evidenceKind: "period_comparison",
+    groundingMustMention: ["PERIOD COMPARISON", "server-computed totals"],
+  },
+  {
+    id: "category-period-comparison",
+    prompt: "Compare grocery spending this month vs last month",
+    description: "Category-specific period comparisons should preserve the category filter.",
+    expectedPlan: {
+      intent: "period_comparison",
+      filters: { category: "Food and Drink", period: "this_month", bucket: "spending" },
+    },
+    evidenceKind: "period_comparison",
+    groundingMustMention: ["PERIOD COMPARISON", "deltas"],
   },
   {
     id: "prove-prior-answer",

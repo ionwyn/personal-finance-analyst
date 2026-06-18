@@ -17,10 +17,12 @@ import { getTransactionsForTenant } from "@/lib/analytics";
 import { assistantEvalCases, getAssistantEvalCase } from "@/lib/assistant/evals";
 import { buildNarrationPrompt, buildPlanPrompt } from "@/lib/assistant/prompt";
 import {
+  fetchPeriodComparison,
   fetchScopedTransactions,
   fetchTopAggregates,
   planSchema,
   serializeAggregateRows,
+  serializePeriodComparison,
   serializeRows,
 } from "@/lib/assistant/query";
 
@@ -156,6 +158,34 @@ describe("assistant eval evidence packets", () => {
     expect(block).toContain("MATCHING TRANSACTIONS");
     expect(block).toContain("combined total of all 1 = CAD 879.49");
     expect(block).toContain("2026-06-15 | Marche Barcelo Inc.");
+  });
+
+  it("produces the expected period comparison packet", async () => {
+    const item = getAssistantEvalCase("spending-period-comparison");
+    prismaMock.tenant.findUnique.mockResolvedValue({ id: "tenant-1" });
+    prismaMock.plaidTransaction.findMany
+      .mockResolvedValueOnce([
+        dbTxn({ merchant: "Amazon", amount: 500, date: "2026-06-12", category: "SHOPS" }),
+        dbTxn({ merchant: "Grocery", amount: 100, date: "2026-06-13" }),
+      ])
+      .mockResolvedValueOnce([
+        dbTxn({ merchant: "Amazon", amount: 200, date: "2026-05-12", category: "SHOPS" }),
+        dbTxn({ merchant: "Grocery", amount: 150, date: "2026-05-13" }),
+      ]);
+
+    const result = await fetchPeriodComparison(
+      "personal",
+      item.expectedPlan.filters ?? {},
+      new Date("2026-06-18T12:00:00.000Z")
+    );
+    const block = serializePeriodComparison(result, "CAD");
+
+    expect(result.deltaAmount).toBe(250);
+    expect(result.merchantDrivers[0]).toEqual(
+      expect.objectContaining({ label: "Amazon", deltaAmount: 300 })
+    );
+    expect(block).toContain("PERIOD COMPARISON");
+    expect(block).toContain("Change: +CAD 250");
   });
 
   it("keeps retained proof evidence available for challenge turns", () => {

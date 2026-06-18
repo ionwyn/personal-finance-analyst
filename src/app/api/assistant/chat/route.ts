@@ -16,10 +16,12 @@ import {
   buildReasoningNarrationPrompt,
 } from "@/lib/assistant/prompt";
 import {
+  fetchPeriodComparison,
   fetchScopedTransactions,
   fetchTopAggregates,
   planSchema,
   serializeAggregateRows,
+  serializePeriodComparison,
   serializeRows,
 } from "@/lib/assistant/query";
 import { authOptions } from "@/lib/auth";
@@ -189,6 +191,24 @@ export async function POST(request: Request) {
                 },
               },
               "assistant aggregate evidence fetched"
+            );
+          } else if (plan.data.intent === "period_comparison") {
+            const result = await fetchPeriodComparison(tenantSlug, filters);
+            rowsBlock = serializePeriodComparison(result, facts.currency);
+            logger.info(
+              {
+                plan: plan.data,
+                evidence: {
+                  kind: "period_comparison",
+                  currentAmount: result.current.amount,
+                  previousAmount: result.previous.amount,
+                  deltaAmount: result.deltaAmount,
+                  merchantDriverCount: result.merchantDrivers.length,
+                  categoryDriverCount: result.categoryDrivers.length,
+                  resolvedCategory: result.resolvedCategory,
+                },
+              },
+              "assistant period comparison evidence fetched"
             );
           } else {
             logger.info({ plan: plan.data }, "assistant plan selected summary-only answer");
