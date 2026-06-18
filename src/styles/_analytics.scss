@@ -116,7 +116,7 @@
 }
 .sector-legend-row {
   display: grid;
-  grid-template-columns: 10px minmax(0, 1fr) 44px 68px;
+  grid-template-columns: 10px minmax(0, 1fr) 44px 68px minmax(120px, auto);
   align-items: center;
   gap: 8px;
 
@@ -145,6 +145,15 @@
     font-size: 10px;
     color: var(--text-4);
     text-align: right;
+  }
+  .pl {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-size: 10px;
+    text-align: right;
+    white-space: nowrap;
+    &.pos { color: var(--gain); }
+    &.neg { color: var(--loss); }
   }
 }
 
@@ -223,7 +232,8 @@
     flex-direction: column;
     align-items: center;
   }
-  .sector-legend-row .mv {
+  .sector-legend-row .mv,
+  .sector-legend-row .pl {
     display: none;
   }
 }
