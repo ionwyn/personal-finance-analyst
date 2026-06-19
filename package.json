@@ -36,7 +36,8 @@
     "backfill:cycles": "tsx scripts/backfill-cycles.ts",
     "backfill:logos": "tsx scripts/backfill-logos.ts",
     "secrets": "tsx scripts/print-secret.ts",
-    "snaptrade:encrypt-secret": "tsx scripts/encrypt-snaptrade-secret.ts"
+    "snaptrade:encrypt-secret": "tsx scripts/encrypt-snaptrade-secret.ts",
+    "token-key:rotate": "tsx scripts/rotate-token-encryption-key.ts"
   },
   "keywords": [],
   "author": "Ionwyn Sean",
