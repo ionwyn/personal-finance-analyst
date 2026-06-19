@@ -1,5 +1,6 @@
 export function StatusPill({ status }: { status: string }) {
-  const cls = status === "SYNCING" ? "syncing" : status === "ERROR" ? "error" : "idle";
+  if (status === "IDLE") return null;
+  const cls = status === "SYNCING" ? "syncing" : "error";
   return (
     <span className={`status ${cls}`}>
       <i className="pulse" />
