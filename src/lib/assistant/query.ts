@@ -92,6 +92,7 @@ export const PLAN_INTENTS = [
   "top_categories",
   "merchant_breakdown",
   "period_comparison",
+  "budget_status",
   "prove_previous_answer",
 ] as const;
 export type PlanIntent = (typeof PLAN_INTENTS)[number];

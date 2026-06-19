@@ -4,6 +4,7 @@ const prismaMock = vi.hoisted(() => ({
   tenant: { findUnique: vi.fn() },
   plaidTransaction: { findMany: vi.fn() },
 }));
+const getBudgetGoalDataMock = vi.hoisted(() => vi.fn());
 
 vi.mock("@/lib/analytics", () => ({
   getTransactionsForTenant: vi.fn(),
@@ -13,7 +14,12 @@ vi.mock("@/lib/prisma", () => ({
   prisma: prismaMock,
 }));
 
+vi.mock("@/lib/budgets/getBudgetGoalData", () => ({
+  getBudgetGoalData: getBudgetGoalDataMock,
+}));
+
 import { getTransactionsForTenant } from "@/lib/analytics";
+import { fetchBudgetStatus, serializeBudgetStatus } from "@/lib/assistant/budget";
 import { assistantEvalCases, getAssistantEvalCase } from "@/lib/assistant/evals";
 import { buildNarrationPrompt, buildPlanPrompt } from "@/lib/assistant/prompt";
 import {
@@ -40,6 +46,44 @@ function dbTxn(input: { merchant: string; amount: number; date?: string; categor
     removed: false,
     supersededById: null,
     account: { tracked: true },
+  };
+}
+
+function budgetData() {
+  return {
+    monthLabel: "June 2026",
+    warnPct: 85,
+    alarmPct: 100,
+    rollForward: false,
+    budgets: [
+      {
+        id: "budget-food",
+        categoryPrimary: "FOOD_AND_DRINK",
+        categoryLabel: "Food and Drink",
+        color: "var(--cat-1)",
+        cap: 600,
+        spent: 450,
+        remaining: 150,
+        pct: 75,
+        status: "under",
+      },
+      {
+        id: "budget-shops",
+        categoryPrimary: "SHOPS",
+        categoryLabel: "Shops",
+        color: "var(--cat-2)",
+        cap: 500,
+        spent: 525,
+        remaining: -25,
+        pct: 105,
+        status: "over",
+      },
+    ],
+    goals: [],
+    totalCap: 1100,
+    totalSpent: 975,
+    availableCategories: [],
+    destinations: [],
   };
 }
 
@@ -85,6 +129,7 @@ describe("assistant eval evidence packets", () => {
     mockGetTransactions.mockReset();
     prismaMock.tenant.findUnique.mockReset();
     prismaMock.plaidTransaction.findMany.mockReset();
+    getBudgetGoalDataMock.mockReset();
   });
 
   it("produces the expected top merchant aggregate packet", async () => {
@@ -186,6 +231,27 @@ describe("assistant eval evidence packets", () => {
     );
     expect(block).toContain("PERIOD COMPARISON");
     expect(block).toContain("Change: +CAD 250");
+  });
+
+  it("produces the expected budget status packet", async () => {
+    const item = getAssistantEvalCase("budget-status-overview");
+    getBudgetGoalDataMock.mockResolvedValue(budgetData());
+
+    const result = await fetchBudgetStatus(
+      "tenant-1",
+      item.expectedPlan.filters ?? {},
+      new Date("2026-06-18T12:00:00.000Z")
+    );
+    const block = serializeBudgetStatus(result, "CAD");
+
+    expect(result.totalCap).toBe(1100);
+    expect(result.totalSpent).toBe(975);
+    expect(result.overBudgetCount).toBe(1);
+    expect(result.overPaceCount).toBe(2);
+    expect(block).toContain("BUDGET STATUS");
+    expect(block).toContain("budget caps");
+    expect(block).toContain("remaining daily room");
+    expect(block).toContain("Shops");
   });
 
   it("keeps retained proof evidence available for challenge turns", () => {

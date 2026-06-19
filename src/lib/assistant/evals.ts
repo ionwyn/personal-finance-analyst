@@ -10,6 +10,7 @@ export type AssistantEvalCase = {
     | "top_merchants"
     | "top_categories"
     | "period_comparison"
+    | "budget_status"
     | "previous_answer";
   priorEvidence?: string;
   groundingMustMention?: string[];
@@ -118,6 +119,26 @@ export const assistantEvalCases = [
     },
     evidenceKind: "period_comparison",
     groundingMustMention: ["PERIOD COMPARISON", "deltas"],
+  },
+  {
+    id: "budget-status-overview",
+    prompt: "Am I over budget this month?",
+    description:
+      "Budget questions should fetch monthly budget cap, spend, room, and pace evidence.",
+    expectedPlan: { intent: "budget_status" },
+    evidenceKind: "budget_status",
+    groundingMustMention: ["BUDGET STATUS", "budget caps", "over/under pace"],
+  },
+  {
+    id: "budget-category-remaining",
+    prompt: "How much grocery budget do I have left?",
+    description: "Category budget questions should preserve the category filter.",
+    expectedPlan: {
+      intent: "budget_status",
+      filters: { category: "Food and Drink" },
+    },
+    evidenceKind: "budget_status",
+    groundingMustMention: ["BUDGET STATUS", "remaining room"],
   },
   {
     id: "prove-prior-answer",

@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { buildFinancialContext } from "@/lib/assistant/context";
+import { fetchBudgetStatus, serializeBudgetStatus } from "@/lib/assistant/budget";
 import {
   chatJSON,
   type ChatMessage,
@@ -209,6 +210,24 @@ export async function POST(request: Request) {
                 },
               },
               "assistant period comparison evidence fetched"
+            );
+          } else if (plan.data.intent === "budget_status") {
+            const result = await fetchBudgetStatus(tenantId, filters);
+            rowsBlock = serializeBudgetStatus(result, facts.currency);
+            logger.info(
+              {
+                plan: plan.data,
+                evidence: {
+                  kind: "budget_status",
+                  rowCount: result.rows.length,
+                  totalBudgets: result.totalBudgets,
+                  overBudgetCount: result.overBudgetCount,
+                  warnBudgetCount: result.warnBudgetCount,
+                  overPaceCount: result.overPaceCount,
+                  matchedCategory: result.matchedCategory,
+                },
+              },
+              "assistant budget evidence fetched"
             );
           } else {
             logger.info({ plan: plan.data }, "assistant plan selected summary-only answer");

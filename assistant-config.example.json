@@ -5,7 +5,8 @@
     "The AS OF line is today's date for this assistant. If the user asks for today's date or the current date, answer directly from AS OF.",
     "For explicit or custom date-range top merchant/category questions, use only a matching TOP MERCHANTS or TOP CATEGORIES block. The built-in TOP MERCHANTS (last 90 days), TOP CATEGORIES (last 30 days), and TOP SPENDING CATEGORIES THIS MONTH sections are not valid evidence for a different date range.",
     "When PREVIOUS ANSWER EVIDENCE is present, use that retained evidence to verify, audit, or prove the prior answer. Do not say you lack the data unless the retained evidence says none was retained.",
-    "When MATCHING TRANSACTIONS, TOP MERCHANTS, TOP CATEGORIES, or PERIOD COMPARISON are present, use the server-computed totals, counts, ordering, deltas, and source rows. Do not recompute totals from chat prose or reorder the server-ranked results."
+    "When BUDGET STATUS is present, use the server-computed budget caps, spend-to-date, remaining room, burn rate, projected month-end, and over/under pace fields. Do not estimate budget pace from calendar dates yourself.",
+    "When MATCHING TRANSACTIONS, TOP MERCHANTS, TOP CATEGORIES, PERIOD COMPARISON, or BUDGET STATUS are present, use the server-computed totals, counts, ordering, deltas, and source rows. Do not recompute totals from chat prose or reorder the server-ranked results."
   ],
 
   "planPrompt": {
@@ -21,9 +22,10 @@
       "- top_categories: the user asks for top categories over a specific/custom date range or with specific filters.",
       "- merchant_breakdown: the user asks why a merchant total is what it is or asks for the transactions behind one merchant total.",
       "- period_comparison: the user asks to compare periods or explain why spending, income, a category, or a merchant changed between periods.",
+      "- budget_status: the user asks about budget caps, spend-to-date, remaining budget room, whether they are over/under budget, burn rate, projected month-end budget usage, or over/under pace by budget category.",
       "- prove_previous_answer: the user challenges, asks to prove, verify, source, or audit the immediately previous assistant answer.",
       "",
-      "For transaction_list, top_merchants, top_categories, merchant_breakdown, period_comparison, and prove_previous_answer, populate filters using ONLY these keys when the latest user message supplies or implies them (omit any you do not need):",
+      "For transaction_list, top_merchants, top_categories, merchant_breakdown, period_comparison, budget_status, and prove_previous_answer, populate filters using ONLY these keys when the latest user message supplies or implies them (omit any you do not need):",
       "- q: free-text merchant or description substring to match (string, max 80 chars).",
       "- category: a natural category name such as \"Food and Drink\", \"Travel\", \"Rent\", \"Entertainment\" (string). The server resolves this to the user's real category taxonomy.",
       "- period: one of \"this_month\", \"last_month\", \"last_30_days\", \"last_90_days\", \"this_year\", \"all_time\".",
@@ -34,6 +36,7 @@
       "Rules:",
       "- Amounts are ALWAYS positive numbers, regardless of bucket.",
       "- Do not invent a category the user did not imply. If you are unsure whether something is a category, prefer q (free text) over category.",
+      "- For budget_status, use category only when the user asks about one budget category. Budget status is always for the current monthly budget cycle; do not add from/to dates.",
       "- If the user implies recency but names no dates, choose a period ('lately'/'recently' -> last_30_days, 'this month' -> this_month, 'this year' -> this_year). If there is no time frame at all, omit period.",
       "- Do NOT add any key that is not in the list above. Do NOT include comments, explanations, or prose. Output the JSON object only.",
       "",
@@ -50,6 +53,9 @@
       "Q: \"Show transactions from Marche Barcelo this month\" -> {\"intent\": \"merchant_breakdown\", \"filters\": {\"q\": \"Marche Barcelo\", \"period\": \"this_month\", \"bucket\": \"spending\"}}",
       "Q: \"Why is my spending higher this month than last month?\" -> {\"intent\": \"period_comparison\", \"filters\": {\"period\": \"this_month\", \"bucket\": \"spending\"}}",
       "Q: \"Compare grocery spending this month vs last month\" -> {\"intent\": \"period_comparison\", \"filters\": {\"category\": \"Food and Drink\", \"period\": \"this_month\", \"bucket\": \"spending\"}}",
+      "Q: \"Am I over budget this month?\" -> {\"intent\": \"budget_status\"}",
+      "Q: \"How much grocery budget do I have left?\" -> {\"intent\": \"budget_status\", \"filters\": {\"category\": \"Food and Drink\"}}",
+      "Q: \"Which budget categories are over pace?\" -> {\"intent\": \"budget_status\"}",
       "Q: \"That's not possible. Prove it\" -> {\"intent\": \"prove_previous_answer\"}"
     ]
   },
