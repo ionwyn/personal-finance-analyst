@@ -70,6 +70,18 @@ describe("assistant plan schema", () => {
     expect(planSchema.safeParse({ intent: "investment_advice" }).success).toBe(false);
   });
 
+  it("keeps a valid intent when the planner invents an invalid filter value", () => {
+    const parsed = planSchema.parse({
+      intent: "budget_status",
+      filters: { bucket: "burn_rate", category: "Food and Drink" },
+    });
+
+    expect(parsed).toEqual({
+      intent: "budget_status",
+      filters: { bucket: undefined, category: "Food and Drink" },
+    });
+  });
+
   it("strips unknown filter fields rather than passing them through", () => {
     const parsed = filtersSchema.parse({ q: "amazon", accountId: "secret", removed: false });
     expect(parsed).toEqual({ q: "amazon" });

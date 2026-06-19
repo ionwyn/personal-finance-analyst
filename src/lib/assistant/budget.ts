@@ -42,6 +42,26 @@ export type BudgetStatusResult = {
 };
 
 const CATEGORY_STOPWORDS = new Set(["and", "the", "of", "or", "a", "to", "budget"]);
+const GENERIC_BUDGET_SCOPES = new Set([
+  "all",
+  "all budget",
+  "all budgets",
+  "budget",
+  "budgets",
+  "budget category",
+  "budget categories",
+  "caps",
+  "each",
+  "each budget",
+  "every",
+  "every budget",
+  "overall",
+  "over pace",
+  "over-pace",
+  "over_pace",
+  "remaining",
+  "remaining room",
+]);
 
 function roundMoney(n: number): number {
   return Math.round(n * 100) / 100;
@@ -94,6 +114,14 @@ function statusRank(row: BudgetStatusRow): number {
   return 3;
 }
 
+function normalizeBudgetCategoryScope(filters: ScopedFilters): string | null {
+  const raw = filters.category?.trim() || filters.q?.trim() || "";
+  if (!raw) return null;
+
+  const normalized = raw.toLowerCase().replaceAll(/[_-]+/g, " ").replaceAll(/\s+/g, " ").trim();
+  return GENERIC_BUDGET_SCOPES.has(normalized) ? null : raw;
+}
+
 function buildRow(
   budget: BudgetProgress,
   daysElapsed: number,
@@ -134,7 +162,7 @@ export async function fetchBudgetStatus(
   const daysElapsed = differenceInCalendarDays(now, monthStart) + 1;
   const daysInMonth = differenceInCalendarDays(monthEnd, monthStart) + 1;
   const daysRemaining = Math.max(0, daysInMonth - daysElapsed);
-  const matchedCategory = filters.category?.trim() || filters.q?.trim() || null;
+  const matchedCategory = normalizeBudgetCategoryScope(filters);
 
   const rows = data.budgets
     .map((budget) => buildRow(budget, daysElapsed, daysInMonth, daysRemaining))

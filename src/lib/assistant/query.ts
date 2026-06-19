@@ -85,6 +85,25 @@ export const filtersSchema = z.object({
   amountMax: z.number().nonnegative().optional(),
 });
 
+function optionalPlannerField<T extends z.ZodType>(schema: T) {
+  return z.preprocess((value) => {
+    if (value == null) return undefined;
+    const parsed = schema.safeParse(value);
+    return parsed.success ? parsed.data : undefined;
+  }, schema.optional());
+}
+
+const plannerFiltersSchema = z.object({
+  q: optionalPlannerField(z.string().max(80)),
+  category: optionalPlannerField(z.string().max(80)),
+  period: optionalPlannerField(z.enum(PERIODS)),
+  from: optionalPlannerField(z.string().regex(/^\d{4}-\d{2}-\d{2}$/)),
+  to: optionalPlannerField(z.string().regex(/^\d{4}-\d{2}-\d{2}$/)),
+  bucket: optionalPlannerField(z.enum(["spending", "income"])),
+  amountMin: optionalPlannerField(z.coerce.number().nonnegative()),
+  amountMax: optionalPlannerField(z.coerce.number().nonnegative()),
+});
+
 export const PLAN_INTENTS = [
   "summary",
   "transaction_list",
@@ -100,13 +119,13 @@ export type PlanIntent = (typeof PLAN_INTENTS)[number];
 /** The plan-step output schema the model must produce as JSON. */
 const intentPlanSchema = z.object({
   intent: z.enum(PLAN_INTENTS),
-  filters: filtersSchema.optional(),
+  filters: plannerFiltersSchema.optional(),
 });
 
 const legacyPlanSchema = z
   .object({
     needsTransactions: z.boolean(),
-    filters: filtersSchema.optional(),
+    filters: plannerFiltersSchema.optional(),
   })
   .transform(({ needsTransactions, filters }) => ({
     intent: (needsTransactions ? "transaction_list" : "summary") satisfies PlanIntent,

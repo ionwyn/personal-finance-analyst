@@ -132,6 +132,33 @@ describe("assistant budget evidence", () => {
     expect(result.totalSpent).toBe(450);
   });
 
+  it("treats generic category scopes from the planner as all-budget questions", async () => {
+    getBudgetGoalDataMock.mockResolvedValue(
+      budgetData([
+        budget({
+          categoryPrimary: "FOOD_AND_DRINK",
+          categoryLabel: "Food and Drink",
+          cap: 600,
+          spent: 450,
+        }),
+        budget({
+          categoryPrimary: "TRANSPORTATION",
+          categoryLabel: "Transportation",
+          cap: 300,
+          spent: 120,
+        }),
+      ])
+    );
+
+    const result = await fetchBudgetStatus("tenant-1", { category: "over pace" }, now);
+
+    expect(result.matchedCategory).toBeNull();
+    expect(result.rows.map((row) => row.categoryLabel).sort()).toEqual([
+      "Food and Drink",
+      "Transportation",
+    ]);
+  });
+
   it("serializes a missing category with the active budget category list", async () => {
     getBudgetGoalDataMock.mockResolvedValue(
       budgetData([
