@@ -197,7 +197,12 @@ npm run backfill:cycles  # Generate cycles and classify historical transactions
 npm run seed:demo        # Alias for mock demo seeding
 npm run secrets          # Print local secret values
 npm run snaptrade:encrypt-secret # Encrypt the SnapTrade user secret for .env
+npm run eval:assistant-live        # Live Ollama assistant evals against local DB
+npm run eval:assistant-live:budget # Budget-only live assistant evals
 ```
+
+Assistant live evals are opt-in because they require local Ollama, a reachable
+database, and a `personal` tenant with data. They are not part of `npm test`.
 
 ## Application Routes
 

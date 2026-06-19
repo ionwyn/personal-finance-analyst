@@ -248,8 +248,13 @@ calculates and never invents: the server is the source of truth.
 - `lib/assistant/prompt.ts` — plan prompt + narration prompt (anti-hallucination
   contract: cite only provided data; say "I don't have that" otherwise).
 - `lib/assistant/ollama.ts` — thin Ollama client (`/api/chat`, streaming).
-- `app/api/assistant/chat/route.ts` — 2-step flow (plan → optional row fetch →
-  streamed narration); returns 503 if Ollama is unreachable.
+- `lib/assistant/pipeline.ts` — shared 2-step flow (plan → optional evidence
+  fetch → streamed narration), used by both the API route and live eval runner.
+- `app/api/assistant/chat/route.ts` — authenticated streaming HTTP wrapper;
+  returns 503 if Ollama is unreachable.
+- `scripts/eval-assistant-live.ts` — opt-in live eval runner against local
+  Ollama + DB (`npm run eval:assistant-live`, or budget-only via
+  `npm run eval:assistant-live:budget`).
 
 ## Development Notes
 

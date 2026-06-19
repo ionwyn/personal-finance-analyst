@@ -45,7 +45,7 @@ const DEFAULT_CASES: LiveEvalCase[] = [
     prompt: "How much grocery budget do I have left?",
     expectedIntent: "budget_status",
     expectedEvidence: "BUDGET STATUS",
-    answerMustInclude: ["budget"],
+    answerMustInclude: ["remaining"],
     answerMustNotInclude: ["don't have", "do not have", "lack the data"],
   },
   {
@@ -53,7 +53,7 @@ const DEFAULT_CASES: LiveEvalCase[] = [
     prompt: "What is my budget burn rate by category?",
     expectedIntent: "budget_status",
     expectedEvidence: "burn rate",
-    answerMustInclude: ["budget"],
+    answerMustInclude: ["burn rate"],
     answerMustNotInclude: ["don't have", "do not have", "lack the data"],
   },
   {

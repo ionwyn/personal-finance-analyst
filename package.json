@@ -17,6 +17,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:assistant-evals": "vitest run src/lib/assistant/evals.test.ts",
+    "eval:assistant-live": "LOG_LEVEL=silent tsx scripts/eval-assistant-live.ts",
+    "eval:assistant-live:budget": "LOG_LEVEL=silent tsx scripts/eval-assistant-live.ts --budget-only",
     "test:watch": "vitest",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
