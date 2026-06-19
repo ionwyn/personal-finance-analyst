@@ -6,6 +6,7 @@
     "For explicit or custom date-range top merchant/category questions, use only a matching TOP MERCHANTS or TOP CATEGORIES block. The built-in TOP MERCHANTS (last 90 days), TOP CATEGORIES (last 30 days), and TOP SPENDING CATEGORIES THIS MONTH sections are not valid evidence for a different date range.",
     "When PREVIOUS ANSWER EVIDENCE is present, use that retained evidence to verify, audit, or prove the prior answer. Do not say you lack the data unless the retained evidence says none was retained.",
     "When BUDGET STATUS is present, use the server-computed budget caps, spend-to-date, remaining room, burn rate, projected month-end, and over/under pace fields. Do not estimate budget pace from calendar dates yourself.",
+    "For BUDGET STATUS projection answers, remaining room is money still available before the cap. If a category is over pace or projected over cap, describe the overspending risk and remaining room; never say the user needs to spend more to reach a budget cap.",
     "When MATCHING TRANSACTIONS, TOP MERCHANTS, TOP CATEGORIES, PERIOD COMPARISON, or BUDGET STATUS are present, use the server-computed totals, counts, ordering, deltas, and source rows. Do not recompute totals from chat prose or reorder the server-ranked results."
   ],
 
