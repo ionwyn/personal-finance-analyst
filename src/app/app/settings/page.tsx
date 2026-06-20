@@ -5,6 +5,7 @@ import {
   type SectionId,
   type SettingsConnections,
 } from "@/components/features/settings/settings-shell";
+import { getCalendarSettings } from "@/lib/calendar/get-calendar-settings";
 import { getDashboardData } from "@/lib/analytics";
 import { getSettingsData } from "@/lib/cycles/getSettings";
 import { getSession } from "@/lib/session";
@@ -18,6 +19,7 @@ const SECTION_IDS: SectionId[] = [
   "categories",
   "connections",
   "budgets",
+  "calendar",
   "display",
   "data",
 ];
@@ -33,8 +35,9 @@ export default async function SettingsPage({
   const tenant = await getUserTenant(session.user.id);
   if (!tenant) redirect("/signin");
 
-  const [data, dashboard, syncRuns] = await Promise.all([
+  const [data, calendarSettings, dashboard, syncRuns] = await Promise.all([
     getSettingsData(tenant.id),
+    getCalendarSettings(tenant.id),
     getDashboardData(tenant.slug),
     getSyncRuns(tenant.id),
   ]);
@@ -73,6 +76,7 @@ export default async function SettingsPage({
     <>
       <SettingsShell
         data={data}
+        calendarSettings={calendarSettings}
         syncRuns={syncRuns}
         connections={connections}
         webhookPath="/api/webhooks/plaid"
