@@ -5,6 +5,7 @@
 // window once; month navigation is pure client state.
 
 import { startOfUtcDay, toISODate } from "@/lib/calendar/dates";
+import { isHidden } from "@/lib/calendar/hidden";
 import { CALENDAR_SOURCES } from "@/lib/calendar/sources/registry";
 import {
   CALENDAR_CATEGORIES,
@@ -27,13 +28,6 @@ export type CalendarData = {
   /** Earliest "schedule confirmed through" across enabled config sources. */
   confirmedThrough: string | null;
 };
-
-/** A hidden key suppresses an event when it equals the id or is a parent prefix
- *  (item key "bill:<id>" hides "bill:<id>:<date>"; "inv:AAPL" hides all of
- *  "inv:AAPL:earnings:…"). */
-function isHidden(eventId: string, hiddenKeys: string[]): boolean {
-  return hiddenKeys.some((k) => eventId === k || eventId.startsWith(`${k}:`));
-}
 
 export async function getCalendarEvents(
   tenantId: string,
