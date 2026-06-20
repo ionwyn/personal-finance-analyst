@@ -68,6 +68,10 @@ export type CalendarSource = {
   category: CalendarCategory;
   /** Human label for attribution / settings grouping. */
   label: string;
+  /** For config/rule sources whose forward dates are hand-maintained: the last
+   *  date through which the schedule is known-good. The aggregator surfaces the
+   *  earliest such date so the UI can show "schedule confirmed through …". */
+  confirmedThrough?: string;
   getEvents(ctx: CalendarSourceContext): Promise<CalendarEvent[]>;
   /** Optional: items a user can individually hide within this category. */
   listItems?(ctx: CalendarSourceContext): Promise<CalendarItem[]>;
