@@ -5,6 +5,7 @@ import { useState } from "react";
 
 import { PlaidLinkButton } from "@/components/actions/plaid-link-button";
 import { SyncAllButton } from "@/components/actions/sync-all-button";
+import type { CalendarSettingsData } from "@/lib/calendar/get-calendar-settings";
 import type { SettingsData } from "@/lib/cycles/getSettings";
 import type { SyncRunRow } from "@/lib/settings/getSyncRuns";
 
@@ -14,6 +15,7 @@ import {
   type ConnectionSnapTrade,
 } from "./connections-section";
 import { AlertThresholdsSection } from "./alert-thresholds-section";
+import { CalendarSettingsSection } from "./calendar-settings-section";
 import { DataSection } from "./data-section";
 import { DisplaySection } from "./display-section";
 import { IncomeSourcesSection } from "./income-sources-section";
@@ -28,8 +30,9 @@ const SECTIONS = [
   { id: "categories", num: "02", label: "Categories & Rules" },
   { id: "connections", num: "03", label: "Connections & Sync" },
   { id: "budgets", num: "04", label: "Budgets & Goals" },
-  { id: "display", num: "05", label: "Display & Preferences" },
-  { id: "data", num: "06", label: "Data & Account" },
+  { id: "calendar", num: "05", label: "Calendar" },
+  { id: "display", num: "06", label: "Display & Preferences" },
+  { id: "data", num: "07", label: "Data & Account" },
 ] as const;
 
 export type SectionId = (typeof SECTIONS)[number]["id"];
@@ -51,6 +54,10 @@ const META: Record<SectionId, { title: string; sub: string }> = {
     title: "Budgets & Goals",
     sub: "Alert thresholds for category budgets. Set the actual caps and savings goals on the Budgets & Goals page.",
   },
+  calendar: {
+    title: "Calendar",
+    sub: "Choose which categories and items appear on the Workspace calendar. The calendar window is fixed at 3 months back and 6 months forward.",
+  },
   display: {
     title: "Display & Preferences",
     sub: "How numbers, dates and the chrome render. Only the landing page is wired so far.",
@@ -69,6 +76,7 @@ export type SettingsConnections = {
 
 export function SettingsShell({
   data,
+  calendarSettings,
   syncRuns,
   connections,
   webhookPath,
@@ -77,6 +85,7 @@ export function SettingsShell({
   initialSection,
 }: {
   data: SettingsData;
+  calendarSettings: CalendarSettingsData;
   syncRuns: SyncRunRow[];
   connections: SettingsConnections;
   webhookPath: string;
@@ -173,6 +182,7 @@ export function SettingsShell({
           </div>
         ) : null}
 
+        {active === "calendar" ? <CalendarSettingsSection data={calendarSettings} /> : null}
         {active === "display" ? <DisplaySection settings={data.settings} /> : null}
         {active === "data" ? <DataSection tenantLabel={tenantLabel} isDemo={isDemo} /> : null}
       </section>

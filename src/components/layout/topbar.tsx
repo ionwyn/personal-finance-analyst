@@ -14,6 +14,7 @@ const ROUTE_LABELS: Record<string, [string, string]> = {
   "/app/transactions": ["Workspace", "Transactions"],
   "/app/portfolio": ["Workspace", "Portfolio"],
   "/app/markets": ["Workspace", "Markets"],
+  "/app/calendar": ["Workspace", "Calendar"],
   "/app/settings": ["Workspace", "Settings"],
   "/demo": ["Public", "Demo (read-only)"],
 };

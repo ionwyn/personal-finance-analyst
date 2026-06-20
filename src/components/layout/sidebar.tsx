@@ -8,6 +8,7 @@ import clsx from "clsx";
 import {
   ArrowLeftRight,
   CalendarClock,
+  CalendarDays,
   CandlestickChart,
   ChevronLeft,
   ChevronRight,
@@ -124,10 +125,22 @@ export function Sidebar({ mode, user }: { mode: "private" | "demo"; user?: Sideb
     },
   ];
 
+  // Workspace — cross-cutting tools shared by banking and investing.
+  const workspace: NavItem[] = [
+    {
+      key: "calendar",
+      label: "Calendar",
+      href: "/app/calendar",
+      icon: <CalendarDays size={ICON_SIZE} />,
+      kbd: "⌘9",
+    },
+  ];
+
   const sections: NavSection[] = [
     { label: "Overview", items: overview },
     { label: "Banking", items: banking },
     { label: "Investing", items: investing },
+    { label: "Workspace", items: workspace },
   ];
 
   const secondary: NavItem[] =
@@ -152,6 +165,7 @@ export function Sidebar({ mode, user }: { mode: "private" | "demo"; user?: Sideb
       "6": "/app/markets",
       "7": "/app/cycles",
       "8": "/app/budgets",
+      "9": "/app/calendar",
     };
     const onKey = (e: KeyboardEvent) => {
       if (!(e.metaKey || e.ctrlKey)) return;
