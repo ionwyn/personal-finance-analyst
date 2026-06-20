@@ -1,8 +1,7 @@
 // ─── Source: savings goal target dates (Personal Finance) ───────────────────
 // One event per active goal that has a targetDate inside the window.
 
-import { toISODate } from "@/lib/calendar/dates";
-import { isWithinRange } from "@/lib/calendar/dates";
+import { isWithinRange, toISODate } from "@/lib/calendar/dates";
 import type { CalendarEvent, CalendarSource } from "@/lib/calendar/types";
 import { prisma } from "@/lib/prisma";
 
