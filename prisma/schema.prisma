@@ -99,6 +99,7 @@ model Tenant {
   committedSettlements  CommittedSettlement[]
   userSettings          UserSettings?
   watchlistItems        WatchlistItem[]
+  calendarPreference    CalendarPreference?
 
   @@index([kind])
 }
@@ -1141,4 +1142,31 @@ model MarketFinancials {
 
   @@id([symbol, fiscalYear])
   @@index([symbol, fiscalYear(sort: Desc)])
+}
+
+// Per-tenant preferences for the Workspace Calendar. One row per tenant.
+// The calendar is a projection layer; this is the only user-owned state it
+// persists. `disabledCategories` removes a whole category; `hiddenKeys`
+// suppresses individual events by their stable CalendarEvent.id.
+model CalendarPreference {
+  id                 String   @id @default(cuid())
+  tenantId           String   @unique
+  disabledCategories String[]
+  hiddenKeys         String[]
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+}
+
+// Global cache for FRED release-calendar dates (fred/release/dates). Mirrors
+// MacroPoint: refreshed on read while stale, served from cache otherwise.
+model MacroReleaseDate {
+  id        String   @id @default(cuid())
+  releaseId String // FRED release id, e.g. "10" CPI | "50" Employment | "53" GDP
+  date      String // YYYY-MM-DD
+  fetchedAt DateTime @default(now())
+
+  @@unique([releaseId, date])
+  @@index([releaseId, date(sort: Desc)])
 }
