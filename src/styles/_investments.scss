@@ -471,6 +471,13 @@
   &:hover { color: var(--text); }
 }
 
+/* ── Holdings heatmap ────────────────────────────────────────────────────── */
+.heatmap-wrap {
+  .panel-body.flush {
+    line-height: 0;
+  }
+}
+
 @include respond-to("lg") {
   .alloc-grid {
     grid-template-columns: 1fr;

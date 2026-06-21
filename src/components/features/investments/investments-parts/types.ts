@@ -2,6 +2,7 @@ import type { InvestmentConnection } from "@/lib/investments/types";
 
 export type SortKey = "symbol" | "units" | "avgCost" | "price" | "mvCAD" | "plCAD" | "plPct";
 export type SortDir = "asc" | "desc";
+export type ViewMode = "unified" | "by-account";
 
 export type ConnectionPill = { cls: string; label: string };
 

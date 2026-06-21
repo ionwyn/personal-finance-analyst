@@ -13,6 +13,7 @@ export function HoldingsTable({
   onSort,
   sortI,
   showCAD,
+  title,
 }: {
   rows: InvestmentPosition[];
   sortKey: SortKey;
@@ -20,11 +21,12 @@ export function HoldingsTable({
   onSort: (k: SortKey) => void;
   sortI: (k: SortKey) => string;
   showCAD: boolean;
+  title?: string;
 }) {
   return (
     <div className="panel">
       <div className="panel-head">
-        <div className="panel-title">Holdings · {rows.length}</div>
+        <div className="panel-title">{title ?? `Holdings · ${rows.length}`}</div>
         <div className="panel-meta">
           SORTED BY {sortKey.toUpperCase()} {sortDir.toUpperCase()}
         </div>
