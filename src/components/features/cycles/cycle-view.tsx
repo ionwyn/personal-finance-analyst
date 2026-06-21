@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import styles from "./cycles.module.scss";
 import { BigNumber } from "@/components/shared/big-number";
 import { CategoryBar } from "@/components/features/cycles/category-bar";
 import { CommittedTable, type CommittedRow } from "@/components/features/cycles/committed-table";
@@ -172,7 +173,7 @@ export function CycleView({
         </div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 16, marginTop: 16 }}>
+      <div className={styles.panelGrid}>
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           <div className="panel">
             <div className="panel-head">
@@ -303,7 +304,7 @@ export function CycleView({
       <div className="panel" style={{ marginTop: 16 }}>
         <div className="panel-head" style={{ justifyContent: "space-between" }}>
           <div className="panel-title">Discretionary spend vs. last cycle</div>
-          <div className="panel-meta" style={{ display: "flex", gap: 16, textAlign: "right" }}>
+          <div className={styles.discretionaryMeta}>
             <span>
               THIS{" "}
               <span className="mono" style={{ color: "var(--text)" }}>

@@ -1,0 +1,27 @@
+@use "../../../styles/breakpoints" as *;
+
+// Two-column layout: committed/breakdown on the left (2fr), summary panels on the right (1fr).
+// Stacks to a single column at the mobile breakpoint so neither column overflows.
+.panelGrid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 16px;
+  margin-top: 16px;
+}
+
+@include respond-to("sm") {
+  .panelGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+// The "Discretionary spend vs. last cycle" panel header holds three money spans
+// (THIS / LAST / delta). Allow them to wrap to a second line on narrow viewports
+// rather than overflowing the panel boundary.
+.discretionaryMeta {
+  display: flex;
+  gap: 16px;
+  text-align: right;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
