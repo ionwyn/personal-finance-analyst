@@ -164,6 +164,16 @@
   gap: 8px;
 }
 
+// ─── Pay cycle: 4-field input grid ───
+// 2 columns at desktop so the fields don't stretch across the full panel width.
+// Stacks to a single column on mobile so each input gets its own full-width row.
+.payCycleFields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  max-width: 720px;
+}
+
 // ─── Pay frequency cards ───
 .payFreqGrid {
   display: grid;
@@ -682,6 +692,9 @@
   .rowControl {
     width: 100%;
     flex-wrap: wrap;
+  }
+  .payCycleFields {
+    grid-template-columns: 1fr;
   }
   .payFreqGrid {
     grid-template-columns: 1fr 1fr;

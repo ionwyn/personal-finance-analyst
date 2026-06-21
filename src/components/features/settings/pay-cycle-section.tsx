@@ -96,14 +96,7 @@ export function PayCycleSection({ settings }: { settings: SettingsData["settings
       </Panel>
 
       <Panel title="Pay cycle">
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-            gap: 12,
-            maxWidth: 720,
-          }}
-        >
+        <div className={styles.payCycleFields}>
           <label style={LABEL_STYLE}>
             Last paycheck date
             <input
