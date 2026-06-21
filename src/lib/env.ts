@@ -21,6 +21,17 @@ export function getPlaidEnv() {
   return plaidEnvSchema.parse(process.env.PLAID_ENV ?? "sandbox");
 }
 
+export type DeploymentMode = "private" | "demo";
+
+/**
+ * Which kind of deployment this instance is. `private` (default) is the owner's
+ * real workspace behind GitHub OAuth; `demo` is the public, sandbox-only build
+ * that must never hold or reach real financial data. Set via `DEPLOYMENT_MODE`.
+ */
+export function getDeploymentMode(): DeploymentMode {
+  return process.env.DEPLOYMENT_MODE === "demo" ? "demo" : "private";
+}
+
 /** Twelve Data API key (used for FX rates). Throws when missing at call time. */
 export function getTwelveDataApiKey(): string {
   return requireEnv("TWELVEDATA_API_KEY");

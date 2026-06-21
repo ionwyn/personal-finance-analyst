@@ -10,3 +10,4 @@ prisma/dev.db-journal
 .claude/
 .vscode/
 .playwright-mcp/
+.vercel

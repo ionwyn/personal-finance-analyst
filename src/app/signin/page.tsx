@@ -4,12 +4,17 @@ import { redirect } from "next/navigation";
 
 import { AuthButton } from "@/components/auth-button";
 import { authOptions } from "@/lib/auth";
+import { getDeploymentMode } from "@/lib/env";
 
 export const dynamic = "force-dynamic";
 
 export default async function SignInPage() {
   const session = await getServerSession(authOptions);
   if (session) redirect("/app");
+
+  // The public demo has no GitHub OAuth and no real data — there is nothing to
+  // sign in to, so point visitors straight at the demo workspace.
+  if (getDeploymentMode() === "demo") redirect("/app");
 
   const configured = Boolean(process.env.GITHUB_ID && process.env.GITHUB_SECRET);
 

@@ -1,6 +1,7 @@
 import { getServerSession } from "next-auth";
 
 import { authOptions } from "@/lib/auth";
+import { getDeploymentMode } from "@/lib/env";
 import { getTransactionExportRows, transactionRowsToCsv } from "@/lib/transaction-export";
 import { resolveSessionTenant } from "@/lib/tenant";
 
@@ -24,6 +25,13 @@ function filterValue(params: URLSearchParams, key: string) {
 
 export async function GET(request: Request) {
   const session = await getServerSession(authOptions);
+
+  // Private deployment: an unauthenticated caller has no tenant — refuse rather
+  // than letting resolveSessionTenant's fail-closed empty slug return an empty CSV.
+  if (getDeploymentMode() === "private" && !session?.user?.id) {
+    return new Response("Unauthorized", { status: 401 });
+  }
+
   const { tenantSlug } = await resolveSessionTenant(session);
   const params = new URL(request.url).searchParams;
   const defaults = defaultDateRange();

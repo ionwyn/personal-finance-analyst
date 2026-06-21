@@ -2,12 +2,19 @@ import { SyncRunStatus, SyncSource } from "@prisma/client";
 import { NextResponse } from "next/server";
 
 import { isCronAuthorized } from "@/lib/cron";
+import { getDeploymentMode } from "@/lib/env";
 import { withRequestLogging } from "@/lib/logger";
 import { recordSyncJob, recordSyncRunStatuses } from "@/lib/metrics";
 import { rateLimitRequest } from "@/lib/rate-limit";
 import { syncAllSnapTradeTenants } from "@/lib/snaptrade/sync";
 
 export async function POST(request: Request) {
+  // The demo deployment shares this repo (and its vercel.json crons) but has no
+  // real SnapTrade credentials and points at the sandbox DB — never sync there.
+  if (getDeploymentMode() === "demo") {
+    return NextResponse.json({ ok: true, skipped: "demo" });
+  }
+
   return withRequestLogging(
     request,
     { route: "/api/jobs/snaptrade-sync", provider: "snaptrade", syncSource: "scheduled" },
