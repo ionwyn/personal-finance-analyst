@@ -48,33 +48,36 @@ function fallbackColor(name: string) {
 
 async function fetchSectors(
   tenantId: string,
-  holdings: { symbol: string; type: string; mvCAD: number }[]
-): Promise<SectorSlice[]> {
-  const bySymbol = new Map<string, { type: string; mvCad: number; pnlCad: number | null }>();
+  holdings: { symbol: string; type: string; mvCAD: number; plCAD: number | null }[]
+): Promise<{ slices: SectorSlice[]; bySymbol: Record<string, string> }> {
+  const bySymbolEntry = new Map<string, { type: string; mvCad: number; pnlCad: number | null }>();
   for (const h of holdings) {
-    const cur = bySymbol.get(h.symbol);
+    const cur = bySymbolEntry.get(h.symbol);
     if (cur) {
       cur.mvCad += h.mvCAD;
       if (h.plCAD != null) cur.pnlCad = (cur.pnlCad ?? 0) + h.plCAD;
     } else {
-      bySymbol.set(h.symbol, { type: h.type, mvCad: h.mvCAD, pnlCad: h.plCAD ?? null });
+      bySymbolEntry.set(h.symbol, { type: h.type, mvCad: h.mvCAD, pnlCad: h.plCAD ?? null });
     }
   }
-  const symbols = [...bySymbol.keys()];
-  if (symbols.length === 0) return [];
+  const symbols = [...bySymbolEntry.keys()];
+  if (symbols.length === 0) return { slices: [], bySymbol: {} };
 
-  const totalMv = [...bySymbol.values()].reduce((s, v) => s + v.mvCad, 0);
-  if (totalMv <= 0) return [];
+  const totalMv = [...bySymbolEntry.values()].reduce((s, v) => s + v.mvCad, 0);
+  if (totalMv <= 0) return { slices: [], bySymbol: {} };
 
   const svc = getMarketDataService();
   const profiles = await svc.getProfiles(symbols).catch(() => symbols.map(() => null));
 
   const sectorMv = new Map<string, { mv: number; pnl: number | null }>();
+  const bySymbol: Record<string, string> = {};
+
   symbols.forEach((sym, i) => {
-    const entry = bySymbol.get(sym)!;
+    const entry = bySymbolEntry.get(sym)!;
     const sector =
       profiles[i]?.sector ??
       (FUND_TYPES.has(entry.type.toUpperCase()) ? "Funds & ETFs" : "Unclassified");
+    bySymbol[sym] = sector;
     const cur = sectorMv.get(sector);
     if (cur) {
       cur.mv += entry.mvCad;
@@ -84,7 +87,7 @@ async function fetchSectors(
     }
   });
 
-  return [...sectorMv.entries()]
+  const slices = [...sectorMv.entries()]
     .map(([name, { mv: mvCad, pnl: pnlCad }]) => ({
       name,
       mvCad,
@@ -92,6 +95,8 @@ async function fetchSectors(
       pnlCad,
     }))
     .sort((a, b) => b.mvCad - a.mvCad);
+
+  return { slices, bySymbol };
 }
 
 const EMPTY_CONTRIBUTIONS: ContributionData = {
@@ -179,7 +184,7 @@ export async function getPortfolioHoldingsData(
   tenantId?: string | null
 ): Promise<InvestmentDashboardData> {
   return getInvestmentDashboardDataWithOptions(tenantId, {
-    includeSectors: false,
+    includeSectors: true,
     includeContributions: false,
   });
 }
@@ -224,14 +229,17 @@ async function getInvestmentDashboardDataWithOptions(
     return a.lastSyncAt > acc ? a.lastSyncAt : acc;
   }, null);
 
-  const [sectors, contributions] = await Promise.all([
+  const EMPTY_SECTORS = { slices: [] as SectorSlice[], bySymbol: {} as Record<string, string> };
+  const [sectorsResult, contributions] = await Promise.all([
     tenantId && options.includeSectors
       ? fetchSectors(tenantId, holdings)
-      : Promise.resolve([] as SectorSlice[]),
+      : Promise.resolve(EMPTY_SECTORS),
     tenantId && options.includeContributions
       ? fetchContributions(tenantId)
       : Promise.resolve(EMPTY_CONTRIBUTIONS),
   ]);
+  const sectors = sectorsResult.slices;
+  const sectorBySymbol = sectorsResult.bySymbol;
 
   const summary = {
     institution: accounts[0]?.institution ?? "Unknown Institution",
@@ -295,6 +303,7 @@ async function getInvestmentDashboardDataWithOptions(
     allocByType,
     allocByCcy,
     sectors,
+    sectorBySymbol,
     contributions,
   };
 }

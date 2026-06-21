@@ -155,6 +155,7 @@ export type InvestmentDashboardData = {
   allocByType: Allocation[];
   allocByCcy: Allocation[];
   sectors: SectorSlice[];
+  sectorBySymbol: Record<string, string>;
   contributions: ContributionData;
 };
 

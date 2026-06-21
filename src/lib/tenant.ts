@@ -1,6 +1,7 @@
 import { Session } from "next-auth";
 import { TenantKind } from "@prisma/client";
 
+import { getDeploymentMode } from "@/lib/env";
 import { prisma } from "@/lib/prisma";
 
 export const DEMO_TENANT_SLUG = "demo";
@@ -53,6 +54,18 @@ export async function resolveSessionTenant(session: Session | null): Promise<{
   tenantId: string | undefined;
   isDemo: boolean;
 }> {
+  // Public demo deployment: everyone is served the demo tenant, regardless of
+  // session. This DB holds only sandbox data, so there is nothing real to leak.
+  if (getDeploymentMode() === "demo") {
+    const demoTenant = await prisma.tenant.findUnique({ where: { slug: DEMO_TENANT_SLUG } });
+    return {
+      tenantSlug: DEMO_TENANT_SLUG,
+      tenantId: demoTenant?.id,
+      isDemo: true,
+    };
+  }
+
+  // Private deployment: only an authenticated user resolves to a real tenant.
   if (session?.user?.id) {
     const tenant = await getUserTenant(session.user.id);
     return {
@@ -61,10 +74,13 @@ export async function resolveSessionTenant(session: Session | null): Promise<{
       isDemo: false,
     };
   }
-  const demoTenant = await prisma.tenant.findUnique({ where: { slug: DEMO_TENANT_SLUG } });
+
+  // Anonymous on the private deployment: fail closed. No demo fallback, no slug
+  // that matches a tenant, so any query keyed on this resolves to zero rows.
+  // Callers (the /app layout, the export route) must gate before reaching here.
   return {
-    tenantSlug: DEMO_TENANT_SLUG,
-    tenantId: demoTenant?.id,
-    isDemo: true,
+    tenantSlug: "",
+    tenantId: undefined,
+    isDemo: false,
   };
 }
