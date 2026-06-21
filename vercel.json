@@ -1,12 +1,13 @@
 {
+  "framework": "nextjs",
   "crons": [
     {
       "path": "/api/jobs/plaid-sync",
-      "schedule": "0 */6 * * *"
+      "schedule": "0 9 * * *"
     },
     {
       "path": "/api/jobs/snaptrade-sync",
-      "schedule": "30 */6 * * *"
+      "schedule": "30 9 * * *"
     }
   ]
 }
