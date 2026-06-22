@@ -21,6 +21,8 @@ export async function GET() {
     result: ok ? "success" : "failure",
   });
 
+  const isProd = process.env.NODE_ENV === "production";
+
   return NextResponse.json(
     {
       ok,
@@ -29,7 +31,8 @@ export async function GET() {
         database,
         environment: {
           ok: missingEnv.length === 0,
-          missing: missingEnv,
+          // Don't leak env var names in production
+          ...(isProd ? {} : { missing: missingEnv }),
         },
       },
       timestamp: new Date().toISOString(),

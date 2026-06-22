@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Figtree, Manrope, IBM_Plex_Sans_Condensed } from "next/font/google";
 import { headers } from "next/headers";
 import { SpeedInsights } from "@vercel/speed-insights/next";
+import { Analytics } from "@vercel/analytics/next";
 
 import { Providers } from "@/components/providers";
 import "@/app/globals.scss";
@@ -42,6 +43,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <body>
         <Providers nonce={nonce}>{children}</Providers>
         <SpeedInsights />
+        <Analytics />
       </body>
     </html>
   );
