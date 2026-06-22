@@ -10,7 +10,7 @@ export function SummaryBar({
 }) {
   const plPos = summary.plCAD >= 0;
   return (
-    <div className="summary-bar" style={{ gridTemplateColumns: "repeat(3, 1fr)" }}>
+    <div className="summary-bar inv-summary-bar">
       <div className="cell">
         <div className="lbl">Portfolio · CAD</div>
         <div className="val">{formatMoney(summary.portfolioCAD)}</div>

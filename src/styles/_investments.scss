@@ -1,6 +1,13 @@
 // Investments — dashboard card, holdings rows, allocation, holdings table, brokerage list.
 @use "breakpoints" as *;
 
+// The shared .summary-bar class defaults to repeat(4, 1fr) (accounts page).
+// The investments page only has 3 cells, so override here.
+// _mobile.scss (loaded last) will still win and collapse this to 2-col at sm.
+.inv-summary-bar {
+  grid-template-columns: repeat(3, 1fr);
+}
+
 /* Investments dashboard card */
 .invest-head {
   padding: 14px 14px 12px;
