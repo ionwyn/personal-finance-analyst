@@ -36,6 +36,7 @@ type GoalDraft = {
   from: string;
   to: string;
   destinationId: string;
+  manualAmount: string;
 };
 
 const emptyGoal: GoalDraft = {
@@ -45,6 +46,7 @@ const emptyGoal: GoalDraft = {
   from: "",
   to: "",
   destinationId: "",
+  manualAmount: "",
 };
 
 function CapRow({
@@ -210,12 +212,14 @@ export function BudgetsView({ data }: { data: BudgetGoalData }) {
       setError("A goal needs a name and a target amount.");
       return;
     }
+    const isManual = !goal.destinationId;
     const payload = {
       name: goal.name.trim(),
       targetAmount: Number(goal.target),
       startDate: goal.from || null,
       targetDate: goal.to || null,
       savingsDestinationId: goal.destinationId || null,
+      ...(isManual ? { manualAmount: goal.manualAmount ? Number(goal.manualAmount) : 0 } : {}),
     };
     void run(async () => {
       if (goal.id) {
@@ -344,6 +348,7 @@ export function BudgetsView({ data }: { data: BudgetGoalData }) {
                       from: g.startDate ? g.startDate.slice(0, 10) : "",
                       to: g.targetDate ? g.targetDate.slice(0, 10) : "",
                       destinationId: g.savingsDestinationId ?? "",
+                      manualAmount: g.tracked ? "" : String(g.manualAmount),
                     })
                   }
                   onRemove={() => {
@@ -404,6 +409,22 @@ export function BudgetsView({ data }: { data: BudgetGoalData }) {
                   </select>
                 </label>
               </div>
+              {!goal.destinationId ? (
+                <div className={styles.goalFormRow}>
+                  <label className={styles.field} style={{ flex: "1 1 160px" }}>
+                    Saved so far
+                    <input
+                      type="number"
+                      min={0}
+                      step={100}
+                      className={`${styles.input} ${styles.inputNum}`}
+                      value={goal.manualAmount}
+                      placeholder="0"
+                      onChange={(e) => setGoal({ ...goal, manualAmount: e.target.value })}
+                    />
+                  </label>
+                </div>
+              ) : null}
               <div className={styles.formActions}>
                 <Button
                   variant="primary"

@@ -33,6 +33,7 @@ export type GoalProgress = {
   targetDate: string | null;
   savingsDestinationId: string | null;
   destinationLabel: string | null;
+  manualAmount: number;
   tracked: boolean;
 };
 
@@ -149,6 +150,8 @@ export async function getBudgetGoalData(
         const merchant = `${tx.name ?? ""} ${tx.merchantName ?? ""}`.toUpperCase();
         if (matches(merchant, pattern)) saved += Math.max(0, num(tx.amount));
       }
+    } else {
+      saved = Math.max(0, num(g.manualAmount));
     }
     const pct = target > 0 ? Math.min(100, (saved / target) * 100) : 0;
     return {
@@ -166,6 +169,7 @@ export async function getBudgetGoalData(
       destinationLabel: g.savingsDestination
         ? (g.savingsDestination.label ?? g.savingsDestination.accountName)
         : null,
+      manualAmount: Math.max(0, num(g.manualAmount)),
       tracked: Boolean(pattern),
     };
   });

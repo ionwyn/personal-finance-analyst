@@ -11,6 +11,7 @@ const bodySchema = z.object({
   startDate: z.string().nullable().optional(),
   targetDate: z.string().nullable().optional(),
   savingsDestinationId: z.string().nullable().optional(),
+  manualAmount: z.number().min(0).nullable().optional(),
   active: z.boolean().optional(),
 });
 
@@ -51,6 +52,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
       ...(body.savingsDestinationId !== undefined
         ? { savingsDestinationId: body.savingsDestinationId }
         : {}),
+      ...(body.manualAmount !== undefined ? { manualAmount: body.manualAmount } : {}),
       ...(body.active !== undefined ? { active: body.active } : {}),
     },
   });
