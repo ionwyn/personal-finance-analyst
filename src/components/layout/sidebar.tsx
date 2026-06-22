@@ -60,13 +60,20 @@ export function Sidebar({ mode, user }: { mode: "private" | "demo"; user?: Sideb
     localStorage.setItem(COLLAPSED_KEY, collapsed ? "1" : "0");
   }, [collapsed]);
 
-  const overview: NavItem[] = [
+  const workspace: NavItem[] = [
     {
       key: "dashboard",
       label: "Dashboard",
       href: "/app?home=1",
       icon: <LayoutGrid size={ICON_SIZE} />,
       kbd: "⌘1",
+    },
+    {
+      key: "calendar",
+      label: "Calendar",
+      href: "/app/calendar",
+      icon: <CalendarDays size={ICON_SIZE} />,
+      kbd: "⌘9",
     },
   ];
 
@@ -125,22 +132,10 @@ export function Sidebar({ mode, user }: { mode: "private" | "demo"; user?: Sideb
     },
   ];
 
-  // Workspace — cross-cutting tools shared by banking and investing.
-  const workspace: NavItem[] = [
-    {
-      key: "calendar",
-      label: "Calendar",
-      href: "/app/calendar",
-      icon: <CalendarDays size={ICON_SIZE} />,
-      kbd: "⌘9",
-    },
-  ];
-
   const sections: NavSection[] = [
-    { label: "Overview", items: overview },
+    { label: "Workspace", items: workspace },
     { label: "Banking", items: banking },
     { label: "Investing", items: investing },
-    { label: "Workspace", items: workspace },
   ];
 
   const secondary: NavItem[] =
