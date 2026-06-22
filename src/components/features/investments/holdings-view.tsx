@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Search } from "lucide-react";
 
 import { SnapTradeLinkButton, SnapTradeSyncButton } from "@/components/actions/snaptrade-actions";
+import { OfflineSnapshotWriter } from "@/components/pwa/offline-snapshot-writer";
 import { SegmentedControl } from "@/components/ui";
 import { formatRelativeTime } from "@/lib/format";
 import type {
@@ -94,6 +95,7 @@ export function HoldingsView({ data }: { data: InvestmentDashboardData }) {
 
   return (
     <>
+      <OfflineSnapshotWriter kind="holdings" data={data} />
       <div className="page-header">
         <div>
           <div className="invest-header-row">

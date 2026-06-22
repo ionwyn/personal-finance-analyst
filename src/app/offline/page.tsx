@@ -1,10 +1,20 @@
 import Link from "next/link";
 
+import { OfflineSnapshotViewer } from "@/components/pwa/offline-snapshot-viewer";
 import { Button } from "@/components/ui";
 
 export default function OfflinePage() {
   return (
-    <main style={{ minHeight: "100dvh", display: "grid", placeItems: "center", padding: 24 }}>
+    <main
+      style={{
+        minHeight: "100dvh",
+        display: "grid",
+        justifyItems: "center",
+        alignContent: "center",
+        gap: 24,
+        padding: 24,
+      }}
+    >
       <section className="empty-state" style={{ maxWidth: 560 }}>
         <h1>Offline</h1>
         <p>
@@ -15,6 +25,7 @@ export default function OfflinePage() {
           <Button>Try dashboard</Button>
         </Link>
       </section>
+      <OfflineSnapshotViewer />
     </main>
   );
 }

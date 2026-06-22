@@ -15,6 +15,7 @@ import {
   type ConnectionSnapTrade,
 } from "./connections-section";
 import { AlertThresholdsSection } from "./alert-thresholds-section";
+import { AppOfflineSection } from "./app-offline-section";
 import { CalendarSettingsSection } from "./calendar-settings-section";
 import { DataSection } from "./data-section";
 import { DisplaySection } from "./display-section";
@@ -32,7 +33,8 @@ const SECTIONS = [
   { id: "budgets", num: "04", label: "Budgets & Goals" },
   { id: "calendar", num: "05", label: "Calendar" },
   { id: "display", num: "06", label: "Display & Preferences" },
-  { id: "data", num: "07", label: "Data & Account" },
+  { id: "app-offline", num: "07", label: "App & Offline" },
+  { id: "data", num: "08", label: "Data & Account" },
 ] as const;
 
 export type SectionId = (typeof SECTIONS)[number]["id"];
@@ -61,6 +63,10 @@ const META: Record<SectionId, { title: string; sub: string }> = {
   display: {
     title: "Display & Preferences",
     sub: "How numbers, dates and the chrome render. Only the landing page is wired so far.",
+  },
+  "app-offline": {
+    title: "App & Offline",
+    sub: "Install the app, inspect service-worker status, and control local read-only offline snapshots.",
   },
   data: {
     title: "Data & Account",
@@ -184,6 +190,7 @@ export function SettingsShell({
 
         {active === "calendar" ? <CalendarSettingsSection data={calendarSettings} /> : null}
         {active === "display" ? <DisplaySection settings={data.settings} /> : null}
+        {active === "app-offline" ? <AppOfflineSection /> : null}
         {active === "data" ? <DataSection tenantLabel={tenantLabel} isDemo={isDemo} /> : null}
       </section>
     </div>

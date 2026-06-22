@@ -5,13 +5,10 @@ import { ChevronLeft, ChevronRight, Settings2 } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 
+import { OfflineSnapshotWriter } from "@/components/pwa/offline-snapshot-writer";
 import { Button, IconButton, PageHeader } from "@/components/ui";
 import type { CalendarData } from "@/lib/calendar/get-calendar-events";
-import {
-  CALENDAR_CATEGORIES,
-  CATEGORY_META,
-  type CalendarCategory,
-} from "@/lib/calendar/types";
+import { CALENDAR_CATEGORIES, CATEGORY_META, type CalendarCategory } from "@/lib/calendar/types";
 
 import { CategoryFilter } from "./calendar-parts/category-filter";
 import { DayDetail } from "./calendar-parts/day-detail";
@@ -67,6 +64,7 @@ export function CalendarView({ data }: { data: CalendarData }) {
 
   return (
     <div className="cal-root">
+      <OfflineSnapshotWriter kind="calendar" data={data} />
       <PageHeader
         title="Calendar"
         subtitle={
@@ -89,7 +87,11 @@ export function CalendarView({ data }: { data: CalendarData }) {
               >
                 <ChevronLeft size={14} />
               </IconButton>
-              <Button size="sm" onClick={() => setMonth(data.navigable.current)} disabled={isCurrent}>
+              <Button
+                size="sm"
+                onClick={() => setMonth(data.navigable.current)}
+                disabled={isCurrent}
+              >
                 Today
               </Button>
               <IconButton
@@ -173,7 +175,8 @@ export function CalendarView({ data }: { data: CalendarData }) {
       ) : null}
 
       <p className="cal-foot">
-        Projected from your own data and cached public sources — a read-only view, never edited back.
+        Projected from your own data and cached public sources — a read-only view, never edited
+        back.
       </p>
     </div>
   );

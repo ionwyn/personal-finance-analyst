@@ -21,6 +21,7 @@ const SECTION_IDS: SectionId[] = [
   "budgets",
   "calendar",
   "display",
+  "app-offline",
   "data",
 ];
 

@@ -1,6 +1,7 @@
 import { Download } from "lucide-react";
 
 import { CategorySpendPanel } from "@/components/features/dashboard/category-spend-panel";
+import { OfflineSnapshotWriter } from "@/components/pwa/offline-snapshot-writer";
 import styles from "./dashboard-view.module.scss";
 import { CashflowPanel, NetWorthPanel } from "@/components/features/dashboard/chart-panels";
 import { InsightsPanel } from "@/components/features/dashboard/insights-panel";
@@ -55,6 +56,7 @@ export function DashboardView({ data, mode }: { data: DashboardData; mode: Dashb
 
   return (
     <>
+      <OfflineSnapshotWriter kind="dashboard" data={data} mode={mode} />
       <PageHeader
         title="Overview"
         subtitle={subLine}
