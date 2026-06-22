@@ -243,6 +243,30 @@
   font-size: 10px;
 }
 
+// ─── Add-form rows (bottom of list-style panels) ───
+// Shared base: spacing + divider that separates the add-form from the list above.
+.addRow {
+  display: grid;
+  gap: 8px;
+  align-items: end;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--border-strong);
+}
+// Column variants — one per section.
+.addRowIncome {
+  grid-template-columns: 2fr 2fr auto;
+}
+.addRowSettlement {
+  grid-template-columns: 1fr 2fr auto;
+}
+.addRowSavings {
+  grid-template-columns: 2fr 2fr 1fr auto;
+}
+.addRowRecurring {
+  grid-template-columns: 1.5fr 1.5fr 1fr 1fr 60px auto;
+}
+
 // ─── Connection / runs tables ───
 .connLogo {
   width: 26px;
@@ -694,6 +718,12 @@
     flex-wrap: wrap;
   }
   .payCycleFields {
+    grid-template-columns: 1fr;
+  }
+  .addRowIncome,
+  .addRowSettlement,
+  .addRowSavings,
+  .addRowRecurring {
     grid-template-columns: 1fr;
   }
   .payFreqGrid {

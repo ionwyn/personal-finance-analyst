@@ -8,6 +8,7 @@ import { Button, IconButton, Panel } from "@/components/ui";
 import type { SettingsData } from "@/lib/cycles/getSettings";
 
 import { ErrorLine, INPUT_STYLE, LABEL_STYLE, postJSON } from "./settings-form";
+import styles from "./settings.module.scss";
 
 export function IncomeSourcesSection({ sources }: { sources: SettingsData["incomeSources"] }) {
   const router = useRouter();
@@ -88,17 +89,7 @@ export function IncomeSourcesSection({ sources }: { sources: SettingsData["incom
         </table>
       )}
 
-      <div
-        style={{
-          marginTop: 12,
-          paddingTop: 12,
-          borderTop: "1px dashed var(--border-strong)",
-          display: "grid",
-          gridTemplateColumns: "2fr 2fr auto",
-          gap: 8,
-          alignItems: "end",
-        }}
-      >
+      <div className={`${styles.addRow} ${styles.addRowIncome}`}>
         <label style={LABEL_STYLE}>
           Label
           <input

@@ -8,6 +8,7 @@ import { Button, IconButton, Panel } from "@/components/ui";
 import type { SettingsData } from "@/lib/cycles/getSettings";
 
 import { ErrorLine, INPUT_STYLE, LABEL_STYLE, postJSON } from "./settings-form";
+import styles from "./settings.module.scss";
 
 export function SettlementPatternsSection({
   patterns,
@@ -86,17 +87,7 @@ export function SettlementPatternsSection({
         </table>
       )}
 
-      <div
-        style={{
-          marginTop: 12,
-          paddingTop: 12,
-          borderTop: "1px dashed var(--border-strong)",
-          display: "grid",
-          gridTemplateColumns: "1fr 2fr auto",
-          gap: 8,
-          alignItems: "end",
-        }}
-      >
+      <div className={`${styles.addRow} ${styles.addRowSettlement}`}>
         <label style={LABEL_STYLE}>
           Label
           <input

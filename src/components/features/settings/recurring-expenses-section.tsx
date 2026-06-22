@@ -9,6 +9,7 @@ import type { SettingsData } from "@/lib/cycles/getSettings";
 import { FREQUENCIES } from "@/lib/cycles/types";
 
 import { ErrorLine, INPUT_STYLE, LABEL_STYLE, NUMBER_INPUT_STYLE, postJSON } from "./settings-form";
+import styles from "./settings.module.scss";
 
 type EditState = { anchorDate: string; merchantPattern: string };
 
@@ -225,17 +226,7 @@ export function RecurringExpensesSection({
         </table>
       )}
 
-      <div
-        style={{
-          marginTop: 12,
-          paddingTop: 12,
-          borderTop: "1px dashed var(--border-strong)",
-          display: "grid",
-          gridTemplateColumns: "1.5fr 1.5fr 1fr 1fr 60px auto",
-          gap: 8,
-          alignItems: "end",
-        }}
-      >
+      <div className={`${styles.addRow} ${styles.addRowRecurring}`}>
         <label style={LABEL_STYLE}>
           Name
           <input
