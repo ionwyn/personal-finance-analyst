@@ -1,9 +1,11 @@
 import type { NextConfig } from "next";
 
-// Content-Security-Policy is set per-request in src/proxy.ts so it can
-// carry a unique nonce (enabling a strict, no-'unsafe-inline' script-src).
-// The static headers below still apply to all responses, including the static
-// assets that the proxy matcher excludes.
+// Content-Security-Policy is set per-request in src/middleware.ts (via
+// src/proxy.ts) so it can carry a unique nonce per request, enabling a strict
+// no-'unsafe-inline' script-src. The static headers below apply to all
+// responses including static assets the middleware matcher excludes.
+const isPrivate = process.env.DEPLOYMENT_MODE !== "demo";
+
 const nextConfig: NextConfig = {
   typedRoutes: true,
   sassOptions: {
@@ -14,6 +16,8 @@ const nextConfig: NextConfig = {
       {
         source: "/(.*)",
         headers: [
+          // Suppress search-engine indexing on the private deployment.
+          ...(isPrivate ? [{ key: "X-Robots-Tag", value: "noindex, nofollow" }] : []),
           {
             key: "Referrer-Policy",
             value: "strict-origin-when-cross-origin",
