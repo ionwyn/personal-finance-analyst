@@ -4,6 +4,7 @@ import { SessionProvider } from "next-auth/react";
 import { ThemeProvider } from "next-themes";
 
 import { PlaidLinkProvider } from "@/components/actions/plaid-link-button";
+import { PwaRegistrar } from "@/components/pwa/pwa-registrar";
 
 export function Providers({ children, nonce }: { children: React.ReactNode; nonce?: string }) {
   return (
@@ -15,7 +16,10 @@ export function Providers({ children, nonce }: { children: React.ReactNode; nonc
         storageKey="td-theme"
         nonce={nonce}
       >
-        <PlaidLinkProvider>{children}</PlaidLinkProvider>
+        <PlaidLinkProvider>
+          <PwaRegistrar />
+          {children}
+        </PlaidLinkProvider>
       </ThemeProvider>
     </SessionProvider>
   );

@@ -44,6 +44,8 @@ function buildCsp(nonce: string): string {
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: blob: https://avatars.githubusercontent.com",
     "font-src 'self'",
+    "worker-src 'self'",
+    "manifest-src 'self'",
     "connect-src 'self' https://*.plaid.com https://*.snaptrade.com https://api.github.com",
     "frame-src https://*.plaid.com https://*.snaptrade.com",
   ].join("; ");
@@ -88,5 +90,5 @@ export function proxy(request: NextRequest) {
 
 export const config = {
   // Run on everything except static assets, which don't execute scripts.
-  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|sw.js).*)"],
 };
