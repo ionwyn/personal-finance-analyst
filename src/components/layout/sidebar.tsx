@@ -14,6 +14,7 @@ import {
   ChevronRight,
   LayoutGrid,
   LogOut,
+  Network,
   PieChart,
   Settings,
   Target,
@@ -129,6 +130,12 @@ export function Sidebar({ mode, user }: { mode: "private" | "demo"; user?: Sideb
       href: "/app/markets",
       icon: <CandlestickChart size={ICON_SIZE} />,
       kbd: "⌘8",
+    },
+    {
+      key: "supply-chain",
+      label: "Supply Chain",
+      href: "/app/supply-chain",
+      icon: <Network size={ICON_SIZE} />,
     },
   ];
 
