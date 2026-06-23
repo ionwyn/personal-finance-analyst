@@ -10,6 +10,7 @@ export type ActivityRow = {
   accountId: string;
   accountLabel: string;
   institution: string;
+  institutionLogo: string | null;
   institutionLogoBg: string;
   institutionLogoText: string;
   type: string;
@@ -116,6 +117,7 @@ export async function loadActivities(tenantId?: string | null): Promise<LoadedAc
         accountId: account.id,
         accountLabel,
         institution,
+        institutionLogo: account.connection.brokerageLogo ?? null,
         institutionLogoBg: hashColor(institution),
         institutionLogoText: logoText(institution),
         type,

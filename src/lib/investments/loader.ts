@@ -112,6 +112,7 @@ export async function loadInvestmentConnectionSummary(
     return {
       id: connection.id,
       institution,
+      institutionLogo: connection.brokerageLogo ?? null,
       institutionLogoBg: hashColor(institution),
       institutionLogoText: logoText(institution),
       status: connection.status as ConnectionStatus,
@@ -214,6 +215,7 @@ async function loadInvestmentsUncached(tenantId?: string | null): Promise<Loaded
       name: account.name,
       registration: klass.label,
       institution,
+      institutionLogo: account.connection.brokerageLogo ?? null,
       institutionLogoBg: hashColor(institution),
       institutionLogoText: logoText(institution),
       currency: account.currency ?? "CAD",
@@ -327,6 +329,7 @@ async function loadInvestmentsUncached(tenantId?: string | null): Promise<Loaded
     return {
       id: connection.id,
       institution,
+      institutionLogo: connection.brokerageLogo ?? null,
       institutionLogoBg: hashColor(institution),
       institutionLogoText: logoText(institution),
       status: connection.status as ConnectionStatus,

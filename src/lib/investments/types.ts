@@ -11,6 +11,7 @@ export type InvestmentAccount = {
   name: string;
   registration: string;
   institution: string;
+  institutionLogo: string | null;
   institutionLogoBg: string;
   institutionLogoText: string;
   currency: Currency;
@@ -51,6 +52,7 @@ export type AccountKind =
 export type InvestmentConnection = {
   id: string;
   institution: string;
+  institutionLogo: string | null;
   institutionLogoBg: string;
   institutionLogoText: string;
   status: ConnectionStatus;
@@ -101,6 +103,7 @@ export type ConnectionStatus = "IDLE" | "SYNCING" | "ERROR" | "DISABLED";
 
 export type InvestmentSummary = {
   institution: string;
+  institutionLogo: string | null;
   institutionLogoBg: string;
   institutionLogoText: string;
   accountCount: number;
@@ -166,6 +169,7 @@ export type PositionLot = {
   accountId: string;
   accountLabel: string; // registration, e.g. TFSA / RRSP
   institution: string;
+  institutionLogo: string | null;
   institutionLogoBg: string;
   institutionLogoText: string;
   currency: Currency;

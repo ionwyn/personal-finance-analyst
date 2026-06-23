@@ -18,6 +18,7 @@ export type PlaidItemSummary = {
   id: string;
   institutionName: string;
   institutionId: string | null;
+  institutionLogo: string | null;
   status: string;
   lastSyncAt: string | null;
   lastBalanceRefreshAt: string | null;

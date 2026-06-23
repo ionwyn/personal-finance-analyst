@@ -29,6 +29,7 @@ function basePlaidItemFields(item: PlaidItemWithAccounts): PlaidItemSummary {
     id: item.id,
     institutionName: item.institutionName ?? item.institutionId ?? "Linked institution",
     institutionId: item.institutionId,
+    institutionLogo: item.institutionLogo,
     status: item.status,
     lastSyncAt: item.lastSyncAt?.toISOString() ?? null,
     lastBalanceRefreshAt: item.lastBalanceRefreshAt?.toISOString() ?? null,

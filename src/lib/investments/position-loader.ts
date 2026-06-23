@@ -80,6 +80,7 @@ export async function getPositionDetail(
       accountId: h.accountId,
       accountLabel: acct?.registration ?? "ACCOUNT",
       institution: acct?.institution ?? "Brokerage",
+      institutionLogo: acct?.institutionLogo ?? null,
       institutionLogoBg: acct?.institutionLogoBg ?? "#1f3a93",
       institutionLogoText: acct?.institutionLogoText ?? "ST",
       currency: h.currency,

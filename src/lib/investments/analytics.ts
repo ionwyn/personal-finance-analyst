@@ -243,6 +243,7 @@ async function getInvestmentDashboardDataWithOptions(
 
   const summary = {
     institution: accounts[0]?.institution ?? "Unknown Institution",
+    institutionLogo: accounts[0]?.institutionLogo ?? null,
     institutionLogoBg: accounts[0]?.institutionLogoBg ?? "#000000",
     institutionLogoText: accounts[0]?.institutionLogoText ?? "WS",
     accountCount: accounts.length,
