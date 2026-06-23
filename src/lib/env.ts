@@ -57,6 +57,13 @@ export function getFinnhubApiKey(): string | null {
   return process.env.FINNHUB_API_KEY || null;
 }
 
+/** Vala-Fi key (supply-chain graph: suppliers/customers/competitors, exposure,
+ *  impact, path-finding, portfolio monitoring). Null when unset → the supply
+ *  chain feature degrades to cached-only. */
+export function getValafiApiKey(): string | null {
+  return process.env.VALAFI_API_KEY || null;
+}
+
 /** Contact string for SEC EDGAR's required User-Agent header. */
 export function getEdgarUserAgent(): string {
   const contact = optionalCsv("ADMIN_EMAILS")[0] ?? "unspecified-contact";
