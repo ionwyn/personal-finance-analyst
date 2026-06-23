@@ -100,6 +100,7 @@ model Tenant {
   userSettings          UserSettings?
   watchlistItems        WatchlistItem[]
   calendarPreference    CalendarPreference?
+  valafiPortfolio       ValafiPortfolio?
 
   @@index([kind])
 }
@@ -1172,4 +1173,63 @@ model MacroReleaseDate {
 
   @@unique([releaseId, date])
   @@index([releaseId, date(sort: Desc)])
+}
+
+// ─── Vala-Fi supply-chain cache & quota governor ──────────────────────────
+// Bloomberg-SPLC-style relationship data (suppliers/customers/competitors,
+// exposure, impact cascades, path-finding, portfolio monitoring) from the
+// Vala-Fi API. The free tier is tight — 50 requests/day and only 10 unique
+// tickers/day — so everything is cached aggressively in Postgres with long
+// TTLs (relationships come from quarterly SEC filings) and negative caching,
+// and every live call is metered by the governor (ValafiTickerDay +
+// ValafiUsageDay). Cache rows are global: the graph is not tenant-specific,
+// which maximises hit rate across the (single) user's browsing.
+
+// One row per cache key. `status` enables negative caching: EMPTY = the API
+// returned nothing (foreign listing / not in the graph), ERROR = a transient
+// failure. `ticker` is the company the row is about, for the unique-ticker
+// ledger and targeted invalidation.
+model ValafiCache {
+  key       String   @id // e.g. company:AAPL · sc:AAPL:both:2 · competitors:AAPL · exposure:AAPL · impact:TSM:supply_halt:100:3 · path:AAPL:NVDA · pf-exposure:1
+  kind      String // company | supply-chain | competitors | exposure | impact | path | pf-exposure | pf-alerts | pf-changes | feed
+  ticker    String?
+  status    String   @default("OK") // OK | EMPTY | ERROR
+  data      Json
+  fetchedAt DateTime @default(now())
+
+  @@index([ticker])
+  @@index([kind, fetchedAt])
+}
+
+// Unique-ticker ledger. A ticker is "spent" only on the first live
+// company-scoped call for it on a given day; count today's rows to enforce
+// the 10-unique-tickers/day cap. Cached re-reads never insert here.
+model ValafiTickerDay {
+  date   String // YYYY-MM-DD, server-local
+  ticker String
+
+  @@id([date, ticker])
+}
+
+// Per-day request counter plus the last snapshot of Vala-Fi's own
+// /dev/usage so the quota meter can reconcile local counts against the
+// provider's source of truth.
+model ValafiUsageDay {
+  date           String   @id // YYYY-MM-DD, server-local
+  requests       Int      @default(0)
+  remoteRequests Int? // requests_today from /dev/usage
+  remoteTickers  Int? // unique_tickers_today from /dev/usage
+  syncedAt       DateTime @default(now())
+}
+
+// The registered Vala-Fi portfolio for a tenant. Re-registered only when the
+// holdings hash changes, so portfolio-level endpoints reuse one portfolio_id.
+model ValafiPortfolio {
+  tenantId     String   @id
+  portfolioId  Int
+  holdingsHash String
+  name         String
+  registeredAt DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 }
