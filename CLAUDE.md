@@ -204,7 +204,32 @@ PLAID_CLIENT_ID=
 PLAID_SECRET=
 TOKEN_ENCRYPTION_KEY=          # 32-byte key for AES-256-GCM
 CRON_SECRET=                   # Bearer token for cron endpoint
+VALAFI_API_KEY=                # Vala-Fi supply-chain API (optional; free tier)
 ```
+
+## Supply Chain (Vala-Fi)
+
+Bloomberg-SPLC-style supply-chain intelligence under **Investing → Supply Chain**
+(`/app/supply-chain` hub with `/explorer` and `/path` sub-pages), plus a Supply
+Chain tab on position detail pages and a risk teaser on the dashboard.
+
+- **Provider**: Vala-Fi (`https://api.valafi.dev`, `X-API-Key`). SEC-filing
+  derived → US-listed issuers only (`isLikelyUsListed` filters before spending).
+- **Free tier is the hard constraint**: 50 requests/day, **10 unique tickers/day**,
+  5 results/query, 2-hop max, strength hidden, evidence on first 2 results.
+- **Governor** (`lib/valafi/governor.ts`) meters every live call. A ticker is
+  "spent" only on the first live company lookup that day (`ValafiTickerDay`);
+  cache hits are free. New companies auto-load, but spending past
+  `TICKER_CONFIRM_THRESHOLD` (8/10) needs confirmation and hard-stops at the caps.
+  The meter reconciles against `/dev/usage` once a day.
+- **Cache** (`lib/valafi/cache.ts`, `ValafiCache`): long TTLs (profile 30d,
+  relationships 7d) + negative caching (EMPTY 30d / ERROR 6h), mirroring the
+  `MarketIntelFetch` pattern. Cache rows are global (the graph isn't tenant-scoped).
+- **No automation** — every fetch is on-demand. Portfolio monitoring
+  (`ValafiPortfolio`) is user-initiated; the enable route brackets registration
+  with `/dev/usage` reads to report its real quota cost.
+- All access goes through `lib/valafi/service.ts` → `/api/valafi/*`; the API key
+  never reaches the client.
 
 ## Development Notes
 
