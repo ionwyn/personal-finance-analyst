@@ -3,8 +3,10 @@
 import { useEffect, useState } from "react";
 
 import type { PositionDetail } from "@/lib/investments/types";
+import { isLikelyUsListed } from "@/lib/valafi/symbols";
 
 import { SECTIONS } from "./format";
+import { PositionSupplyChain } from "./position-supply-chain";
 import { DecisionDeferred, FundamentalsLive, NewsList } from "./position-market";
 import { PriceChartDynamic, TechnicalsPanelDynamic } from "./position-market-dynamic";
 import {
@@ -29,6 +31,12 @@ import { Section } from "./sections/section";
 export function PositionView({ data: p }: { data: PositionDetail }) {
   const [active, setActive] = useState("overview");
   const showIntel = p.intel != null && hasIntel(p.intel);
+  const showSupplyChain = isLikelyUsListed(p.symbol) && !p.isFund;
+
+  const navExclude = [
+    ...(showIntel ? [] : ["intel"]),
+    ...(showSupplyChain ? [] : ["supply-chain"]),
+  ];
 
   const jump = (id: string) => {
     setActive(id);
@@ -61,7 +69,7 @@ export function PositionView({ data: p }: { data: PositionDetail }) {
     <div className="pos-page">
       <Hero p={p} />
       <div className="pos-nav-wrap">
-        <Nav active={active} onJump={jump} exclude={showIntel ? undefined : ["intel"]} />
+        <Nav active={active} onJump={jump} exclude={navExclude.length ? navExclude : undefined} />
       </div>
       <div className="pos-grid">
         <div className="pos-main">
@@ -174,6 +182,17 @@ export function PositionView({ data: p }: { data: PositionDetail }) {
           >
             <DecisionDeferred p={p} />
           </Section>
+
+          {showSupplyChain && (
+            <Section
+              id="supply-chain"
+              eyebrow="11 · SUPPLY CHAIN"
+              title="Suppliers, customers & competitors"
+              meta="Vala-Fi · extracted from SEC filings"
+            >
+              <PositionSupplyChain symbol={p.symbol} name={p.name} />
+            </Section>
+          )}
 
           <div className="foot-note" style={{ marginTop: 24 }}>
             <span>Personal-ownership view. Figures reflect your last brokerage sync.</span>
