@@ -14,6 +14,7 @@ import {
   normalizePosition,
 } from "@/lib/snaptrade/normalize";
 import { getSnapTradeClient, getSnapTradeCredentials } from "@/lib/snaptrade/client";
+import { fetchAndCacheBrokerageLogos } from "@/lib/snaptrade/brokerage-logos";
 import {
   elapsedMs,
   ensureRequestId,
@@ -570,6 +571,7 @@ async function syncSnapTradeTenantWithContext(tenantId: string, source: SyncSour
 
   try {
     const { userId, userSecret } = getSnapTradeCredentials();
+    await fetchAndCacheBrokerageLogos();
     const authorizations = await getSnapTradeClient().connections.listBrokerageAuthorizations({
       userId,
       userSecret,
