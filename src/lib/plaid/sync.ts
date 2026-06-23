@@ -4,6 +4,7 @@ import type { RemovedTransaction, Transaction } from "plaid";
 import { prisma } from "@/lib/prisma";
 import { decryptToken } from "@/lib/security/token-crypto";
 import { getPlaidClient } from "@/lib/plaid/client";
+import { fetchAndCacheInstitutionLogo } from "@/lib/plaid/institution";
 import {
   errorMessage,
   getPlaidErrorCode,
@@ -247,6 +248,8 @@ async function syncPlaidItemWithContext(item: PlaidItemWithTenant, source: SyncS
     );
     return skippedRun;
   }
+
+  await fetchAndCacheInstitutionLogo(item.id, item.institutionId);
 
   const run = await prisma.syncRun.create({
     data: {

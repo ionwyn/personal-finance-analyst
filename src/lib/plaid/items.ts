@@ -3,6 +3,7 @@ import { SyncSource } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getPlaidClient } from "@/lib/plaid/client";
 import { refreshAccountsForItem, refreshBalancesForItem } from "@/lib/plaid/accounts";
+import { fetchAndCacheInstitutionLogo } from "@/lib/plaid/institution";
 import { syncPlaidItem } from "@/lib/plaid/sync";
 import { encryptToken } from "@/lib/security/token-crypto";
 import {
@@ -63,6 +64,7 @@ export async function exchangeAndStorePlaidItem(input: {
           },
         });
 
+        await fetchAndCacheInstitutionLogo(item.id, input.institutionId);
         await refreshAccountsForItem(item.id);
         await syncPlaidItem(item.id, source);
         await refreshBalancesForItem(item.id);

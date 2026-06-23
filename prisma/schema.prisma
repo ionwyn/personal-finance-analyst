@@ -166,6 +166,7 @@ model PlaidItem {
   plaidItemId          String          @unique
   institutionId        String?
   institutionName      String?
+  institutionLogo      String?         @db.Text
   accessTokenEncrypted String          @db.Text
   syncCursor           String?         @db.Text
   status               PlaidItemStatus @default(IDLE)
@@ -319,6 +320,7 @@ model SnapTradeConnection {
   type                     String?
   brokerageName            String?
   brokerageSlug            String?
+  brokerageLogo            String?
   disabled                 Boolean                   @default(false)
   disabledAt               DateTime?
   status                   SnapTradeConnectionStatus @default(IDLE)
