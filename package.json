@@ -7,7 +7,7 @@
     "predev": "prisma generate",
     "dev": "next dev",
     "prebuild": "prisma generate",
-    "build": "next build",
+    "build": "prisma migrate deploy && next build",
     "start": "next start",
     "lint": "eslint . --max-warnings=0",
     "lint:fix": "eslint . --fix",
