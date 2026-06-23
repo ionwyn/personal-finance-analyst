@@ -1,0 +1,1161 @@
+// Supply Chain feature styles — Bloomberg-terminal density on Linear-clean
+// surfaces. Everything uses the global design tokens so light mode comes free.
+
+// ── Shell / layout ──────────────────────────────────────────────────────────
+.shell {
+  display: flex;
+  flex-direction: column;
+}
+
+.shellHead {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.h1 {
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--text);
+}
+
+.sub {
+  margin-top: 3px;
+  font-size: 12px;
+  color: var(--text-3);
+}
+
+.body {
+  margin-top: 18px;
+}
+
+// ── Quota meter ─────────────────────────────────────────────────────────────
+.meter {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 8px 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+}
+
+.gauge {
+  min-width: 100px;
+}
+
+.gaugeTop {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 5px;
+}
+
+.gaugeLabel {
+  font-size: 9px;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--text-4);
+}
+
+.gaugeValue {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.gaugeCap {
+  font-size: 10px;
+  color: var(--text-4);
+}
+
+.gaugeTrack {
+  height: 4px;
+  background: var(--surface-3);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.gaugeFill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.4s ease;
+}
+
+.meterHint {
+  font-size: 10px;
+  color: var(--text-3);
+  font-family: var(--font-mono);
+}
+
+.meterRefresh {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-3);
+  cursor: pointer;
+
+  &:hover {
+    color: var(--text);
+    background: var(--hover);
+  }
+}
+
+.meterDisabled {
+  padding: 8px 12px;
+  font-size: 11px;
+  color: var(--text-4);
+  font-family: var(--font-mono);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+}
+
+.spin {
+  animation: splc-spin 0.9s linear infinite;
+}
+
+// ── Sub-nav ─────────────────────────────────────────────────────────────────
+.subnav {
+  display: flex;
+  gap: 4px;
+  margin-top: 14px;
+}
+
+.subnavLink {
+  padding: 6px 12px;
+  font-size: 12px;
+  color: var(--text-3);
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+
+  &:hover {
+    color: var(--text);
+    background: var(--surface-2);
+  }
+}
+
+.subnavOn {
+  color: var(--text);
+  background: var(--surface-2);
+  border-color: var(--border-strong);
+}
+
+// ── Overview ────────────────────────────────────────────────────────────────
+.overview {
+  display: flex;
+  flex-direction: column;
+}
+
+.launchStrip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.launchChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 4px 8px;
+  font-size: 11px;
+  font-family: var(--font-mono);
+  color: var(--text-2);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+
+  &:hover {
+    color: var(--accent);
+    border-color: var(--accent-dim);
+  }
+}
+
+.overviewGrid,
+.explorerGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  align-items: start;
+
+  :global(.panel) {
+    margin-bottom: 0;
+  }
+}
+
+// ── Shared little labels / notes ─────────────────────────────────────────────
+.quickLabel {
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-4);
+}
+
+.note {
+  margin: 8px 0;
+  padding: 14px 16px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-3);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+}
+
+.note_warn {
+  color: var(--warn);
+}
+
+.note_neg {
+  color: var(--neg);
+}
+
+.loading {
+  padding: 24px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--text-3);
+}
+
+.listEmpty {
+  padding: 14px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--text-4);
+}
+
+// ── Spend-confirm gate ────────────────────────────────────────────────────────
+.spendGate {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 8px 0;
+  padding: 12px 14px;
+  font-size: 12px;
+  color: var(--text-2);
+  background: rgba(251, 191, 36, 0.08);
+  border: 1px solid var(--warn);
+  border-radius: var(--radius-lg);
+}
+
+.spendIcon {
+  color: var(--warn);
+  flex-shrink: 0;
+}
+
+.spendBtn {
+  margin-left: auto;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #16130a;
+  background: var(--warn);
+  border: none;
+  border-radius: var(--radius);
+  cursor: pointer;
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: default;
+  }
+}
+
+// ── Explorer picker ───────────────────────────────────────────────────────────
+.explorer {
+  display: flex;
+  flex-direction: column;
+}
+
+.picker,
+.pathForm {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.pickerIcon {
+  color: var(--text-4);
+  flex-shrink: 0;
+}
+
+.pickerInput {
+  flex: 1;
+  min-width: 160px;
+  padding: 8px 10px;
+  font-size: 13px;
+  color: var(--text);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+
+  &::placeholder {
+    color: var(--text-4);
+  }
+  &:focus {
+    outline: none;
+    border-color: var(--accent-dim);
+  }
+}
+
+.pickerBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 8px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--accent);
+  background: var(--accent-bg);
+  border: 1px solid var(--accent-dim);
+  border-radius: var(--radius);
+  cursor: pointer;
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
+}
+
+.quickPicks {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.quickChip {
+  padding: 4px 8px;
+  font-size: 11px;
+  font-family: var(--font-mono);
+  color: var(--text-2);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+
+  &:hover {
+    color: var(--text);
+    background: var(--hover);
+  }
+}
+
+.quickOn {
+  color: var(--accent);
+  border-color: var(--accent-dim);
+}
+
+.truncNote {
+  padding: 8px 14px;
+  font-size: 10px;
+  color: var(--text-4);
+  border-top: 1px solid var(--border-subtle);
+}
+
+// ── Relationship map (SVG SPLC) ───────────────────────────────────────────────
+.mapWrap {
+  padding: 8px 8px 0;
+}
+
+.mapSvg {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 440px;
+}
+
+.svgNode {
+  cursor: pointer;
+}
+
+.svgNodeRect {
+  fill: var(--surface-2);
+  transition: stroke 0.15s ease;
+}
+
+.svgTicker {
+  fill: var(--text);
+  font-size: 13px;
+  font-weight: 600;
+  font-family: var(--font-mono);
+}
+
+.svgName {
+  fill: var(--text-3);
+  font-size: 10px;
+}
+
+.svgColHead {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  font-family: var(--font-mono);
+}
+
+.edge {
+  fill: none;
+  transition:
+    opacity 0.15s ease,
+    stroke-width 0.15s ease;
+}
+
+.svgCenterRect {
+  fill: var(--accent-bg);
+  stroke: var(--accent-dim);
+}
+
+.svgCenterTicker {
+  fill: var(--accent);
+  font-size: 16px;
+  font-weight: 700;
+  text-anchor: middle;
+  font-family: var(--font-mono);
+}
+
+.svgCenterSub {
+  fill: var(--text-3);
+  font-size: 10px;
+  text-anchor: middle;
+}
+
+.compRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 6px;
+  padding: 10px 8px 4px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.compLabel {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  font-family: var(--font-mono);
+}
+
+.compChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+// ── Node chip ─────────────────────────────────────────────────────────────────
+.nodeChip {
+  --chip: var(--text-3);
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+  padding: 4px 8px;
+  color: var(--text-2);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-left: 2px solid var(--chip);
+  border-radius: var(--radius);
+  cursor: pointer;
+  text-align: left;
+
+  &:hover {
+    background: var(--hover);
+  }
+}
+
+.nodeChipOn {
+  border-color: var(--chip);
+}
+
+.nodeChipTicker {
+  font-size: 11px;
+  font-weight: 600;
+  font-family: var(--font-mono);
+  color: var(--text);
+}
+
+.nodeChipName {
+  font-size: 9px;
+  color: var(--text-4);
+}
+
+// ── Pro chip / risk badge / evidence ──────────────────────────────────────────
+.proChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 1px 5px;
+  font-size: 8px;
+  letter-spacing: 0.06em;
+  font-family: var(--font-mono);
+  color: var(--text-4);
+  background: var(--surface-3);
+  border-radius: 3px;
+}
+
+.riskBadge {
+  display: inline-block;
+  padding: 1px 6px;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  font-family: var(--font-mono);
+  border: 1px solid;
+  border-radius: 3px;
+}
+
+.evidence {
+  margin: 6px 0 0;
+  padding: 6px 10px;
+  font-size: 11px;
+  line-height: 1.5;
+  font-style: italic;
+  color: var(--text-3);
+  background: var(--surface-2);
+  border-left: 2px solid var(--border-strong);
+  border-radius: 0 var(--radius) var(--radius) 0;
+}
+
+// ── Relationship list ─────────────────────────────────────────────────────────
+.list {
+  display: flex;
+  flex-direction: column;
+}
+
+.listRows {
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0;
+}
+
+.listRow {
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border-subtle);
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.listMain {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 2px 0;
+  color: inherit;
+  background: none;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+
+  &:disabled {
+    cursor: default;
+  }
+}
+
+.listDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.listTicker {
+  font-size: 12px;
+  font-weight: 600;
+  font-family: var(--font-mono);
+  color: var(--text);
+}
+
+.listName {
+  flex: 1;
+  font-size: 12px;
+  color: var(--text-3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.listArrow {
+  color: var(--text-4);
+  flex-shrink: 0;
+}
+
+.listMeta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.listFoot {
+  padding-top: 10px;
+  font-size: 10px;
+  color: var(--text-4);
+}
+
+.hop {
+  padding: 1px 5px;
+  font-size: 9px;
+  font-family: var(--font-mono);
+  color: var(--text-4);
+  background: var(--surface-3);
+  border-radius: 3px;
+}
+
+// ── Impact simulator ──────────────────────────────────────────────────────────
+.impactWrap {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.impactControls {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.impactField {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--text-3);
+
+  strong {
+    color: var(--text);
+  }
+}
+
+.slider {
+  width: 100%;
+  accent-color: var(--accent);
+}
+
+.runBtn {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--accent);
+  background: var(--accent-bg);
+  border: 1px solid var(--accent-dim);
+  border-radius: var(--radius);
+  cursor: pointer;
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
+}
+
+.impactSummary {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-2);
+}
+
+.cascadeList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.cascadeRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cascadeTicker {
+  flex-shrink: 0;
+  min-width: 48px;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: var(--font-mono);
+  color: var(--text);
+  text-align: left;
+  background: none;
+  border: none;
+  cursor: pointer;
+
+  &:disabled {
+    cursor: default;
+  }
+}
+
+.cascadeName {
+  flex: 1;
+  font-size: 11px;
+  color: var(--text-3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cascadeBarTrack {
+  flex-shrink: 0;
+  width: 80px;
+  height: 5px;
+  background: var(--surface-3);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.cascadeBarFill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+.cascadeScore {
+  flex-shrink: 0;
+  width: 26px;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: right;
+}
+
+// ── Company exposure ──────────────────────────────────────────────────────────
+.exposure {
+  display: flex;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.exposureScore {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  padding: 12px 18px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+}
+
+.exposureScoreVal {
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.exposureScoreLbl {
+  margin-top: 5px;
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-4);
+}
+
+.exposureMain {
+  flex: 1;
+  min-width: 240px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.exposurePeers {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+// ── Risk list (shared by exposure + portfolio panels) ─────────────────────────
+.riskList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.riskRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border-subtle);
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.riskSupplier {
+  font-size: 12px;
+  font-weight: 600;
+  font-family: var(--font-mono);
+  color: var(--text);
+  background: none;
+  border: none;
+  cursor: pointer;
+
+  &:disabled {
+    cursor: default;
+  }
+}
+
+.riskMeta {
+  flex: 1;
+  font-size: 11px;
+  color: var(--text-3);
+}
+
+// ── Portfolio exposure panel ──────────────────────────────────────────────────
+.enableCard {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 4px 0;
+}
+
+.enableIcon {
+  color: var(--accent);
+}
+
+.enableCopy {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text-2);
+}
+
+.enableBtn {
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #16130a;
+  background: var(--accent);
+  border: none;
+  border-radius: var(--radius);
+  cursor: pointer;
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: default;
+  }
+}
+
+.subhead {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 16px 0 8px;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-4);
+}
+
+.sharedList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sharedRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border-subtle);
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.sharedSupplier {
+  display: flex;
+  flex-direction: column;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: var(--font-mono);
+  color: var(--text);
+}
+
+.sharedName {
+  font-size: 10px;
+  font-weight: 400;
+  font-family: var(--font-sans);
+  color: var(--text-4);
+}
+
+.sharedBy {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.sharedByChip {
+  padding: 2px 6px;
+  font-size: 10px;
+  font-family: var(--font-mono);
+  color: var(--text-2);
+  background: var(--surface-3);
+  border-radius: 3px;
+
+  &:hover {
+    color: var(--text);
+  }
+}
+
+.simRow {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.simInput {
+  flex: 1;
+  padding: 6px 10px;
+  font-size: 12px;
+  color: var(--text);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+
+  &:focus {
+    outline: none;
+    border-color: var(--accent-dim);
+  }
+}
+
+.simBtn {
+  padding: 6px 12px;
+  font-size: 12px;
+  color: var(--text);
+  background: var(--surface-3);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  cursor: pointer;
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
+}
+
+.simResult {
+  padding: 10px 12px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.simHead {
+  margin-bottom: 8px;
+  font-size: 12px;
+  color: var(--text-2);
+}
+
+.simChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.simChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  font-size: 11px;
+  font-family: var(--font-mono);
+  color: var(--text-2);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+// ── Change feed / alerts ──────────────────────────────────────────────────────
+.alertList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.alertRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border-subtle);
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.alertIcon {
+  color: var(--warn);
+  flex-shrink: 0;
+}
+
+.alertHolding {
+  flex-shrink: 0;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: var(--font-mono);
+  color: var(--text);
+}
+
+.alertDesc {
+  flex: 1;
+  font-size: 11px;
+  color: var(--text-3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.changeList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.changeRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 0;
+  border-bottom: 1px solid var(--border-subtle);
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.changeLine {
+  flex: 1;
+  font-size: 11px;
+  color: var(--text-2);
+}
+
+.changeDate {
+  font-size: 10px;
+  font-family: var(--font-mono);
+  color: var(--text-4);
+}
+
+// ── Pathfinder ────────────────────────────────────────────────────────────────
+.pathView {
+  display: flex;
+  flex-direction: column;
+}
+
+.pathArrow {
+  color: var(--text-4);
+  flex-shrink: 0;
+}
+
+.pathPick {
+  display: inline-flex;
+}
+
+.pathChain {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 0;
+}
+
+.pathStep {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pathNode {
+  display: flex;
+  flex-direction: column;
+  min-width: 72px;
+  padding: 8px 12px;
+  color: var(--text);
+  background: var(--surface-2);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+
+  &:hover {
+    border-color: var(--accent-dim);
+  }
+}
+
+.pathTicker {
+  font-size: 13px;
+  font-weight: 600;
+  font-family: var(--font-mono);
+}
+
+.pathName {
+  font-size: 9px;
+  color: var(--text-4);
+}
+
+.pathConnector {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  color: var(--text-4);
+}
+
+.pathRel {
+  font-size: 8px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  font-family: var(--font-mono);
+}
+
+@keyframes splc-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 980px) {
+  .overviewGrid,
+  .explorerGrid {
+    grid-template-columns: 1fr;
+  }
+}
