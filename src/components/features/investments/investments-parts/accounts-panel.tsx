@@ -1,3 +1,4 @@
+import { InstitutionLogo } from "@/components/shared/institution-logo";
 import { formatMoney, formatYearMonth } from "@/lib/format";
 import type { InvestmentDashboardData } from "@/lib/investments/types";
 
@@ -31,17 +32,13 @@ export function AccountsPanel({ accounts }: { accounts: InvestmentDashboardData[
                   : `${a.positionCount} positions`;
             return (
               <div className="brok-row" key={a.id}>
-                <div
-                  className="sym-logo"
-                  style={{
-                    background: a.institutionLogoBg,
-                    width: 28,
-                    height: 28,
-                    fontSize: 10,
-                  }}
-                >
-                  {a.institutionLogoText}
-                </div>
+                <InstitutionLogo
+                  name={a.institution}
+                  logo={a.institutionLogo}
+                  bg={a.institutionLogoBg}
+                  size={28}
+                  radius={5}
+                />
                 <div>
                   <div className="nm">{a.name}</div>
                   <div className="meta">{subline}</div>

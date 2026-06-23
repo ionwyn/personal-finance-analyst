@@ -1,3 +1,4 @@
+import { InstitutionLogo } from "@/components/shared/institution-logo";
 import type { PositionDetail } from "@/lib/investments/types";
 
 import { dash, money, pct, signMoney } from "../format";
@@ -40,9 +41,14 @@ export function Ownership({ p }: { p: PositionDetail }) {
                 <tr key={i}>
                   <td>
                     <div className="own-acct">
-                      <i className="own-logo" style={{ background: l.institutionLogoBg }}>
-                        {l.institutionLogoText}
-                      </i>
+                      <InstitutionLogo
+                        name={l.institution}
+                        logo={l.institutionLogo}
+                        bg={l.institutionLogoBg}
+                        size={24}
+                        radius={5}
+                        className="own-logo"
+                      />
                       <div>
                         <div className="own-acct-nm">
                           {l.institution} · {l.accountLabel}

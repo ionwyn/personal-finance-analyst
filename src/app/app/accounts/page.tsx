@@ -9,6 +9,7 @@ import {
   SnapTradeSyncButton,
 } from "@/components/actions/snaptrade-actions";
 import { SyncAllButton } from "@/components/actions/sync-all-button";
+import { InstitutionLogo } from "@/components/shared/institution-logo";
 import { PageHeader, StatusPill } from "@/components/ui";
 import { getDashboardData } from "@/lib/analytics";
 import { institutionKeyMatches, normalizeInstitutionName } from "@/lib/analytics/duplicates";
@@ -163,9 +164,12 @@ function InvestmentsSection({
       {accounts.length > 0 ? (
         <div className={styles.instCard}>
           <div className={styles.instHead}>
-            <div className={styles.instLogo} style={{ background: summary.institutionLogoBg }}>
-              {summary.institutionLogoText}
-            </div>
+            <InstitutionLogo
+              name={summary.institution}
+              logo={summary.institutionLogo}
+              bg={summary.institutionLogoBg}
+              className={styles.instLogo}
+            />
             <div className={styles.instMeta}>
               <div className={styles.instName}>
                 {summary.institution}
@@ -299,20 +303,15 @@ type Institution = Awaited<ReturnType<typeof getDashboardData>>["institutions"][
 
 function InstitutionCard({ institution, isDemo }: { institution: Institution; isDemo: boolean }) {
   const inst = institution;
-  const logoBg = pickLogoBg(inst.institutionName);
-  const logoText = inst.institutionName
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((w) => w[0]?.toUpperCase() ?? "")
-    .join("");
 
   return (
     <div className={styles.instCard}>
       <div className={styles.instHead}>
-        <div className={styles.instLogo} style={{ background: logoBg }}>
-          {logoText || "—"}
-        </div>
+        <InstitutionLogo
+          name={inst.institutionName}
+          logo={inst.institutionLogo}
+          className={styles.instLogo}
+        />
         <div className={styles.instMeta}>
           <div className={styles.instName}>
             {inst.institutionName}
@@ -420,20 +419,4 @@ function accountKind(type: string, subtype: string | null) {
   if (t.includes("investment") || t.includes("retirement") || t.includes("brokerage"))
     return "investment";
   return "depository";
-}
-
-const LOGO_PALETTE = [
-  "#117ACA",
-  "#016FD0",
-  "#138138",
-  "#6B21A8",
-  "#dc2626",
-  "#0891b2",
-  "#f59e0b",
-  "#7c3aed",
-];
-function pickLogoBg(name: string) {
-  let h = 0;
-  for (let i = 0; i < name.length; i += 1) h = (h * 31 + name.charCodeAt(i)) | 0;
-  return LOGO_PALETTE[Math.abs(h) % LOGO_PALETTE.length];
 }

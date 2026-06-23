@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { InstitutionLogo } from "@/components/shared/institution-logo";
 import { formatRelativeTime } from "@/lib/format";
 import type { InvestmentConnection } from "@/lib/investments/types";
 
@@ -21,17 +22,13 @@ export function ConnectionHealthPanel({ connections }: { connections: Investment
             const pill = connectionPill(c);
             return (
               <div className="conn-row" key={c.id}>
-                <div
-                  className="sym-logo"
-                  style={{
-                    background: c.institutionLogoBg,
-                    width: 28,
-                    height: 28,
-                    fontSize: 10,
-                  }}
-                >
-                  {c.institutionLogoText}
-                </div>
+                <InstitutionLogo
+                  name={c.institution}
+                  logo={c.institutionLogo}
+                  bg={c.institutionLogoBg}
+                  size={28}
+                  radius={5}
+                />
                 <div>
                   <div className="nm">{c.institution}</div>
                   <div className="meta">
