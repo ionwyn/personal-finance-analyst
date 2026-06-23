@@ -10,6 +10,7 @@ import { LinkedItemsPanel } from "@/components/features/dashboard/linked-items-p
 import { RecentTransactionsPanel } from "@/components/features/dashboard/recent-transactions-panel";
 import type { DashboardData, DashboardMode } from "@/components/features/dashboard/types";
 import { InvestmentsCard } from "@/components/features/dashboard/investments-card";
+import { SupplyChainRiskPanel } from "@/components/features/dashboard/supply-chain-risk-panel";
 import { PlaidLinkButton } from "@/components/actions/plaid-link-button";
 import { Button, PageHeader } from "@/components/ui";
 import { SyncAllButton } from "@/components/actions/sync-all-button";
@@ -89,6 +90,7 @@ export function DashboardView({ data, mode }: { data: DashboardData; mode: Dashb
           {data.investments.summary.positionCount > 0 ? (
             <InvestmentsCard data={data.investments} />
           ) : null}
+          {!isDemo && data.investments.summary.positionCount > 0 ? <SupplyChainRiskPanel /> : null}
           <CategorySpendPanel
             spend7d={data.categorySpend7d}
             spend30d={data.categorySpend30d}
