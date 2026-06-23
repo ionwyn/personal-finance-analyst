@@ -23,4 +23,5 @@ export const SECTIONS: [string, string][] = [
   ["technicals", "Technicals"],
   ["news", "News"],
   ["decision", "Cases"],
+  ["supply-chain", "Supply Chain"],
 ];
