@@ -42,7 +42,7 @@ function buildCsp(nonce: string): string {
     "object-src 'none'",
     `script-src ${scriptSrc}`,
     "style-src 'self' 'unsafe-inline'",
-    "img-src 'self' data: blob: https://avatars.githubusercontent.com",
+    "img-src 'self' data: blob: https://avatars.githubusercontent.com https://*.amazonaws.com",
     "font-src 'self'",
     "worker-src 'self'",
     "manifest-src 'self'",

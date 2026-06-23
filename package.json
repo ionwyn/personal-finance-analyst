@@ -33,6 +33,7 @@
     "measure:portfolio-markets": "tsx scripts/measure-portfolio-markets.ts",
     "seed:demo": "tsx scripts/seed-demo.ts",
     "backfill:cycles": "tsx scripts/backfill-cycles.ts",
+    "backfill:logos": "tsx scripts/backfill-logos.ts",
     "secrets": "tsx scripts/print-secret.ts",
     "snaptrade:encrypt-secret": "tsx scripts/encrypt-snaptrade-secret.ts"
   },
