@@ -16,6 +16,7 @@ export type AssistantEvalCase = {
     | "cashflow_runway"
     | "savings_goals"
     | "account_status"
+    | "investment_exposure"
     | "previous_answer";
   priorEvidence?: string;
   groundingMustMention?: string[];
@@ -238,6 +239,23 @@ export const assistantEvalCases = [
     },
     evidenceKind: "account_status",
     groundingMustMention: ["ACCOUNT STATUS", "period spend"],
+  },
+  {
+    id: "investment-concentration",
+    prompt: "How concentrated is my portfolio?",
+    description:
+      "Investment exposure questions should fetch descriptive concentration evidence.",
+    expectedPlan: { intent: "investment_exposure" },
+    evidenceKind: "investment_exposure",
+    groundingMustMention: ["INVESTMENT EXPOSURE STATUS", "descriptive"],
+  },
+  {
+    id: "investment-sector-currency",
+    prompt: "What is my exposure by sector and currency?",
+    description: "Sector/currency exposure should use investment exposure evidence.",
+    expectedPlan: { intent: "investment_exposure" },
+    evidenceKind: "investment_exposure",
+    groundingMustMention: ["INVESTMENT EXPOSURE STATUS", "do not recommend"],
   },
   {
     id: "prove-prior-answer",

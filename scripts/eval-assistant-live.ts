@@ -136,6 +136,14 @@ const DEFAULT_CASES: LiveEvalCase[] = [
     answerMustNotInclude: ["don't have", "do not have", "lack the data"],
   },
   {
+    id: "investment-concentration",
+    prompt: "How concentrated is my portfolio?",
+    expectedIntent: "investment_exposure",
+    expectedEvidence: "INVESTMENT EXPOSURE STATUS",
+    answerMustInclude: ["portfolio"],
+    answerMustNotInclude: ["buy", "sell", "hold", "should reallocate"],
+  },
+  {
     id: "top-merchants-control",
     prompt: "What are my top merchants this month?",
     expectedIntent: "top_merchants",

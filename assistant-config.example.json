@@ -14,7 +14,8 @@
     "When CASHFLOW RUNWAY STATUS is present, use the server-computed cash balance, recent cashflow averages, simple coverage months, current-cycle obligations, and upcoming/unsettled bills. Treat runway as straight-line coverage math, not a forecast.",
     "When SAVINGS GOAL STATUS is present, use the server-computed target, saved, remaining, progress, target date, and tracking mode fields. Do not infer savings-goal progress from general cash balances.",
     "When ACCOUNT STATUS is present, use the server-computed account balances, tracked flags, period spend/income, and investment-account values. Do not infer account-specific spending from whole-dashboard totals.",
-    "When MATCHING TRANSACTIONS, TOP MERCHANTS, TOP CATEGORIES, PERIOD COMPARISON, BUDGET STATUS, PAY CYCLE STATUS, RECURRING SPEND STATUS, CASHFLOW RUNWAY STATUS, SAVINGS GOAL STATUS, or ACCOUNT STATUS are present, use the server-computed totals, counts, ordering, deltas, and source rows. Do not recompute totals from chat prose or reorder the server-ranked results."
+    "When INVESTMENT EXPOSURE STATUS is present, use the server-computed portfolio allocation, concentration, sector, currency, account, and holding exposure fields. Keep the answer descriptive; do not recommend buying, selling, holding, or reallocating.",
+    "When MATCHING TRANSACTIONS, TOP MERCHANTS, TOP CATEGORIES, PERIOD COMPARISON, BUDGET STATUS, PAY CYCLE STATUS, RECURRING SPEND STATUS, CASHFLOW RUNWAY STATUS, SAVINGS GOAL STATUS, ACCOUNT STATUS, or INVESTMENT EXPOSURE STATUS are present, use the server-computed totals, counts, ordering, deltas, and source rows. Do not recompute totals from chat prose or reorder the server-ranked results."
   ],
 
   "planPrompt": {
@@ -36,9 +37,10 @@
       "- cashflow_runway: the user asks about cashflow runway, how long cash will last, runway/coverage months, upcoming bills in the context of cashflow, obligations before payday, burn coverage, or whether current cash covers upcoming obligations.",
       "- savings_goals: the user asks about savings goals, target progress, how much is saved toward a goal, remaining amount, goal target dates, tracked savings destinations, or manual savings-goal amounts.",
       "- account_status: the user asks about a specific account's balance, available balance, account-specific spending/income, transactions counted by account, account tracking status, investment account value, or account-level holdings/cash/liability summary.",
+      "- investment_exposure: the user asks about investment exposure, portfolio concentration, allocation by holding/type/currency/sector/account, top holdings by weight, diversification facts, or descriptive portfolio risk/concentration summaries. Do not use this for buy/sell/hold advice.",
       "- prove_previous_answer: the user challenges, asks to prove, verify, source, or audit the immediately previous assistant answer.",
       "",
-      "For transaction_list, top_merchants, top_categories, merchant_breakdown, period_comparison, budget_status, cycle_status, recurring_spend, cashflow_runway, savings_goals, account_status, and prove_previous_answer, populate filters using ONLY these keys when the latest user message supplies or implies them (omit any you do not need):",
+      "For transaction_list, top_merchants, top_categories, merchant_breakdown, period_comparison, budget_status, cycle_status, recurring_spend, cashflow_runway, savings_goals, account_status, investment_exposure, and prove_previous_answer, populate filters using ONLY these keys when the latest user message supplies or implies them (omit any you do not need):",
       "- q: free-text merchant or description substring to match (string, max 80 chars).",
       "- category: a natural category name such as \"Food and Drink\", \"Travel\", \"Rent\", \"Entertainment\" (string). The server resolves this to the user's real category taxonomy.",
       "- period: one of \"this_month\", \"last_month\", \"last_30_days\", \"last_90_days\", \"this_year\", \"all_time\".",
@@ -88,6 +90,9 @@
       "Q: \"What's the balance in my chequing account?\" -> {\"intent\": \"account_status\", \"filters\": {\"q\": \"chequing\"}}",
       "Q: \"How much did I spend from my credit card this month?\" -> {\"intent\": \"account_status\", \"filters\": {\"q\": \"credit card\", \"period\": \"this_month\", \"bucket\": \"spending\"}}",
       "Q: \"Show my TFSA account value\" -> {\"intent\": \"account_status\", \"filters\": {\"q\": \"TFSA\"}}",
+      "Q: \"How concentrated is my portfolio?\" -> {\"intent\": \"investment_exposure\"}",
+      "Q: \"What is my exposure by sector and currency?\" -> {\"intent\": \"investment_exposure\"}",
+      "Q: \"Which holdings dominate my portfolio?\" -> {\"intent\": \"investment_exposure\"}",
       "Q: \"That's not possible. Prove it\" -> {\"intent\": \"prove_previous_answer\"}"
     ]
   },

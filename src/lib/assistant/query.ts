@@ -117,6 +117,7 @@ export const PLAN_INTENTS = [
   "cashflow_runway",
   "savings_goals",
   "account_status",
+  "investment_exposure",
   "prove_previous_answer",
 ] as const;
 export type PlanIntent = (typeof PLAN_INTENTS)[number];

@@ -4,6 +4,10 @@ import { fetchBudgetStatus, serializeBudgetStatus } from "@/lib/assistant/budget
 import { fetchCashflowRunway, serializeCashflowRunway } from "@/lib/assistant/cashflow";
 import { fetchCycleStatus, serializeCycleStatus } from "@/lib/assistant/cycle";
 import {
+  fetchInvestmentExposure,
+  serializeInvestmentExposure,
+} from "@/lib/assistant/investment-exposure";
+import {
   fetchRecurringSpendStatus,
   serializeRecurringSpendStatus,
 } from "@/lib/assistant/recurring";
@@ -139,6 +143,14 @@ async function fetchEvidenceForPlan(input: {
     return {
       evidence: serializeAccountStatus(result, input.currency),
       evidenceKind: "account_status",
+    };
+  }
+
+  if (input.plan.intent === "investment_exposure") {
+    const result = await fetchInvestmentExposure(input.tenantId);
+    return {
+      evidence: serializeInvestmentExposure(result, input.currency),
+      evidenceKind: "investment_exposure",
     };
   }
 
