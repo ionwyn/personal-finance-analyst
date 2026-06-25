@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { ChevronRight, Send, Sparkles } from "lucide-react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 import { PageHeader, SegmentedControl } from "@/components/ui";
 import { REASONING_STARTER_PROMPTS, STARTER_PROMPTS } from "@/lib/assistant/prompt";
@@ -33,6 +35,20 @@ function formatElapsed(seconds: number): string {
   const m = Math.floor(seconds / 60);
   const s = seconds % 60;
   return `${m}:${s.toString().padStart(2, "0")}`;
+}
+
+/**
+ * Render an assistant answer as Markdown. The model is prompted to use Markdown
+ * (bold, bullets, GitHub-flavoured tables) for structured replies; `remark-gfm`
+ * adds table/strikethrough/autolink support on top of CommonMark. Raw HTML is not
+ * enabled, so model output can't inject markup.
+ */
+function AssistantMarkdown({ children }: { children: string }) {
+  return (
+    <div className={styles.markdown}>
+      <ReactMarkdown remarkPlugins={[remarkGfm]}>{children}</ReactMarkdown>
+    </div>
+  );
 }
 
 /**
@@ -285,12 +301,21 @@ export function AssistantView() {
                   ) : null}
                   {m.content || !liveThinking ? (
                     <div className={styles.bubble}>
-                      {m.content ||
-                        (isActive
-                          ? mode === "reasoning"
-                            ? `Reasoning… ${formatElapsed(elapsed)}`
-                            : "…"
-                          : "")}
+                      {m.content ? (
+                        m.role === "assistant" ? (
+                          <AssistantMarkdown>{m.content}</AssistantMarkdown>
+                        ) : (
+                          m.content
+                        )
+                      ) : isActive ? (
+                        mode === "reasoning" ? (
+                          `Reasoning… ${formatElapsed(elapsed)}`
+                        ) : (
+                          "…"
+                        )
+                      ) : (
+                        ""
+                      )}
                     </div>
                   ) : null}
                 </div>
