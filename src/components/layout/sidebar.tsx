@@ -204,7 +204,7 @@ export function Sidebar({ mode, user }: { mode: "private" | "demo"; user?: Sideb
     >
       <span className={styles.navIcon}>{item.icon}</span>
       <span className={styles.navLabel}>{item.label}</span>
-      {item.kbd ? <span className={styles.navKbd}>{item.kbd}</span> : null}
+      {!collapsed && item.kbd ? <span className={styles.navKbd}>{item.kbd}</span> : null}
     </Link>
   );
 
