@@ -5,6 +5,7 @@ const prismaMock = vi.hoisted(() => ({
   plaidTransaction: { findMany: vi.fn() },
 }));
 const getBudgetGoalDataMock = vi.hoisted(() => vi.fn());
+const getCurrentCycleDataMock = vi.hoisted(() => vi.fn());
 
 vi.mock("@/lib/analytics", () => ({
   getTransactionsForTenant: vi.fn(),
@@ -18,8 +19,13 @@ vi.mock("@/lib/budgets/getBudgetGoalData", () => ({
   getBudgetGoalData: getBudgetGoalDataMock,
 }));
 
+vi.mock("@/lib/cycles/getCurrentCycle", () => ({
+  getCurrentCycleData: getCurrentCycleDataMock,
+}));
+
 import { getTransactionsForTenant } from "@/lib/analytics";
 import { fetchBudgetStatus, serializeBudgetStatus } from "@/lib/assistant/budget";
+import { fetchCycleStatus, serializeCycleStatus } from "@/lib/assistant/cycle";
 import { assistantEvalCases, getAssistantEvalCase } from "@/lib/assistant/evals";
 import { buildNarrationPrompt, buildPlanPrompt } from "@/lib/assistant/prompt";
 import {
@@ -87,6 +93,95 @@ function budgetData() {
   };
 }
 
+function dec(value: number) {
+  return {
+    toNumber: () => value,
+  };
+}
+
+function cycleData() {
+  return {
+    cycle: {
+      id: "cycle-1",
+      startDate: new Date("2026-06-15T00:00:00.000Z"),
+      endDate: new Date("2026-06-28T00:00:00.000Z"),
+      incomeReceived: dec(2500),
+      fixedSavingsPull: dec(500),
+      sweptAmount: dec(250),
+      creditCardPaymentDate: new Date("2026-06-25T00:00:00.000Z"),
+      notes: null,
+    },
+    daysRemaining: 10,
+    committed: [
+      {
+        id: "rent",
+        name: "Rent",
+        amount: dec(1200),
+        accrualPerCycle: dec(600),
+        frequency: "monthly",
+        status: "accrued",
+        settled: false,
+        dueDate: new Date("2026-06-15T00:00:00.000Z"),
+        settledMethod: null,
+        matchedTransactionId: null,
+        hasPattern: true,
+      },
+      {
+        id: "internet",
+        name: "Internet",
+        amount: dec(80),
+        accrualPerCycle: dec(40),
+        frequency: "monthly",
+        status: "upcoming",
+        settled: false,
+        dueDate: new Date("2026-06-26T00:00:00.000Z"),
+        settledMethod: null,
+        matchedTransactionId: null,
+        hasPattern: false,
+      },
+    ],
+    committedTotalAccrued: dec(640),
+    spentSoFar: dec(725.5),
+    pendingSum: dec(44.25),
+    pendingCount: 2,
+    lastCycleCarryover: dec(100),
+    chequingBalance: dec(1800),
+    creditCardBalance: dec(300),
+    sweepBuffer: dec(100),
+    safeToSweep: {
+      amount: dec(715.75),
+      rawAmount: dec(715.75),
+      overCommitted: false,
+      components: {
+        chequingBalance: dec(1800),
+        pendingExpenses: dec(44.25),
+        unsettledAccruals: dec(640),
+        creditCardBalance: dec(300),
+        sweepBuffer: dec(100),
+      },
+    },
+    settingsConfigured: true,
+    breakdown: {
+      rows: [
+        {
+          category: "Food And Drink",
+          color: "var(--cat-1)",
+          amount: 450,
+          pct: 62.03,
+          delta: 50,
+          prevAmount: 400,
+          prevPct: 50,
+        },
+      ],
+      total: 725.5,
+      previousTotal: 800,
+      discretionarySpent: 725.5,
+      discretionaryBudget: 1330,
+      discretionaryRemaining: 604.5,
+    },
+  };
+}
+
 describe("assistant eval catalog", () => {
   it("has unique ids and valid gold planner outputs", () => {
     const ids = new Set<string>();
@@ -130,6 +225,7 @@ describe("assistant eval evidence packets", () => {
     prismaMock.tenant.findUnique.mockReset();
     prismaMock.plaidTransaction.findMany.mockReset();
     getBudgetGoalDataMock.mockReset();
+    getCurrentCycleDataMock.mockReset();
   });
 
   it("produces the expected top merchant aggregate packet", async () => {
@@ -252,6 +348,22 @@ describe("assistant eval evidence packets", () => {
     expect(block).toContain("budget caps");
     expect(block).toContain("remaining daily room");
     expect(block).toContain("Shops");
+  });
+
+  it("produces the expected pay-cycle status packet", async () => {
+    const item = getAssistantEvalCase("cycle-safe-to-sweep");
+    getCurrentCycleDataMock.mockResolvedValue(cycleData());
+
+    const result = await fetchCycleStatus("tenant-1", new Date("2026-06-19T12:00:00.000Z"));
+    const block = serializeCycleStatus(result, "CAD");
+
+    expect(item.expectedPlan.intent).toBe("cycle_status");
+    expect(result?.safeToSweep.amount).toBe(715.75);
+    expect(result?.committed.unsettledCount).toBe(2);
+    expect(block).toContain("PAY CYCLE STATUS");
+    expect(block).toContain("Safe to sweep: suggested CAD 715.75");
+    expect(block).toContain("Committed expenses");
+    expect(block).toContain("daily room CAD 60.45/day");
   });
 
   it("keeps retained proof evidence available for challenge turns", () => {

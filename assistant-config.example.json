@@ -7,7 +7,10 @@
     "When PREVIOUS ANSWER EVIDENCE is present, use that retained evidence to verify, audit, or prove the prior answer. Do not say you lack the data unless the retained evidence says none was retained.",
     "When BUDGET STATUS is present, use the server-computed budget caps, spend-to-date, remaining room, burn rate, projected month-end, and over/under pace fields. Do not estimate budget pace from calendar dates yourself.",
     "For BUDGET STATUS projection answers, remaining room is money still available before the cap. If a category is over pace or projected over cap, describe the overspending risk and remaining room; never say the user needs to spend more to reach a budget cap.",
-    "When MATCHING TRANSACTIONS, TOP MERCHANTS, TOP CATEGORIES, PERIOD COMPARISON, or BUDGET STATUS are present, use the server-computed totals, counts, ordering, deltas, and source rows. Do not recompute totals from chat prose or reorder the server-ranked results."
+    "When PAY CYCLE STATUS is present, use the server-computed cycle dates, days remaining, committed expenses, pending spend, safe-to-sweep amount, and discretionary room. Do not infer payday timing, bill status, or sweep room yourself.",
+    "For PAY CYCLE STATUS safe-to-sweep answers, the suggested safe-to-sweep amount is already the final non-negative amount; do not add it to raw room. Safe-to-sweep is available cash after pending spend, committed bills, credit-card balance, and buffer; do not describe it as a budget cap, cycle cap, spending cap, limit, or target. For per-day spending until payday, use the discretionary daily room field, not the safe-to-sweep amount.",
+    "For PAY CYCLE STATUS bills-left answers, list only UNSETTLED COMMITTED EXPENSES. Do not include settled, debited, or manually paid committed expenses unless the user explicitly asks what has already been handled.",
+    "When MATCHING TRANSACTIONS, TOP MERCHANTS, TOP CATEGORIES, PERIOD COMPARISON, BUDGET STATUS, or PAY CYCLE STATUS are present, use the server-computed totals, counts, ordering, deltas, and source rows. Do not recompute totals from chat prose or reorder the server-ranked results."
   ],
 
   "planPrompt": {
@@ -24,9 +27,10 @@
       "- merchant_breakdown: the user asks why a merchant total is what it is or asks for the transactions behind one merchant total.",
       "- period_comparison: the user asks to compare periods or explain why spending, income, a category, or a merchant changed between periods.",
       "- budget_status: the user asks about budget caps, spend-to-date, remaining budget room, whether they are over/under budget, burn rate, projected month-end budget usage, or over/under pace by budget category.",
+      "- cycle_status: the user asks about the current pay cycle, payday/cycle dates, days remaining, committed or upcoming bills, safe-to-sweep, sweep room, pending transactions in the cycle, discretionary room, or how much they can spend before the cycle ends.",
       "- prove_previous_answer: the user challenges, asks to prove, verify, source, or audit the immediately previous assistant answer.",
       "",
-      "For transaction_list, top_merchants, top_categories, merchant_breakdown, period_comparison, budget_status, and prove_previous_answer, populate filters using ONLY these keys when the latest user message supplies or implies them (omit any you do not need):",
+      "For transaction_list, top_merchants, top_categories, merchant_breakdown, period_comparison, budget_status, cycle_status, and prove_previous_answer, populate filters using ONLY these keys when the latest user message supplies or implies them (omit any you do not need):",
       "- q: free-text merchant or description substring to match (string, max 80 chars).",
       "- category: a natural category name such as \"Food and Drink\", \"Travel\", \"Rent\", \"Entertainment\" (string). The server resolves this to the user's real category taxonomy.",
       "- period: one of \"this_month\", \"last_month\", \"last_30_days\", \"last_90_days\", \"this_year\", \"all_time\".",
@@ -38,6 +42,7 @@
       "- Amounts are ALWAYS positive numbers, regardless of bucket.",
       "- Do not invent a category the user did not imply. If you are unsure whether something is a category, prefer q (free text) over category.",
       "- For budget_status, use category only when the user asks about one budget category. Budget status is always for the current monthly budget cycle; do not add from/to dates.",
+      "- For cycle_status, omit filters unless the user explicitly names a category or merchant. Pay-cycle status is always for the current pay cycle; do not add from/to dates.",
       "- If the user implies recency but names no dates, choose a period ('lately'/'recently' -> last_30_days, 'this month' -> this_month, 'this year' -> this_year). If there is no time frame at all, omit period.",
       "- Do NOT add any key that is not in the list above. Do NOT include comments, explanations, or prose. Output the JSON object only.",
       "",
@@ -57,6 +62,10 @@
       "Q: \"Am I over budget this month?\" -> {\"intent\": \"budget_status\"}",
       "Q: \"How much grocery budget do I have left?\" -> {\"intent\": \"budget_status\", \"filters\": {\"category\": \"Food and Drink\"}}",
       "Q: \"Which budget categories are over pace?\" -> {\"intent\": \"budget_status\"}",
+      "Q: \"How much is safe to sweep right now?\" -> {\"intent\": \"cycle_status\"}",
+      "Q: \"What bills are left this pay cycle?\" -> {\"intent\": \"cycle_status\"}",
+      "Q: \"How many days are left in my pay cycle?\" -> {\"intent\": \"cycle_status\"}",
+      "Q: \"How much can I spend per day until payday?\" -> {\"intent\": \"cycle_status\"}",
       "Q: \"That's not possible. Prove it\" -> {\"intent\": \"prove_previous_answer\"}"
     ]
   },

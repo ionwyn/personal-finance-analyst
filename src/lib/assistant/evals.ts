@@ -11,6 +11,7 @@ export type AssistantEvalCase = {
     | "top_categories"
     | "period_comparison"
     | "budget_status"
+    | "cycle_status"
     | "previous_answer";
   priorEvidence?: string;
   groundingMustMention?: string[];
@@ -139,6 +140,32 @@ export const assistantEvalCases = [
     },
     evidenceKind: "budget_status",
     groundingMustMention: ["BUDGET STATUS", "remaining room"],
+  },
+  {
+    id: "cycle-safe-to-sweep",
+    prompt: "How much is safe to sweep right now?",
+    description:
+      "Safe-to-sweep questions should use current pay-cycle evidence, not budget evidence.",
+    expectedPlan: { intent: "cycle_status" },
+    evidenceKind: "cycle_status",
+    groundingMustMention: ["PAY CYCLE STATUS", "safe-to-sweep"],
+  },
+  {
+    id: "cycle-bills-left",
+    prompt: "What bills are left this pay cycle?",
+    description: "Committed-bill questions should use current pay-cycle evidence.",
+    expectedPlan: { intent: "cycle_status" },
+    evidenceKind: "cycle_status",
+    groundingMustMention: ["PAY CYCLE STATUS", "committed expenses"],
+  },
+  {
+    id: "cycle-daily-room",
+    prompt: "How much can I spend per day until payday?",
+    description:
+      "Daily room before payday should use server-computed pay-cycle discretionary room.",
+    expectedPlan: { intent: "cycle_status" },
+    evidenceKind: "cycle_status",
+    groundingMustMention: ["PAY CYCLE STATUS", "discretionary room"],
   },
   {
     id: "prove-prior-answer",

@@ -65,6 +65,45 @@ const DEFAULT_CASES: LiveEvalCase[] = [
     answerMustNotInclude: ["don't have", "do not have", "lack the data", "need to spend"],
   },
   {
+    id: "cycle-safe-to-sweep",
+    prompt: "How much is safe to sweep right now?",
+    expectedIntent: "cycle_status",
+    expectedEvidence: "PAY CYCLE STATUS",
+    answerMustInclude: ["CAD"],
+    answerMustNotInclude: [
+      "don't have",
+      "do not have",
+      "lack the data",
+      "plus this amount",
+      "budget cap",
+      "cycle cap",
+      "spending cap",
+      "cap",
+    ],
+  },
+  {
+    id: "cycle-bills-left",
+    prompt: "What bills are left this pay cycle?",
+    expectedIntent: "cycle_status",
+    expectedEvidence: "UNSETTLED COMMITTED EXPENSES",
+    answerMustInclude: ["bill"],
+    answerMustNotInclude: ["don't have", "do not have", "lack the data", "already paid"],
+  },
+  {
+    id: "cycle-daily-room",
+    prompt: "How much can I spend per day until payday?",
+    expectedIntent: "cycle_status",
+    expectedEvidence: "daily room",
+    answerMustInclude: ["CAD"],
+    answerMustNotInclude: [
+      "don't have",
+      "do not have",
+      "lack the data",
+      "safe-to-sweep",
+      "we can divide",
+    ],
+  },
+  {
     id: "top-merchants-control",
     prompt: "What are my top merchants this month?",
     expectedIntent: "top_merchants",
@@ -162,7 +201,9 @@ async function main() {
 
   const cases = hasFlag("budget-only")
     ? DEFAULT_CASES.filter((item) => item.expectedIntent === "budget_status")
-    : DEFAULT_CASES;
+    : hasFlag("cycle-only")
+      ? DEFAULT_CASES.filter((item) => item.expectedIntent === "cycle_status")
+      : DEFAULT_CASES;
   const started = Date.now();
   const results: CaseResult[] = [];
 

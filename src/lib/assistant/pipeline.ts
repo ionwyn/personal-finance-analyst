@@ -1,5 +1,6 @@
 import { buildFinancialContext } from "@/lib/assistant/context";
 import { fetchBudgetStatus, serializeBudgetStatus } from "@/lib/assistant/budget";
+import { fetchCycleStatus, serializeCycleStatus } from "@/lib/assistant/cycle";
 import {
   chatJSON,
   type ChatMessage,
@@ -85,6 +86,14 @@ async function fetchEvidenceForPlan(input: {
     return {
       evidence: serializeBudgetStatus(result, input.currency),
       evidenceKind: "budget_status",
+    };
+  }
+
+  if (input.plan.intent === "cycle_status") {
+    const result = await fetchCycleStatus(input.tenantId);
+    return {
+      evidence: serializeCycleStatus(result, input.currency),
+      evidenceKind: "cycle_status",
     };
   }
 

@@ -82,6 +82,10 @@ describe("assistant plan schema", () => {
     });
   });
 
+  it("accepts pay-cycle status plans", () => {
+    expect(planSchema.parse({ intent: "cycle_status" })).toEqual({ intent: "cycle_status" });
+  });
+
   it("strips unknown filter fields rather than passing them through", () => {
     const parsed = filtersSchema.parse({ q: "amazon", accountId: "secret", removed: false });
     expect(parsed).toEqual({ q: "amazon" });
