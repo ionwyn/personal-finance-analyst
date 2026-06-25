@@ -23,6 +23,8 @@ import {
   Wallet,
 } from "lucide-react";
 
+import { useMounted } from "@/lib/use-mounted";
+
 import styles from "./app-shell.module.scss";
 
 const COLLAPSED_KEY = "sidebar-collapsed";
@@ -53,14 +55,21 @@ type NavSection = {
 export function Sidebar({ mode, user }: { mode: "private" | "demo"; user?: SidebarUser }) {
   const pathname = usePathname() ?? "/";
   const router = useRouter();
+  const mounted = useMounted();
+  // Lazily read the stored preference so a returning user's choice is known on
+  // the client without an extra render. It is only *applied* once mounted (via
+  // `collapsedView` below), so the server and first client render always agree
+  // and there is no hydration mismatch.
   const [collapsed, setCollapsed] = useState(
     () => typeof window !== "undefined" && localStorage.getItem(COLLAPSED_KEY) === "1"
   );
+  const collapsedView = mounted && collapsed;
 
   useEffect(() => {
+    if (!mounted) return;
     document.documentElement.style.setProperty("--sidebar-w", collapsed ? COLLAPSED_W : "");
     localStorage.setItem(COLLAPSED_KEY, collapsed ? "1" : "0");
-  }, [collapsed]);
+  }, [mounted, collapsed]);
 
   const workspace: NavItem[] = [
     {
@@ -212,12 +221,12 @@ export function Sidebar({ mode, user }: { mode: "private" | "demo"; user?: Sideb
     >
       <span className={styles.navIcon}>{item.icon}</span>
       <span className={styles.navLabel}>{item.label}</span>
-      {!collapsed && item.kbd ? <span className={styles.navKbd}>{item.kbd}</span> : null}
+      {!collapsedView && item.kbd ? <span className={styles.navKbd}>{item.kbd}</span> : null}
     </Link>
   );
 
   return (
-    <aside className={clsx(styles.sidebar, collapsed && styles.collapsed)}>
+    <aside className={clsx(styles.sidebar, collapsedView && styles.collapsed)}>
       <div className={styles.brand}>
         <div className={styles.brandMark}>WYN</div>
         <div className={styles.brandName}>WYN Financial Ltd.</div>
@@ -225,10 +234,10 @@ export function Sidebar({ mode, user }: { mode: "private" | "demo"; user?: Sideb
           className={styles.collapseBtn}
           onClick={() => setCollapsed((c) => !c)}
           type="button"
-          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-          title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          aria-label={collapsedView ? "Expand sidebar" : "Collapse sidebar"}
+          title={collapsedView ? "Expand sidebar" : "Collapse sidebar"}
         >
-          {collapsed ? <ChevronRight size={12} /> : <ChevronLeft size={12} />}
+          {collapsedView ? <ChevronRight size={12} /> : <ChevronLeft size={12} />}
         </button>
       </div>
 
