@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { normalizeMerchant } from "@/lib/cycles/discovery";
+import { normalizeMerchant } from "@/lib/cycles/utils";
 
 describe("normalizeMerchant", () => {
   it("uppercases and trims", () => {

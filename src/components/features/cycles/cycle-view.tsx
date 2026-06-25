@@ -9,7 +9,7 @@ import { SweepPrompt } from "@/components/features/cycles/sweep-prompt";
 import { PageHeader } from "@/components/ui";
 import { formatMoney, formatUtcDate } from "@/lib/format";
 import type { CurrentCycleData } from "@/lib/cycles/getCurrentCycle";
-import type { DiscoveryCandidate } from "@/lib/cycles/discovery";
+import type { DiscoveryCandidate } from "@/lib/cycles/utils";
 
 function toNumber(value: { toString(): string } | null | undefined): number {
   if (value == null) return 0;
@@ -64,6 +64,7 @@ export function CycleView({
     dueDateMs: c.dueDate ? c.dueDate.getTime() : null,
     settledMethod: c.settledMethod,
     hasPattern: c.hasPattern,
+    plaidSuggestion: c.plaidSuggestion,
   }));
   const unsettledAccrualTotal = committed
     .filter((c) => !c.settled)

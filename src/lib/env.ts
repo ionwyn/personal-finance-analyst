@@ -21,6 +21,16 @@ export function getPlaidEnv() {
   return plaidEnvSchema.parse(process.env.PLAID_ENV ?? "sandbox");
 }
 
+/**
+ * Cost kill-switch for the Plaid Recurring Transactions fetch. Defaults ON; set
+ * `ENABLE_PLAID_RECURRING=false` to stop every live recurring call (cost → 0)
+ * without a redeploy. The daily fetch gate already bounds the spend; this is the
+ * hard off-switch.
+ */
+export function isPlaidRecurringEnabled(): boolean {
+  return process.env.ENABLE_PLAID_RECURRING !== "false";
+}
+
 export type DeploymentMode = "private" | "demo";
 
 /**

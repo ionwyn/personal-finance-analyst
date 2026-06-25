@@ -74,6 +74,7 @@ model Tenant {
   users                 User[]
   plaidItems            PlaidItem[]
   plaidAccounts         PlaidAccount[]
+  plaidRecurringStreams PlaidRecurringStream[]
   transactions          PlaidTransaction[]
   balanceSnapshots      BalanceSnapshot[]
   syncRuns              SyncRun[]
@@ -173,16 +174,18 @@ model PlaidItem {
   status               PlaidItemStatus @default(IDLE)
   lastSyncAt           DateTime?
   lastBalanceRefreshAt DateTime?
+  lastRecurringFetchAt DateTime?
   errorCode            String?
   errorMessage         String?         @db.Text
   createdAt            DateTime        @default(now())
   updatedAt            DateTime        @updatedAt
 
-  tenant       Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  createdBy    User?              @relation(fields: [createdById], references: [id], onDelete: SetNull)
-  accounts     PlaidAccount[]
-  transactions PlaidTransaction[]
-  syncRuns     SyncRun[]
+  tenant           Tenant                 @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdBy        User?                  @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  accounts         PlaidAccount[]
+  transactions     PlaidTransaction[]
+  syncRuns         SyncRun[]
+  recurringStreams PlaidRecurringStream[]
 
   @@index([tenantId])
   @@index([status])
@@ -748,6 +751,10 @@ model RecurringExpense {
   confirmed       Boolean   @default(false)
   active          Boolean   @default(true)
   dismissedAt     DateTime?
+  // The Plaid recurring stream this expense was confirmed/dismissed from, when
+  // detection came from Plaid. Drives the "suggest, don't apply" anchorDate /
+  // amount nudges and prevents a confirmed/dismissed stream from resurfacing.
+  plaidStreamId   String?
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
@@ -755,6 +762,43 @@ model RecurringExpense {
   settlements CommittedSettlement[]
 
   @@index([tenantId, active])
+  @@index([plaidStreamId])
+}
+
+// Local cache of Plaid's Recurring Transactions streams (/transactions/recurring/get).
+// Refreshed at most once/day per item during sync (gated by PlaidItem.lastRecurringFetchAt)
+// so the cost-bearing Plaid call never sits on a page-render path. Read on render to
+// build discovery candidates (Plan A) and to compute due-date / amount suggestions for
+// linked RecurringExpense rows (Plan C). Rows are global to the item but tenant-scoped
+// for query safety. `raw` preserves the original Plaid stream (mirrors PlaidTransaction).
+model PlaidRecurringStream {
+  id                String   @id @default(cuid())
+  tenantId          String
+  itemId            String
+  accountId         String?
+  streamId          String   @unique
+  direction         String // outflow | inflow
+  merchantName      String?
+  description       String?
+  frequencyRaw      String // Plaid enum: WEEKLY | BIWEEKLY | SEMI_MONTHLY | MONTHLY | ANNUALLY | UNKNOWN
+  frequency         String? // mapped local frequency; null when unmappable (UNKNOWN)
+  averageAmount     Decimal  @db.Decimal(18, 2)
+  lastAmount        Decimal  @db.Decimal(18, 2)
+  lastDate          DateTime?
+  predictedNextDate DateTime?
+  isActive          Boolean
+  status            String // Plaid enum: MATURE | EARLY_DETECTION | TOMBSTONED | UNKNOWN
+  isUserModified    Boolean  @default(false)
+  raw               Json
+  fetchedAt         DateTime @default(now())
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  tenant Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  item   PlaidItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, direction, isActive])
+  @@index([itemId])
 }
 
 // A per-cycle record that a RecurringExpense has been settled. Persists what the

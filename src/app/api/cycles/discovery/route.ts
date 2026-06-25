@@ -4,7 +4,8 @@ import { z } from "zod";
 import { parseJson, requireUserTenant } from "@/lib/http";
 import { validateRequestOrigin } from "@/lib/origin";
 import { prisma } from "@/lib/prisma";
-import { discoverRecurringCandidates, normalizeMerchant } from "@/lib/cycles/discovery";
+import { normalizeMerchant } from "@/lib/cycles/utils";
+import { getRecurringCandidates } from "@/lib/cycles/recurring-candidates";
 import { computeAccrualPerCycle } from "@/lib/cycles/accrual";
 import { FREQUENCIES } from "@/lib/cycles/types";
 
@@ -12,7 +13,7 @@ export async function GET() {
   const auth = await requireUserTenant();
   if ("error" in auth) return auth.error;
 
-  const candidates = await discoverRecurringCandidates(auth.tenant.id);
+  const candidates = await getRecurringCandidates(auth.tenant.id);
   return NextResponse.json({ candidates });
 }
 
@@ -22,6 +23,10 @@ const confirmSchema = z.object({
   amount: z.number().positive(),
   frequency: z.enum(FREQUENCIES),
   merchantPattern: z.string().min(1),
+  // Plaid linkage (Plan A/C): when the candidate came from a Plaid stream, store
+  // the stream id and prefill anchorDate from its predicted next-payment date.
+  plaidStreamId: z.string().min(1).optional(),
+  anchorDate: z.number().int().min(1).max(31).nullable().optional(),
 });
 
 export async function POST(request: Request) {
@@ -45,10 +50,11 @@ export async function POST(request: Request) {
       merchantPattern: pattern,
       amount: body.amount,
       frequency: body.frequency,
-      anchorDate: null,
+      anchorDate: body.anchorDate ?? null,
       accrualPerCycle,
       confirmed: true,
       active: true,
+      plaidStreamId: body.plaidStreamId ?? null,
     },
   });
 
@@ -61,6 +67,8 @@ const dismissSchema = z.object({
   merchantPattern: z.string().min(1),
   amount: z.number().nonnegative(),
   frequency: z.enum(FREQUENCIES),
+  // Persist on the tombstone so a dismissed Plaid stream never resurfaces.
+  plaidStreamId: z.string().min(1).optional(),
 });
 
 export async function DELETE(request: Request) {
@@ -87,6 +95,7 @@ export async function DELETE(request: Request) {
       confirmed: false,
       active: false,
       dismissedAt: new Date(),
+      plaidStreamId: body.plaidStreamId ?? null,
     },
   });
 

@@ -13,7 +13,8 @@ import {
 } from "@/lib/plaid/errors";
 import { normalizeTransaction, summarizeTransactionChanges } from "@/lib/plaid/normalize";
 import { refreshAccountsForItem, refreshBalancesForItem } from "@/lib/plaid/accounts";
-import { getPlaidEnv } from "@/lib/env";
+import { fetchAndStoreRecurring, shouldFetchRecurring } from "@/lib/plaid/recurring";
+import { getPlaidEnv, isPlaidRecurringEnabled } from "@/lib/env";
 import { classifyTransaction, type ClassifyContext } from "@/lib/cycles/classify";
 import { loadClassifyContext } from "@/lib/cycles/context";
 import { ensureCycleForDate } from "@/lib/cycles/generate";
@@ -463,6 +464,17 @@ async function syncAllPlaidItemsForTenant(tenantId: string, source: SyncSource) 
       })
     ) {
       await refreshBalancesForItem(item.id);
+    }
+    // Recurring streams: cost-gated to ~once/day per item (and behind a kill-switch).
+    // Non-fatal — fetchAndStoreRecurring never throws.
+    if (
+      isPlaidRecurringEnabled() &&
+      shouldFetchRecurring({
+        tenantKind: item.tenant.kind,
+        lastRecurringFetchAt: item.lastRecurringFetchAt,
+      })
+    ) {
+      await fetchAndStoreRecurring(item.id);
     }
     results.push(syncRun);
   }

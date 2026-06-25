@@ -6,7 +6,8 @@ import { Check, Sparkles, X } from "lucide-react";
 
 import { formatMoney } from "@/lib/format";
 import { Button, IconButton } from "@/components/ui";
-import type { DiscoveryCandidate } from "@/lib/cycles/discovery";
+import type { DiscoveryCandidate } from "@/lib/cycles/utils";
+import { RECURRING_DEBUG } from "@/lib/cycles/recurring-debug";
 
 export function DiscoveryPanel({ candidates }: { candidates: DiscoveryCandidate[] }) {
   const router = useRouter();
@@ -16,6 +17,11 @@ export function DiscoveryPanel({ candidates }: { candidates: DiscoveryCandidate[
   const [error, setError] = useState<string | null>(null);
 
   if (candidates.length === 0) return null;
+
+  // DEBUG:recurring remove after rollout — source/fallback summary for the strip.
+  const plaidCount = candidates.filter((c) => c.source === "plaid").length;
+  const sourceLabel = plaidCount > 0 ? "plaid" : "local";
+  const fallbackOn = plaidCount === 0;
 
   async function confirm(c: DiscoveryCandidate) {
     setBusyKey(c.key);
@@ -29,7 +35,9 @@ export function DiscoveryPanel({ candidates }: { candidates: DiscoveryCandidate[
           name: c.suggestedName,
           amount: c.medianAmount,
           frequency: c.frequency,
-          merchantPattern: c.key,
+          merchantPattern: c.merchantPattern ?? c.key,
+          plaidStreamId: c.plaidStreamId,
+          anchorDate: c.anchorDate ?? undefined,
         }),
       });
       if (!res.ok) throw new Error((await res.json()).error ?? "Failed to confirm");
@@ -53,7 +61,8 @@ export function DiscoveryPanel({ candidates }: { candidates: DiscoveryCandidate[
           name: c.suggestedName,
           amount: c.medianAmount,
           frequency: c.frequency,
-          merchantPattern: c.key,
+          merchantPattern: c.merchantPattern ?? c.key,
+          plaidStreamId: c.plaidStreamId,
         }),
       });
       if (!res.ok) throw new Error((await res.json()).error ?? "Failed to dismiss");
@@ -81,6 +90,22 @@ export function DiscoveryPanel({ candidates }: { candidates: DiscoveryCandidate[
           {error ? (
             <div style={{ padding: "8px 14px", color: "var(--neg)", fontSize: 12 }}>{error}</div>
           ) : null}
+          {/* DEBUG:recurring remove after rollout */}
+          {RECURRING_DEBUG ? (
+            <div
+              style={{
+                padding: "6px 14px",
+                fontFamily: "var(--font-mono)",
+                fontSize: 10,
+                color: "var(--text-4)",
+                background: "var(--bg-2, rgba(0,0,0,0.03))",
+                borderBottom: "1px dashed var(--border)",
+              }}
+            >
+              [DEBUG:recurring] source={sourceLabel} · candidates={candidates.length} · plaid=
+              {plaidCount} · fallback={fallbackOn ? "on" : "off"}
+            </div>
+          ) : null}
           <table className="table" style={{ width: "100%" }}>
             <thead>
               <tr>
@@ -97,7 +122,48 @@ export function DiscoveryPanel({ candidates }: { candidates: DiscoveryCandidate[
                 const isBusy = busyKey === c.key || pending;
                 return (
                   <tr key={c.key}>
-                    <td>{c.suggestedName}</td>
+                    <td>
+                      <div>{c.suggestedName}</div>
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 6,
+                          marginTop: 2,
+                          fontSize: 10,
+                        }}
+                      >
+                        {c.source === "plaid" ? (
+                          <span style={{ color: "var(--accent)" }}>
+                            Plaid
+                            {c.plaidStatus === "EARLY_DETECTION" ? " · early" : ""}
+                          </span>
+                        ) : (
+                          <span style={{ color: "var(--text-4)" }}>Local</span>
+                        )}
+                        {(c.localOccurrences ?? 0) > 0 ? (
+                          <span style={{ color: "var(--text-4)" }}>
+                            · seen {c.localOccurrences}× in your data
+                          </span>
+                        ) : null}
+                      </div>
+                      {/* DEBUG:recurring remove after rollout */}
+                      {RECURRING_DEBUG && c.source === "plaid" ? (
+                        <div
+                          style={{
+                            fontFamily: "var(--font-mono)",
+                            fontSize: 9,
+                            color: "var(--text-4)",
+                            marginTop: 2,
+                          }}
+                        >
+                          stream={c.plaidStreamId?.slice(-8)} · {c.plaidStatus} · freqRaw=
+                          {c.frequencyRaw} · next=
+                          {c.predictedNextDate ? c.predictedNextDate.slice(0, 10) : "—"} · local=
+                          {c.localOccurrences ?? 0}×
+                        </div>
+                      ) : null}
+                    </td>
                     <td style={{ color: "var(--text-3)", fontSize: 11 }}>
                       {c.frequency}{" "}
                       <span style={{ color: "var(--text-4)" }}>· ~{c.medianIntervalDays}d</span>

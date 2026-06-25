@@ -30,6 +30,17 @@ export type CommittedItem = {
   matchedTransactionId: string | null;
   /** Whether an auto-match merchantPattern is already configured (drives the rule nudge). */
   hasPattern: boolean;
+  /**
+   * Live Plaid-derived suggestions for a linked stream (suggest, don't auto-apply).
+   * Present only when the stream's predicted next date / average amount diverges
+   * from the stored expense. The UI surfaces these as "Apply" nudges.
+   */
+  plaidSuggestion?: {
+    /** Day-of-month from Plaid's predicted next date, when it differs from anchorDate. */
+    anchorDay?: number;
+    /** Plaid's average amount, when it differs from the stored amount. */
+    amount?: number;
+  };
 };
 
 export type CurrentCycleData = {
@@ -146,8 +157,22 @@ export async function getCurrentCycleData(
       accrualPerCycle: true,
       frequency: true,
       anchorDate: true,
+      plaidStreamId: true,
     },
   });
+
+  // Linked Plaid streams for the "suggest, don't auto-apply" nudges (Plan C).
+  // Read-only join against the locally-cached streams — no Plaid call here.
+  const linkedStreamIds = recurring
+    .map((r) => r.plaidStreamId)
+    .filter((id): id is string => Boolean(id));
+  const streamRows = linkedStreamIds.length
+    ? await prisma.plaidRecurringStream.findMany({
+        where: { tenantId, streamId: { in: linkedStreamIds } },
+        select: { streamId: true, predictedNextDate: true, averageAmount: true },
+      })
+    : [];
+  const streamByStreamId = new Map(streamRows.map((s) => [s.streamId, s]));
 
   // Broader than SPENDING_FILTER: loan payments (e.g. Affirm BNPL) are excluded
   // from spending stats but must still be matchable as committed expenses.
@@ -178,6 +203,25 @@ export async function getCurrentCycleData(
     const hasPattern = Boolean(rec.merchantPattern);
     const manual = settlementByExpense.get(rec.id);
 
+    // Plan C: compute live divergence between the stored expense and its linked
+    // Plaid stream. Surfaced as an "Apply" nudge — never auto-applied.
+    const linkedStream = rec.plaidStreamId ? streamByStreamId.get(rec.plaidStreamId) : undefined;
+    let plaidSuggestion: { anchorDay?: number; amount?: number } | undefined;
+    if (linkedStream) {
+      const suggestion: { anchorDay?: number; amount?: number } = {};
+      if (linkedStream.predictedNextDate) {
+        const day = linkedStream.predictedNextDate.getUTCDate();
+        if (day !== rec.anchorDate) suggestion.anchorDay = day;
+      }
+      const streamAmt = Number(linkedStream.averageAmount.toString());
+      if (streamAmt > 0 && Math.abs(streamAmt - Number(rec.amount.toString())) >= 0.01) {
+        suggestion.amount = Math.round(streamAmt * 100) / 100;
+      }
+      if (suggestion.anchorDay !== undefined || suggestion.amount !== undefined) {
+        plaidSuggestion = suggestion;
+      }
+    }
+
     // A manual settlement always wins: the user has asserted this is handled.
     if (manual) {
       return {
@@ -192,6 +236,7 @@ export async function getCurrentCycleData(
         settledMethod: manual.method,
         matchedTransactionId: manual.transactionId,
         hasPattern,
+        ...(plaidSuggestion ? { plaidSuggestion } : {}),
       };
     }
 
@@ -222,6 +267,7 @@ export async function getCurrentCycleData(
       settledMethod: null,
       matchedTransactionId: matched?.id ?? null,
       hasPattern,
+      ...(plaidSuggestion ? { plaidSuggestion } : {}),
     };
   });
 

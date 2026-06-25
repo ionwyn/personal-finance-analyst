@@ -1,6 +1,6 @@
 import { CycleView } from "@/components/features/cycles/cycle-view";
 import { getCurrentCycleData } from "@/lib/cycles/getCurrentCycle";
-import { discoverRecurringCandidates } from "@/lib/cycles/discovery";
+import { getRecurringCandidates } from "@/lib/cycles/recurring-candidates";
 import { getSessionTenant } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
@@ -18,7 +18,7 @@ export default async function CyclesPage() {
 
   const [data, discoveryCandidates] = await Promise.all([
     getCurrentCycleData(tenantId),
-    discoverRecurringCandidates(tenantId),
+    getRecurringCandidates(tenantId),
   ]);
 
   return (

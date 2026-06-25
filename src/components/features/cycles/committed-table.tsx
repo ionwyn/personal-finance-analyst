@@ -2,10 +2,11 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { CheckCircle2, Clock, Hourglass, X } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Clock, Hourglass, X } from "lucide-react";
 
 import { formatMoney, formatUtcDate } from "@/lib/format";
 import type { CommittedStatus } from "@/lib/cycles/getCurrentCycle";
+import { RECURRING_DEBUG } from "@/lib/cycles/recurring-debug";
 
 /** Plain, serializable shape for the client boundary (no Prisma.Decimal / Date). */
 export type CommittedRow = {
@@ -20,6 +21,8 @@ export type CommittedRow = {
   settledMethod: string | null;
   /** Whether this expense already has an auto-match pattern (hides the rule nudge). */
   hasPattern: boolean;
+  /** Plaid "suggest, don't apply" divergence for a linked stream (Plan C). */
+  plaidSuggestion?: { anchorDay?: number; amount?: number };
 };
 
 type Candidate = {
@@ -190,6 +193,29 @@ export function CommittedTable({ rows }: { rows: CommittedRow[] }) {
     }
   }
 
+  // Plan C: apply a Plaid suggestion. Reuses the existing recurring-expenses PATCH
+  // route, which recomputes accrualPerCycle when amount/frequency changes.
+  async function applySuggestion(
+    recurringExpenseId: string,
+    patch: { anchorDate?: number; amount?: number }
+  ) {
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/settings/recurring-expenses/${recurringExpenseId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(patch),
+      });
+      if (!res.ok) throw new Error("Failed to apply");
+      router.refresh();
+    } catch {
+      setError("Couldn't apply Plaid's suggestion. Try again.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
     <table className="table" style={{ width: "100%" }}>
       <thead>
@@ -222,6 +248,7 @@ export function CommittedTable({ rows }: { rows: CommittedRow[] }) {
               onUndo={() => undo(row.id)}
               onSaveRule={(pattern) => saveRule(row.id, pattern)}
               onDismissNudge={close}
+              onApplySuggestion={(patch) => applySuggestion(row.id, patch)}
             />
           );
         })}
@@ -244,6 +271,7 @@ function FragmentRow({
   onUndo,
   onSaveRule,
   onDismissNudge,
+  onApplySuggestion,
 }: {
   row: CommittedRow;
   open: boolean;
@@ -258,11 +286,21 @@ function FragmentRow({
   onUndo: () => void;
   onSaveRule: (pattern: string) => void;
   onDismissNudge: () => void;
+  onApplySuggestion: (patch: { anchorDate?: number; amount?: number }) => void;
 }) {
   return (
     <>
       <tr>
-        <td>{row.name}</td>
+        <td>
+          {row.name}
+          {row.plaidSuggestion ? (
+            <PlaidSuggestionNudge
+              suggestion={row.plaidSuggestion}
+              busy={busy}
+              onApply={onApplySuggestion}
+            />
+          ) : null}
+        </td>
         <td style={{ color: "var(--text-3)", fontSize: 11 }}>{row.frequency}</td>
         <td>
           <StatusBadge row={row} />
@@ -485,6 +523,85 @@ function RuleNudge({
       {error ? (
         <div style={{ color: "var(--neg)", display: "flex", alignItems: "center", gap: 4 }}>
           <X size={12} /> {error}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function ordinal(n: number): string {
+  const s = ["th", "st", "nd", "rd"];
+  const v = n % 100;
+  return `${n}${s[(v - 20) % 10] ?? s[v] ?? s[0]}`;
+}
+
+/**
+ * Plan C "suggest, don't apply" nudge: shows when a linked Plaid stream's predicted
+ * due date or average amount diverges from the stored expense. Each Apply reuses the
+ * existing recurring-expenses PATCH route. Nothing changes until the user clicks.
+ */
+function PlaidSuggestionNudge({
+  suggestion,
+  busy,
+  onApply,
+}: {
+  suggestion: { anchorDay?: number; amount?: number };
+  busy: boolean;
+  onApply: (patch: { anchorDate?: number; amount?: number }) => void;
+}) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 4, marginTop: 4 }}>
+      {suggestion.anchorDay !== undefined ? (
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 6,
+            fontSize: 11,
+            color: "var(--info)",
+          }}
+        >
+          <AlertTriangle size={11} />
+          <span>Plaid predicts the {ordinal(suggestion.anchorDay)}</span>
+          <button
+            type="button"
+            className="btn btn-sm"
+            onClick={() => onApply({ anchorDate: suggestion.anchorDay })}
+            disabled={busy}
+            style={{ fontSize: 10, padding: "1px 8px" }}
+          >
+            Apply
+          </button>
+        </div>
+      ) : null}
+      {suggestion.amount !== undefined ? (
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 6,
+            fontSize: 11,
+            color: "var(--info)",
+          }}
+        >
+          <AlertTriangle size={11} />
+          <span>Plaid sees {formatMoney(suggestion.amount)}</span>
+          <button
+            type="button"
+            className="btn btn-sm"
+            onClick={() => onApply({ amount: suggestion.amount })}
+            disabled={busy}
+            style={{ fontSize: 10, padding: "1px 8px" }}
+          >
+            Apply
+          </button>
+        </div>
+      ) : null}
+      {/* DEBUG:recurring remove after rollout */}
+      {RECURRING_DEBUG ? (
+        <div style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "var(--text-4)" }}>
+          [DEBUG:recurring] suggest anchorDay={suggestion.anchorDay ?? "—"} amount=
+          {suggestion.amount ?? "—"}
         </div>
       ) : null}
     </div>
