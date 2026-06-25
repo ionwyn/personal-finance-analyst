@@ -94,13 +94,13 @@ export function serializeSavingsGoalStatus(
   result: SavingsGoalStatusResult,
   currency = "CAD"
 ): string {
-  const scope = result.scope ? ` matching "${result.scope}"` : "";
+  const scope = result.scope ? `matching "${result.scope}"` : "for all active goals";
   if (result.rows.length === 0) {
-    return `SAVINGS GOAL STATUS${scope}: none found. Active savings goals: ${result.totalGoals}.`;
+    return `SAVINGS GOAL STATUS ${scope}: none found. Active savings goals: ${result.totalGoals}.`;
   }
 
   const lines = [
-    `SAVINGS GOAL STATUS${scope} - server-computed savings-goal progress from tracked destinations or manual goal amounts:`,
+    `SAVINGS GOAL STATUS ${scope} - server-computed savings-goal progress from tracked destinations or manual goal amounts:`,
     `- As of ${result.asOf}; goals shown ${result.shownGoals} of ${result.totalGoals}; reached ${result.reachedCount}`,
     `- Totals shown: target ${money(result.totalTarget, currency)}; saved ${money(result.totalSaved, currency)}; remaining ${money(result.totalRemaining, currency)}`,
     "",

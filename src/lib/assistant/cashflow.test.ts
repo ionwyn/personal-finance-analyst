@@ -83,7 +83,7 @@ describe("assistant cashflow runway evidence", () => {
     });
     expect(result.runway.expenseCoverageMonths).toBe(1.67);
     expect(result.runway.netBurnCoverageMonths).toBeNull();
-    expect(result.currentCycle.discretionaryDailyRoom).toBe(50);
+    expect(result.currentCycle.discretionaryRemaining).toBe(250);
     expect(result.currentCycle.upcomingBills).toEqual([
       {
         name: "Rent",
@@ -96,7 +96,8 @@ describe("assistant cashflow runway evidence", () => {
 
     const block = serializeCashflowRunway(result, "CAD");
     expect(block).toContain("CASHFLOW RUNWAY STATUS");
-    expect(block).toContain("expense coverage 1.67 mo");
+    expect(block).toContain("expense coverage if income stopped 1.67 mo");
+    expect(block).toContain("not applicable because recent average net cashflow is non-negative");
     expect(block).toContain("UPCOMING / UNSETTLED BILLS THIS CYCLE");
     expect(block).toContain("Rent");
   });

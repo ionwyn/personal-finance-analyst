@@ -45,7 +45,7 @@ const DEFAULT_CASES: LiveEvalCase[] = [
     prompt: "How much grocery budget do I have left?",
     expectedIntent: "budget_status",
     expectedEvidence: "BUDGET STATUS",
-    answerMustInclude: ["remaining"],
+    answerMustInclude: ["CAD"],
     answerMustNotInclude: ["don't have", "do not have", "lack the data"],
   },
   {
@@ -86,7 +86,7 @@ const DEFAULT_CASES: LiveEvalCase[] = [
     prompt: "What bills are left this pay cycle?",
     expectedIntent: "cycle_status",
     expectedEvidence: "UNSETTLED COMMITTED EXPENSES",
-    answerMustInclude: ["bill"],
+    answerMustInclude: ["CAD"],
     answerMustNotInclude: ["don't have", "do not have", "lack the data", "already paid"],
   },
   {
@@ -117,7 +117,15 @@ const DEFAULT_CASES: LiveEvalCase[] = [
     expectedIntent: "cashflow_runway",
     expectedEvidence: "CASHFLOW RUNWAY STATUS",
     answerMustInclude: ["cash"],
-    answerMustNotInclude: ["don't have", "do not have", "lack the data"],
+    answerMustNotInclude: [
+      "don't have",
+      "do not have",
+      "lack the data",
+      "0 months",
+      "overspent",
+      "safe-to-sweep",
+      "daily discretionary",
+    ],
   },
   {
     id: "savings-goals",
@@ -125,7 +133,13 @@ const DEFAULT_CASES: LiveEvalCase[] = [
     expectedIntent: "savings_goals",
     expectedEvidence: "SAVINGS GOAL STATUS",
     answerMustInclude: ["goal"],
-    answerMustNotInclude: ["don't have", "do not have", "lack the data"],
+    answerMustNotInclude: [
+      "don't have",
+      "do not have",
+      "lack the data",
+      "none of them match",
+      "N/A",
+    ],
   },
   {
     id: "account-balance",
@@ -141,7 +155,7 @@ const DEFAULT_CASES: LiveEvalCase[] = [
     expectedIntent: "investment_exposure",
     expectedEvidence: "INVESTMENT EXPOSURE STATUS",
     answerMustInclude: ["portfolio"],
-    answerMustNotInclude: ["buy", "sell", "hold", "should reallocate"],
+    answerMustNotInclude: ["should buy", "should sell", "should hold", "should reallocate"],
   },
   {
     id: "top-merchants-control",

@@ -33,9 +33,7 @@ export type CashflowRunwayResult = {
     startDate: string | null;
     endDate: string | null;
     daysRemaining: number | null;
-    safeToSweep: number | null;
     discretionaryRemaining: number | null;
-    discretionaryDailyRoom: number | null;
     unsettledAccruals: number | null;
     pendingSpend: number | null;
     upcomingBills: CashflowRunwayBill[];
@@ -68,8 +66,8 @@ function money(n: number, currency: string): string {
   return `${currency} ${n.toLocaleString("en-CA")}`;
 }
 
-function months(value: number | null): string {
-  return value == null ? "n/a" : `${value.toLocaleString("en-CA")} mo`;
+function months(value: number | null): string | null {
+  return value == null ? null : `${value.toLocaleString("en-CA")} mo`;
 }
 
 export async function fetchCashflowRunway(input: {
@@ -130,18 +128,13 @@ export async function fetchCashflowRunway(input: {
       expenseCoverageMonths: ratio(cashBalance, avgSpend),
       netBurnCoverageMonths: avgNet < 0 ? ratio(cashBalance, Math.abs(avgNet)) : null,
       basis:
-        "Straight-line coverage using current cash balance and recent monthly cashflow averages; not a forecast.",
+        "Use expense coverage for burn-rate questions. Net-burn coverage applies only when average net cashflow is negative. Straight-line coverage math, not a forecast.",
     },
     currentCycle: {
       startDate: iso(cycle?.cycle.startDate),
       endDate: iso(cycle?.cycle.endDate),
       daysRemaining,
-      safeToSweep: cycle ? num(cycle.safeToSweep.amount) : null,
       discretionaryRemaining,
-      discretionaryDailyRoom:
-        discretionaryRemaining != null && daysRemaining != null && daysRemaining > 0
-          ? num(discretionaryRemaining / daysRemaining)
-          : null,
       unsettledAccruals: cycle ? num(cycle.safeToSweep.components.unsettledAccruals) : null,
       pendingSpend: cycle ? num(cycle.pendingSum) : null,
       upcomingBills: unsettledBills.slice(0, 12),
@@ -152,16 +145,21 @@ export async function fetchCashflowRunway(input: {
 }
 
 export function serializeCashflowRunway(result: CashflowRunwayResult, currency = "CAD"): string {
+  const expenseCoverage = months(result.runway.expenseCoverageMonths) ?? "n/a";
+  const netBurnCoverage =
+    months(result.runway.netBurnCoverageMonths) ??
+    "not applicable because recent average net cashflow is non-negative";
   const lines = [
     "CASHFLOW RUNWAY STATUS - server-computed cash balance, recent cashflow averages, current-cycle obligations, and simple coverage math:",
     `- Cash balance: ${money(result.cashBalance, currency)}`,
     `- This month: income ${money(result.thisMonth.income, currency)}; spend ${money(result.thisMonth.spend, currency)}; net ${money(result.thisMonth.net, currency)}`,
     `- Recent monthly average (${result.monthlyAverage.months} mo): income ${money(result.monthlyAverage.income, currency)}; spend ${money(result.monthlyAverage.spend, currency)}; net ${money(result.monthlyAverage.net, currency)}`,
-    `- Coverage: expense coverage ${months(result.runway.expenseCoverageMonths)}; net-burn coverage ${months(result.runway.netBurnCoverageMonths)}; basis ${result.runway.basis}`,
+    `- Coverage: expense coverage if income stopped ${expenseCoverage}; net-burn coverage ${netBurnCoverage}; basis ${result.runway.basis}`,
+    `- Runway answer field: for "how long will cash last at current burn rate", answer with expense coverage if income stopped (${expenseCoverage}) and mention net-burn coverage only when it is a number.`,
   ];
 
   lines.push(
-    `- Current pay cycle: ${result.currentCycle.startDate ?? "n/a"} to ${result.currentCycle.endDate ?? "n/a"}; days remaining ${result.currentCycle.daysRemaining ?? "n/a"}; safe-to-sweep ${result.currentCycle.safeToSweep == null ? "n/a" : money(result.currentCycle.safeToSweep, currency)}; discretionary remaining ${result.currentCycle.discretionaryRemaining == null ? "n/a" : money(result.currentCycle.discretionaryRemaining, currency)}; daily room ${result.currentCycle.discretionaryDailyRoom == null ? "n/a" : `${money(result.currentCycle.discretionaryDailyRoom, currency)}/day`}; unsettled accruals ${result.currentCycle.unsettledAccruals == null ? "n/a" : money(result.currentCycle.unsettledAccruals, currency)}; pending spend ${result.currentCycle.pendingSpend == null ? "n/a" : money(result.currentCycle.pendingSpend, currency)}`
+    `- Current pay cycle obligations: ${result.currentCycle.startDate ?? "n/a"} to ${result.currentCycle.endDate ?? "n/a"}; days remaining ${result.currentCycle.daysRemaining ?? "n/a"}; discretionary remaining ${result.currentCycle.discretionaryRemaining == null ? "n/a" : money(result.currentCycle.discretionaryRemaining, currency)}; unsettled accruals ${result.currentCycle.unsettledAccruals == null ? "n/a" : money(result.currentCycle.unsettledAccruals, currency)}; pending spend ${result.currentCycle.pendingSpend == null ? "n/a" : money(result.currentCycle.pendingSpend, currency)}`
   );
 
   if (result.currentCycle.upcomingBills.length > 0) {

@@ -91,6 +91,6 @@ describe("assistant savings goal evidence", () => {
 
     expect(result.scope).toBe("emergency");
     expect(result.rows.map((row) => row.name)).toEqual(["Emergency Fund"]);
-    expect(serializeSavingsGoalStatus(result, "CAD")).toContain('matching "emergency"');
+    expect(serializeSavingsGoalStatus(result, "CAD")).toContain('SAVINGS GOAL STATUS matching "emergency"');
   });
 });
