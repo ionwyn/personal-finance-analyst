@@ -14,6 +14,7 @@ export type AssistantEvalCase = {
     | "cycle_status"
     | "recurring_spend"
     | "cashflow_runway"
+    | "savings_goals"
     | "previous_answer";
   priorEvidence?: string;
   groundingMustMention?: string[];
@@ -201,6 +202,22 @@ export const assistantEvalCases = [
     expectedPlan: { intent: "cashflow_runway" },
     evidenceKind: "cashflow_runway",
     groundingMustMention: ["CASHFLOW RUNWAY STATUS", "upcoming/unsettled bills"],
+  },
+  {
+    id: "savings-goal-overview",
+    prompt: "How are my savings goals doing?",
+    description: "Savings goal questions should fetch goal progress evidence.",
+    expectedPlan: { intent: "savings_goals" },
+    evidenceKind: "savings_goals",
+    groundingMustMention: ["SAVINGS GOAL STATUS", "savings-goal progress"],
+  },
+  {
+    id: "savings-goal-specific",
+    prompt: "How much do I have left for my vacation goal?",
+    description: "Specific savings goal questions should preserve the named goal scope.",
+    expectedPlan: { intent: "savings_goals", filters: { q: "vacation" } },
+    evidenceKind: "savings_goals",
+    groundingMustMention: ["SAVINGS GOAL STATUS"],
   },
   {
     id: "prove-prior-answer",

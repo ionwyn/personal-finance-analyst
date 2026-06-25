@@ -120,6 +120,14 @@ const DEFAULT_CASES: LiveEvalCase[] = [
     answerMustNotInclude: ["don't have", "do not have", "lack the data"],
   },
   {
+    id: "savings-goals",
+    prompt: "How are my savings goals doing?",
+    expectedIntent: "savings_goals",
+    expectedEvidence: "SAVINGS GOAL STATUS",
+    answerMustInclude: ["goal"],
+    answerMustNotInclude: ["don't have", "do not have", "lack the data"],
+  },
+  {
     id: "top-merchants-control",
     prompt: "What are my top merchants this month?",
     expectedIntent: "top_merchants",

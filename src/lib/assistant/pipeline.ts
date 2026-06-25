@@ -6,6 +6,7 @@ import {
   fetchRecurringSpendStatus,
   serializeRecurringSpendStatus,
 } from "@/lib/assistant/recurring";
+import { fetchSavingsGoalStatus, serializeSavingsGoalStatus } from "@/lib/assistant/savings";
 import {
   chatJSON,
   type ChatMessage,
@@ -118,6 +119,14 @@ async function fetchEvidenceForPlan(input: {
     return {
       evidence: serializeCashflowRunway(result, input.currency),
       evidenceKind: "cashflow_runway",
+    };
+  }
+
+  if (input.plan.intent === "savings_goals") {
+    const result = await fetchSavingsGoalStatus(input.tenantId, filters);
+    return {
+      evidence: serializeSavingsGoalStatus(result, input.currency),
+      evidenceKind: "savings_goals",
     };
   }
 

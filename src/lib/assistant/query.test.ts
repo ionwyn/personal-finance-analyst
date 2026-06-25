@@ -99,6 +99,13 @@ describe("assistant plan schema", () => {
     });
   });
 
+  it("accepts savings goal plans", () => {
+    expect(planSchema.parse({ intent: "savings_goals", filters: { q: "Vacation" } })).toEqual({
+      intent: "savings_goals",
+      filters: { q: "Vacation" },
+    });
+  });
+
   it("strips unknown filter fields rather than passing them through", () => {
     const parsed = filtersSchema.parse({ q: "amazon", accountId: "secret", removed: false });
     expect(parsed).toEqual({ q: "amazon" });
