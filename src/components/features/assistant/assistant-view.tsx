@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ChevronRight, Send, Sparkles } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -93,13 +93,38 @@ function rehypeHighlightCurrency() {
  * adds table/strikethrough/autolink support on top of CommonMark. Raw HTML is not
  * enabled, so model output can't inject markup. A rehype pass then highlights
  * currency amounts so the figures stand out from the prose.
+ *
+ * While `streaming`, only blocks that have closed (everything up to the last
+ * blank line) are parsed as Markdown; the in-progress trailing block is shown as
+ * plain text. This stops a half-built table or list from re-parsing and
+ * reflowing on every token. The closed portion is memoised so it isn't re-parsed
+ * until another block actually completes.
  */
-function AssistantMarkdown({ children }: { children: string }) {
+function AssistantMarkdown({
+  children,
+  streaming = false,
+}: {
+  children: string;
+  streaming?: boolean;
+}) {
+  const splitAt = streaming ? children.lastIndexOf("\n\n") : -1;
+  const settled = streaming ? (splitAt === -1 ? "" : children.slice(0, splitAt)) : children;
+  const tail = streaming ? (splitAt === -1 ? children : children.slice(splitAt + 2)) : "";
+
+  const rendered = useMemo(
+    () =>
+      settled ? (
+        <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeHighlightCurrency]}>
+          {settled}
+        </ReactMarkdown>
+      ) : null,
+    [settled]
+  );
+
   return (
     <div className={styles.markdown}>
-      <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeHighlightCurrency]}>
-        {children}
-      </ReactMarkdown>
+      {rendered}
+      {tail ? <div className={styles.streamTail}>{tail}</div> : null}
     </div>
   );
 }
@@ -387,7 +412,7 @@ export function AssistantView() {
                     <div className={styles.bubble}>
                       {m.content ? (
                         m.role === "assistant" ? (
-                          <AssistantMarkdown>{m.content}</AssistantMarkdown>
+                          <AssistantMarkdown streaming={isActive}>{m.content}</AssistantMarkdown>
                         ) : (
                           m.content
                         )

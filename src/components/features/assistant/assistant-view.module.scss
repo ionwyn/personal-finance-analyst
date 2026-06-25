@@ -58,7 +58,9 @@
   border-radius: 999px;
   padding: 6px 12px;
   cursor: pointer;
-  transition: background 0.12s ease, border-color 0.12s ease;
+  transition:
+    background 0.12s ease,
+    border-color 0.12s ease;
 
   &:hover {
     background: var(--surface-3);
@@ -229,6 +231,13 @@
 
   tbody tr:nth-child(even) {
     background: var(--surface);
+  }
+
+  // In-progress trailing block during streaming: rendered as plain text (raw
+  // Markdown source) until its block closes, so it doesn't reflow per token.
+  .streamTail {
+    white-space: pre-wrap;
+    word-break: break-word;
   }
 
   // Currency amounts wrapped by the rehype pass. Global class (set on a raw hast
