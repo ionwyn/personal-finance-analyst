@@ -1,3 +1,4 @@
+import { fetchAccountStatus, serializeAccountStatus } from "@/lib/assistant/accounts";
 import { buildFinancialContext } from "@/lib/assistant/context";
 import { fetchBudgetStatus, serializeBudgetStatus } from "@/lib/assistant/budget";
 import { fetchCashflowRunway, serializeCashflowRunway } from "@/lib/assistant/cashflow";
@@ -127,6 +128,17 @@ async function fetchEvidenceForPlan(input: {
     return {
       evidence: serializeSavingsGoalStatus(result, input.currency),
       evidenceKind: "savings_goals",
+    };
+  }
+
+  if (input.plan.intent === "account_status") {
+    const result = await fetchAccountStatus({
+      tenantId: input.tenantId,
+      filters,
+    });
+    return {
+      evidence: serializeAccountStatus(result, input.currency),
+      evidenceKind: "account_status",
     };
   }
 

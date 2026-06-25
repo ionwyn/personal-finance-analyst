@@ -15,6 +15,7 @@ export type AssistantEvalCase = {
     | "recurring_spend"
     | "cashflow_runway"
     | "savings_goals"
+    | "account_status"
     | "previous_answer";
   priorEvidence?: string;
   groundingMustMention?: string[];
@@ -218,6 +219,25 @@ export const assistantEvalCases = [
     expectedPlan: { intent: "savings_goals", filters: { q: "vacation" } },
     evidenceKind: "savings_goals",
     groundingMustMention: ["SAVINGS GOAL STATUS"],
+  },
+  {
+    id: "account-balance",
+    prompt: "What's the balance in my chequing account?",
+    description: "Account balance questions should fetch account status evidence.",
+    expectedPlan: { intent: "account_status", filters: { q: "chequing" } },
+    evidenceKind: "account_status",
+    groundingMustMention: ["ACCOUNT STATUS", "account balances"],
+  },
+  {
+    id: "account-spending",
+    prompt: "How much did I spend from my credit card this month?",
+    description: "Account-specific spending questions should keep account scope and period.",
+    expectedPlan: {
+      intent: "account_status",
+      filters: { q: "credit card", period: "this_month", bucket: "spending" },
+    },
+    evidenceKind: "account_status",
+    groundingMustMention: ["ACCOUNT STATUS", "period spend"],
   },
   {
     id: "prove-prior-answer",

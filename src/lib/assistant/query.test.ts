@@ -106,6 +106,18 @@ describe("assistant plan schema", () => {
     });
   });
 
+  it("accepts account status plans", () => {
+    expect(
+      planSchema.parse({
+        intent: "account_status",
+        filters: { q: "credit card", period: "this_month", bucket: "spending" },
+      })
+    ).toEqual({
+      intent: "account_status",
+      filters: { q: "credit card", period: "this_month", bucket: "spending" },
+    });
+  });
+
   it("strips unknown filter fields rather than passing them through", () => {
     const parsed = filtersSchema.parse({ q: "amazon", accountId: "secret", removed: false });
     expect(parsed).toEqual({ q: "amazon" });

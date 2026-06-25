@@ -13,7 +13,8 @@
     "When RECURRING SPEND STATUS is present, use the server-computed confirmed recurring expenses and cached Plaid recurring streams. Distinguish confirmed recurring expenses from detected streams; do not merge or deduplicate them yourself.",
     "When CASHFLOW RUNWAY STATUS is present, use the server-computed cash balance, recent cashflow averages, simple coverage months, current-cycle obligations, and upcoming/unsettled bills. Treat runway as straight-line coverage math, not a forecast.",
     "When SAVINGS GOAL STATUS is present, use the server-computed target, saved, remaining, progress, target date, and tracking mode fields. Do not infer savings-goal progress from general cash balances.",
-    "When MATCHING TRANSACTIONS, TOP MERCHANTS, TOP CATEGORIES, PERIOD COMPARISON, BUDGET STATUS, PAY CYCLE STATUS, RECURRING SPEND STATUS, CASHFLOW RUNWAY STATUS, or SAVINGS GOAL STATUS are present, use the server-computed totals, counts, ordering, deltas, and source rows. Do not recompute totals from chat prose or reorder the server-ranked results."
+    "When ACCOUNT STATUS is present, use the server-computed account balances, tracked flags, period spend/income, and investment-account values. Do not infer account-specific spending from whole-dashboard totals.",
+    "When MATCHING TRANSACTIONS, TOP MERCHANTS, TOP CATEGORIES, PERIOD COMPARISON, BUDGET STATUS, PAY CYCLE STATUS, RECURRING SPEND STATUS, CASHFLOW RUNWAY STATUS, SAVINGS GOAL STATUS, or ACCOUNT STATUS are present, use the server-computed totals, counts, ordering, deltas, and source rows. Do not recompute totals from chat prose or reorder the server-ranked results."
   ],
 
   "planPrompt": {
@@ -34,9 +35,10 @@
       "- recurring_spend: the user asks about subscriptions, recurring expenses, recurring charges, recurring income streams, detected recurring payments, monthly recurring totals, or details for recurring merchants.",
       "- cashflow_runway: the user asks about cashflow runway, how long cash will last, runway/coverage months, upcoming bills in the context of cashflow, obligations before payday, burn coverage, or whether current cash covers upcoming obligations.",
       "- savings_goals: the user asks about savings goals, target progress, how much is saved toward a goal, remaining amount, goal target dates, tracked savings destinations, or manual savings-goal amounts.",
+      "- account_status: the user asks about a specific account's balance, available balance, account-specific spending/income, transactions counted by account, account tracking status, investment account value, or account-level holdings/cash/liability summary.",
       "- prove_previous_answer: the user challenges, asks to prove, verify, source, or audit the immediately previous assistant answer.",
       "",
-      "For transaction_list, top_merchants, top_categories, merchant_breakdown, period_comparison, budget_status, cycle_status, recurring_spend, cashflow_runway, savings_goals, and prove_previous_answer, populate filters using ONLY these keys when the latest user message supplies or implies them (omit any you do not need):",
+      "For transaction_list, top_merchants, top_categories, merchant_breakdown, period_comparison, budget_status, cycle_status, recurring_spend, cashflow_runway, savings_goals, account_status, and prove_previous_answer, populate filters using ONLY these keys when the latest user message supplies or implies them (omit any you do not need):",
       "- q: free-text merchant or description substring to match (string, max 80 chars).",
       "- category: a natural category name such as \"Food and Drink\", \"Travel\", \"Rent\", \"Entertainment\" (string). The server resolves this to the user's real category taxonomy.",
       "- period: one of \"this_month\", \"last_month\", \"last_30_days\", \"last_90_days\", \"this_year\", \"all_time\".",
@@ -51,6 +53,7 @@
       "- For cycle_status, omit filters unless the user explicitly names a category or merchant. Pay-cycle status is always for the current pay cycle; do not add from/to dates.",
       "- For recurring_spend, use q when the user names a subscription, merchant, or recurring stream. Do not add from/to dates.",
       "- For savings_goals, use q when the user names a specific savings goal or destination. Do not add from/to dates.",
+      "- For account_status, use q when the user names an account, institution, account type, or registration. Use period/from/to only when the user asks for account-specific spending or income over a time window.",
       "- If the user implies recency but names no dates, choose a period ('lately'/'recently' -> last_30_days, 'this month' -> this_month, 'this year' -> this_year). If there is no time frame at all, omit period.",
       "- Do NOT add any key that is not in the list above. Do NOT include comments, explanations, or prose. Output the JSON object only.",
       "",
@@ -82,6 +85,9 @@
       "Q: \"What obligations are coming up and how does that affect runway?\" -> {\"intent\": \"cashflow_runway\"}",
       "Q: \"How are my savings goals doing?\" -> {\"intent\": \"savings_goals\"}",
       "Q: \"How much do I have left for my vacation goal?\" -> {\"intent\": \"savings_goals\", \"filters\": {\"q\": \"vacation\"}}",
+      "Q: \"What's the balance in my chequing account?\" -> {\"intent\": \"account_status\", \"filters\": {\"q\": \"chequing\"}}",
+      "Q: \"How much did I spend from my credit card this month?\" -> {\"intent\": \"account_status\", \"filters\": {\"q\": \"credit card\", \"period\": \"this_month\", \"bucket\": \"spending\"}}",
+      "Q: \"Show my TFSA account value\" -> {\"intent\": \"account_status\", \"filters\": {\"q\": \"TFSA\"}}",
       "Q: \"That's not possible. Prove it\" -> {\"intent\": \"prove_previous_answer\"}"
     ]
   },
