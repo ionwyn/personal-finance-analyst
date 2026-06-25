@@ -93,4 +93,21 @@ describe("assistant savings goal evidence", () => {
     expect(result.rows.map((row) => row.name)).toEqual(["Emergency Fund"]);
     expect(serializeSavingsGoalStatus(result, "CAD")).toContain('SAVINGS GOAL STATUS matching "emergency"');
   });
+
+  it("treats generic savings-goal scopes as overview questions", async () => {
+    getBudgetGoalDataMock.mockResolvedValue({
+      goals: [
+        goal({ name: "Vacation", target: 2000, saved: 800 }),
+        goal({ name: "Emergency Fund", target: 5000, saved: 1200 }),
+      ],
+    });
+
+    const result = await fetchSavingsGoalStatus("tenant-1", { q: "my savings goal" }, now);
+
+    expect(result.scope).toBeNull();
+    expect(result.rows.map((row) => row.name)).toEqual(["Emergency Fund", "Vacation"]);
+    expect(serializeSavingsGoalStatus(result, "CAD")).toContain(
+      "SAVINGS GOAL STATUS for all active goals"
+    );
+  });
 });

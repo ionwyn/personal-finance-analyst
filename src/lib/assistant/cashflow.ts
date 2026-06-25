@@ -155,7 +155,7 @@ export function serializeCashflowRunway(result: CashflowRunwayResult, currency =
     `- This month: income ${money(result.thisMonth.income, currency)}; spend ${money(result.thisMonth.spend, currency)}; net ${money(result.thisMonth.net, currency)}`,
     `- Recent monthly average (${result.monthlyAverage.months} mo): income ${money(result.monthlyAverage.income, currency)}; spend ${money(result.monthlyAverage.spend, currency)}; net ${money(result.monthlyAverage.net, currency)}`,
     `- Coverage: expense coverage if income stopped ${expenseCoverage}; net-burn coverage ${netBurnCoverage}; basis ${result.runway.basis}`,
-    `- Runway answer field: for "how long will cash last at current burn rate", answer with expense coverage if income stopped (${expenseCoverage}) and mention net-burn coverage only when it is a number.`,
+    `- Runway answer field: cash balance ${money(result.cashBalance, currency)} covers ${expenseCoverage} of recent average monthly spending if income stopped. ${expenseCoverage} is a month count, not a currency amount. Mention net-burn coverage only when it is a number.`,
   ];
 
   lines.push(

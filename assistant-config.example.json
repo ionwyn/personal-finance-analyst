@@ -54,7 +54,7 @@
       "- For budget_status, use category only when the user asks about one budget category. Budget status is always for the current monthly budget cycle; do not add from/to dates.",
       "- For cycle_status, omit filters unless the user explicitly names a category or merchant. Pay-cycle status is always for the current pay cycle; do not add from/to dates.",
       "- For recurring_spend, use q when the user names a subscription, merchant, or recurring stream. Do not add from/to dates.",
-      "- For savings_goals, use q when the user names a specific savings goal or destination. Do not add from/to dates.",
+      "- For savings_goals, use q only when the user names a specific savings goal or destination. Generic phrases like \"my savings goals\", \"savings goals\", \"goals\", or \"active goals\" are overview questions; omit q for those. Do not add from/to dates.",
       "- For account_status, use q when the user names an account, institution, account type, or registration. Use period/from/to only when the user asks for account-specific spending or income over a time window.",
       "- If the user implies recency but names no dates, choose a period ('lately'/'recently' -> last_30_days, 'this month' -> this_month, 'this year' -> this_year). If there is no time frame at all, omit period.",
       "- Do NOT add any key that is not in the list above. Do NOT include comments, explanations, or prose. Output the JSON object only.",

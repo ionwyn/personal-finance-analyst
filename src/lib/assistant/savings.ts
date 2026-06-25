@@ -20,6 +20,19 @@ export type SavingsGoalStatusResult = {
   rows: SavingsGoalStatusRow[];
 };
 
+const GENERIC_GOAL_SCOPES = new Set([
+  "goal",
+  "goals",
+  "my goal",
+  "my goals",
+  "my savings goal",
+  "my savings goals",
+  "savings goal",
+  "savings goals",
+  "active goals",
+  "active savings goals",
+]);
+
 function round(value: number) {
   return Math.round(value * 100) / 100;
 }
@@ -34,7 +47,9 @@ function pct(value: number) {
 
 function normalizeScope(filters: ScopedFilters): string | null {
   const raw = filters.q?.trim() || filters.category?.trim() || "";
-  return raw || null;
+  const normalized = raw.toLowerCase().replaceAll(/[_-]+/g, " ").replaceAll(/\s+/g, " ").trim();
+  if (!normalized || GENERIC_GOAL_SCOPES.has(normalized)) return null;
+  return raw;
 }
 
 function matchesGoal(goal: GoalProgress, scope: string | null) {
