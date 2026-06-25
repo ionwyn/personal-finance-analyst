@@ -13,6 +13,7 @@ export type AssistantEvalCase = {
     | "budget_status"
     | "cycle_status"
     | "recurring_spend"
+    | "cashflow_runway"
     | "previous_answer";
   priorEvidence?: string;
   groundingMustMention?: string[];
@@ -183,6 +184,23 @@ export const assistantEvalCases = [
     expectedPlan: { intent: "recurring_spend", filters: { q: "Netflix" } },
     evidenceKind: "recurring_spend",
     groundingMustMention: ["RECURRING SPEND STATUS"],
+  },
+  {
+    id: "cashflow-runway",
+    prompt: "How long will my cash last at my current burn rate?",
+    description: "Runway questions should use cashflow runway evidence and not budget status.",
+    expectedPlan: { intent: "cashflow_runway" },
+    evidenceKind: "cashflow_runway",
+    groundingMustMention: ["CASHFLOW RUNWAY STATUS", "straight-line coverage"],
+  },
+  {
+    id: "cashflow-upcoming-bills",
+    prompt: "Do I have enough cash for upcoming bills before payday?",
+    description:
+      "Upcoming-bill cash coverage questions should use cashflow runway evidence.",
+    expectedPlan: { intent: "cashflow_runway" },
+    evidenceKind: "cashflow_runway",
+    groundingMustMention: ["CASHFLOW RUNWAY STATUS", "upcoming/unsettled bills"],
   },
   {
     id: "prove-prior-answer",

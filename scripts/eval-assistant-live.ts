@@ -112,6 +112,14 @@ const DEFAULT_CASES: LiveEvalCase[] = [
     answerMustNotInclude: ["don't have", "do not have", "lack the data"],
   },
   {
+    id: "cashflow-runway",
+    prompt: "How long will my cash last at my current burn rate?",
+    expectedIntent: "cashflow_runway",
+    expectedEvidence: "CASHFLOW RUNWAY STATUS",
+    answerMustInclude: ["cash"],
+    answerMustNotInclude: ["don't have", "do not have", "lack the data"],
+  },
+  {
     id: "top-merchants-control",
     prompt: "What are my top merchants this month?",
     expectedIntent: "top_merchants",

@@ -11,7 +11,8 @@
     "For PAY CYCLE STATUS safe-to-sweep answers, the suggested safe-to-sweep amount is already the final non-negative amount; do not add it to raw room. Safe-to-sweep is available cash after pending spend, committed bills, credit-card balance, and buffer; do not describe it as a budget cap, cycle cap, spending cap, limit, or target. For per-day spending until payday, use the discretionary daily room field, not the safe-to-sweep amount.",
     "For PAY CYCLE STATUS bills-left answers, list only UNSETTLED COMMITTED EXPENSES. Do not include settled, debited, or manually paid committed expenses unless the user explicitly asks what has already been handled.",
     "When RECURRING SPEND STATUS is present, use the server-computed confirmed recurring expenses and cached Plaid recurring streams. Distinguish confirmed recurring expenses from detected streams; do not merge or deduplicate them yourself.",
-    "When MATCHING TRANSACTIONS, TOP MERCHANTS, TOP CATEGORIES, PERIOD COMPARISON, BUDGET STATUS, PAY CYCLE STATUS, or RECURRING SPEND STATUS are present, use the server-computed totals, counts, ordering, deltas, and source rows. Do not recompute totals from chat prose or reorder the server-ranked results."
+    "When CASHFLOW RUNWAY STATUS is present, use the server-computed cash balance, recent cashflow averages, simple coverage months, current-cycle obligations, and upcoming/unsettled bills. Treat runway as straight-line coverage math, not a forecast.",
+    "When MATCHING TRANSACTIONS, TOP MERCHANTS, TOP CATEGORIES, PERIOD COMPARISON, BUDGET STATUS, PAY CYCLE STATUS, RECURRING SPEND STATUS, or CASHFLOW RUNWAY STATUS are present, use the server-computed totals, counts, ordering, deltas, and source rows. Do not recompute totals from chat prose or reorder the server-ranked results."
   ],
 
   "planPrompt": {
@@ -30,9 +31,10 @@
       "- budget_status: the user asks about budget caps, spend-to-date, remaining budget room, whether they are over/under budget, burn rate, projected month-end budget usage, or over/under pace by budget category.",
       "- cycle_status: the user asks about the current pay cycle, payday/cycle dates, days remaining, committed or upcoming bills, safe-to-sweep, sweep room, pending transactions in the cycle, discretionary room, or how much they can spend before the cycle ends.",
       "- recurring_spend: the user asks about subscriptions, recurring expenses, recurring charges, recurring income streams, detected recurring payments, monthly recurring totals, or details for recurring merchants.",
+      "- cashflow_runway: the user asks about cashflow runway, how long cash will last, runway/coverage months, upcoming bills in the context of cashflow, obligations before payday, burn coverage, or whether current cash covers upcoming obligations.",
       "- prove_previous_answer: the user challenges, asks to prove, verify, source, or audit the immediately previous assistant answer.",
       "",
-      "For transaction_list, top_merchants, top_categories, merchant_breakdown, period_comparison, budget_status, cycle_status, recurring_spend, and prove_previous_answer, populate filters using ONLY these keys when the latest user message supplies or implies them (omit any you do not need):",
+      "For transaction_list, top_merchants, top_categories, merchant_breakdown, period_comparison, budget_status, cycle_status, recurring_spend, cashflow_runway, and prove_previous_answer, populate filters using ONLY these keys when the latest user message supplies or implies them (omit any you do not need):",
       "- q: free-text merchant or description substring to match (string, max 80 chars).",
       "- category: a natural category name such as \"Food and Drink\", \"Travel\", \"Rent\", \"Entertainment\" (string). The server resolves this to the user's real category taxonomy.",
       "- period: one of \"this_month\", \"last_month\", \"last_30_days\", \"last_90_days\", \"this_year\", \"all_time\".",
@@ -72,6 +74,9 @@
       "Q: \"What subscriptions do I have?\" -> {\"intent\": \"recurring_spend\"}",
       "Q: \"Show recurring charges from Netflix\" -> {\"intent\": \"recurring_spend\", \"filters\": {\"q\": \"Netflix\"}}",
       "Q: \"How much do recurring expenses cost monthly?\" -> {\"intent\": \"recurring_spend\"}",
+      "Q: \"How long will my cash last at my current burn rate?\" -> {\"intent\": \"cashflow_runway\"}",
+      "Q: \"Do I have enough cash for upcoming bills before payday?\" -> {\"intent\": \"cashflow_runway\"}",
+      "Q: \"What obligations are coming up and how does that affect runway?\" -> {\"intent\": \"cashflow_runway\"}",
       "Q: \"That's not possible. Prove it\" -> {\"intent\": \"prove_previous_answer\"}"
     ]
   },

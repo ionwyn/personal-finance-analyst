@@ -1,5 +1,6 @@
 import { buildFinancialContext } from "@/lib/assistant/context";
 import { fetchBudgetStatus, serializeBudgetStatus } from "@/lib/assistant/budget";
+import { fetchCashflowRunway, serializeCashflowRunway } from "@/lib/assistant/cashflow";
 import { fetchCycleStatus, serializeCycleStatus } from "@/lib/assistant/cycle";
 import {
   fetchRecurringSpendStatus,
@@ -106,6 +107,17 @@ async function fetchEvidenceForPlan(input: {
     return {
       evidence: serializeRecurringSpendStatus(result, input.currency),
       evidenceKind: "recurring_spend",
+    };
+  }
+
+  if (input.plan.intent === "cashflow_runway") {
+    const result = await fetchCashflowRunway({
+      tenantId: input.tenantId,
+      tenantSlug: input.tenantSlug,
+    });
+    return {
+      evidence: serializeCashflowRunway(result, input.currency),
+      evidenceKind: "cashflow_runway",
     };
   }
 
