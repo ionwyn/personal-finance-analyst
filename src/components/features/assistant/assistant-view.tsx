@@ -104,6 +104,17 @@ function AssistantMarkdown({ children }: { children: string }) {
   );
 }
 
+/** Three staggered pulsing dots shown while the model's answer is still empty. */
+function TypingDots() {
+  return (
+    <span className={styles.dots} role="status" aria-label="Assistant is typing">
+      <span className={styles.dot} />
+      <span className={styles.dot} />
+      <span className={styles.dot} />
+    </span>
+  );
+}
+
 /**
  * Collapsible chain-of-thought. While `live` (the model is still reasoning), it
  * auto-expands and streams so the long wait is visible; once the answer starts
@@ -362,9 +373,11 @@ export function AssistantView() {
                         )
                       ) : isActive ? (
                         mode === "reasoning" ? (
-                          `Reasoning… ${formatElapsed(elapsed)}`
+                          <span className={styles.loading}>
+                            Reasoning {formatElapsed(elapsed)} <TypingDots />
+                          </span>
                         ) : (
-                          "…"
+                          <TypingDots />
                         )
                       ) : (
                         ""
