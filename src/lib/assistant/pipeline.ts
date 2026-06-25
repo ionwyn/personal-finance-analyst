@@ -2,6 +2,10 @@ import { buildFinancialContext } from "@/lib/assistant/context";
 import { fetchBudgetStatus, serializeBudgetStatus } from "@/lib/assistant/budget";
 import { fetchCycleStatus, serializeCycleStatus } from "@/lib/assistant/cycle";
 import {
+  fetchRecurringSpendStatus,
+  serializeRecurringSpendStatus,
+} from "@/lib/assistant/recurring";
+import {
   chatJSON,
   type ChatMessage,
   streamChatText,
@@ -94,6 +98,14 @@ async function fetchEvidenceForPlan(input: {
     return {
       evidence: serializeCycleStatus(result, input.currency),
       evidenceKind: "cycle_status",
+    };
+  }
+
+  if (input.plan.intent === "recurring_spend") {
+    const result = await fetchRecurringSpendStatus(input.tenantId, filters);
+    return {
+      evidence: serializeRecurringSpendStatus(result, input.currency),
+      evidenceKind: "recurring_spend",
     };
   }
 

@@ -86,6 +86,13 @@ describe("assistant plan schema", () => {
     expect(planSchema.parse({ intent: "cycle_status" })).toEqual({ intent: "cycle_status" });
   });
 
+  it("accepts recurring spend plans", () => {
+    expect(planSchema.parse({ intent: "recurring_spend", filters: { q: "Netflix" } })).toEqual({
+      intent: "recurring_spend",
+      filters: { q: "Netflix" },
+    });
+  });
+
   it("strips unknown filter fields rather than passing them through", () => {
     const parsed = filtersSchema.parse({ q: "amazon", accountId: "secret", removed: false });
     expect(parsed).toEqual({ q: "amazon" });

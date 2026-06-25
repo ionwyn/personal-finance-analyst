@@ -12,6 +12,7 @@ export type AssistantEvalCase = {
     | "period_comparison"
     | "budget_status"
     | "cycle_status"
+    | "recurring_spend"
     | "previous_answer";
   priorEvidence?: string;
   groundingMustMention?: string[];
@@ -166,6 +167,22 @@ export const assistantEvalCases = [
     expectedPlan: { intent: "cycle_status" },
     evidenceKind: "cycle_status",
     groundingMustMention: ["PAY CYCLE STATUS", "discretionary room"],
+  },
+  {
+    id: "recurring-spend-overview",
+    prompt: "What subscriptions and recurring charges do I have?",
+    description: "Subscription questions should fetch confirmed and detected recurring evidence.",
+    expectedPlan: { intent: "recurring_spend" },
+    evidenceKind: "recurring_spend",
+    groundingMustMention: ["RECURRING SPEND STATUS", "confirmed recurring expenses"],
+  },
+  {
+    id: "recurring-merchant-detail",
+    prompt: "Show recurring charges from Netflix",
+    description: "Recurring merchant detail should preserve the merchant scope.",
+    expectedPlan: { intent: "recurring_spend", filters: { q: "Netflix" } },
+    evidenceKind: "recurring_spend",
+    groundingMustMention: ["RECURRING SPEND STATUS"],
   },
   {
     id: "prove-prior-answer",
