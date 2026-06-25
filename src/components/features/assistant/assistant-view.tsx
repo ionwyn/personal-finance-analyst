@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { ChevronRight, Send, Sparkles } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import type { ElementContent, Root, RootContent } from "hast";
 
 import { PageHeader, SegmentedControl } from "@/components/ui";
 import { REASONING_STARTER_PROMPTS, STARTER_PROMPTS } from "@/lib/assistant/prompt";
@@ -37,16 +38,68 @@ function formatElapsed(seconds: number): string {
   return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
+// Money like "CAD 1,234.56", "CAD -1,234.56", "$1,234", "-$50", "C$1,000.00".
+const CURRENCY_RE =
+  /\b(?:CAD|USD)\s-?\d[\d,]*(?:\.\d{1,2})?|-?(?:C\$|US\$|\$)\s?\d[\d,]*(?:\.\d{1,2})?/g;
+
+// Split a text node, wrapping each currency amount in a span we can style. A
+// global class (not CSS-module-hashed) is used so a plain string className
+// survives react-markdown; it's targeted via :global() in the stylesheet.
+function splitCurrencyText(value: string): ElementContent[] {
+  const re = new RegExp(CURRENCY_RE.source, "g");
+  const out: ElementContent[] = [];
+  let last = 0;
+  let match: RegExpExecArray | null;
+  while ((match = re.exec(value)) !== null) {
+    if (match.index > last) out.push({ type: "text", value: value.slice(last, match.index) });
+    out.push({
+      type: "element",
+      tagName: "span",
+      properties: { className: ["assistant-currency"] },
+      children: [{ type: "text", value: match[0] }],
+    });
+    last = match.index + match[0].length;
+  }
+  if (last < value.length) out.push({ type: "text", value: value.slice(last) });
+  return out;
+}
+
+function expandCurrency<T extends RootContent>(children: T[]): T[] {
+  const next: T[] = [];
+  for (const child of children) {
+    if (child.type === "text") {
+      next.push(...(splitCurrencyText(child.value) as T[]));
+    } else {
+      // Leave code/pre untouched so amounts stay literal inside code spans.
+      if (child.type === "element" && child.tagName !== "code" && child.tagName !== "pre") {
+        child.children = expandCurrency(child.children);
+      }
+      next.push(child);
+    }
+  }
+  return next;
+}
+
+/** rehype plugin: highlight currency amounts in the rendered answer. */
+function rehypeHighlightCurrency() {
+  return (tree: Root) => {
+    tree.children = expandCurrency(tree.children);
+  };
+}
+
 /**
  * Render an assistant answer as Markdown. The model is prompted to use Markdown
  * (bold, bullets, GitHub-flavoured tables) for structured replies; `remark-gfm`
  * adds table/strikethrough/autolink support on top of CommonMark. Raw HTML is not
- * enabled, so model output can't inject markup.
+ * enabled, so model output can't inject markup. A rehype pass then highlights
+ * currency amounts so the figures stand out from the prose.
  */
 function AssistantMarkdown({ children }: { children: string }) {
   return (
     <div className={styles.markdown}>
-      <ReactMarkdown remarkPlugins={[remarkGfm]}>{children}</ReactMarkdown>
+      <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeHighlightCurrency]}>
+        {children}
+      </ReactMarkdown>
     </div>
   );
 }

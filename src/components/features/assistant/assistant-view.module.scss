@@ -230,6 +230,17 @@
   tbody tr:nth-child(even) {
     background: var(--surface);
   }
+
+  // Currency amounts wrapped by the rehype pass. Global class (set on a raw hast
+  // span) so it isn't CSS-module-hashed; mono + tabular figures make numbers pop
+  // and nowrap keeps an amount from breaking across lines.
+  :global(.assistant-currency) {
+    font-family: var(--font-mono);
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    color: var(--text);
+  }
 }
 
 .modeBar {
