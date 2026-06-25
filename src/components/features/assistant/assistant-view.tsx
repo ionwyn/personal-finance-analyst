@@ -1,9 +1,19 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ChevronRight, Send, Sparkles } from "lucide-react";
+import {
+  Check,
+  ChevronRight,
+  Copy,
+  RotateCw,
+  Send,
+  Sparkles,
+  ThumbsDown,
+  ThumbsUp,
+} from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import clsx from "clsx";
 import type { ElementContent, Root, RootContent } from "hast";
 
 import { PageHeader, SegmentedControl } from "@/components/ui";
@@ -13,7 +23,14 @@ import styles from "./assistant-view.module.scss";
 
 type ChatRole = "user" | "assistant";
 type AssistantMode = "fact" | "reasoning";
-type Msg = { role: ChatRole; content: string; thinking?: string; evidence?: string };
+type Feedback = "up" | "down";
+type Msg = {
+  role: ChatRole;
+  content: string;
+  thinking?: string;
+  evidence?: string;
+  feedback?: Feedback;
+};
 
 // Stream sentinels mirrored from lib/assistant/ollama.ts: thinking tokens are
 // prefixed with \x02, answer tokens with \x03. Only used in reasoning mode.
@@ -203,6 +220,82 @@ function EvidenceBlock({ text }: { text: string }) {
   );
 }
 
+/**
+ * Copy / regenerate / feedback controls shown beneath a finished answer.
+ * Regenerate is offered only on the latest turn. Feedback is stored on the
+ * message (client-side only for now) so the thumb selection is reflected.
+ */
+function MessageActions({
+  content,
+  canRegenerate,
+  feedback,
+  onRegenerate,
+  onFeedback,
+}: {
+  content: string;
+  canRegenerate: boolean;
+  feedback?: Feedback;
+  onRegenerate: () => void;
+  onFeedback: (value: Feedback) => void;
+}) {
+  const [copied, setCopied] = useState(false);
+
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(content);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      // Clipboard may be unavailable (e.g. insecure context); fail quietly.
+    }
+  };
+
+  return (
+    <div className={styles.actions}>
+      <button
+        type="button"
+        className={styles.actionBtn}
+        onClick={copy}
+        aria-label={copied ? "Copied" : "Copy answer"}
+        title={copied ? "Copied" : "Copy"}
+      >
+        {copied ? <Check size={13} /> : <Copy size={13} />}
+      </button>
+      {canRegenerate ? (
+        <button
+          type="button"
+          className={styles.actionBtn}
+          onClick={onRegenerate}
+          aria-label="Regenerate answer"
+          title="Regenerate"
+        >
+          <RotateCw size={13} />
+        </button>
+      ) : null}
+      <button
+        type="button"
+        className={clsx(styles.actionBtn, feedback === "up" && styles.actionBtnActive)}
+        onClick={() => onFeedback("up")}
+        aria-label="Good answer"
+        aria-pressed={feedback === "up"}
+        title="Good answer"
+      >
+        <ThumbsUp size={13} />
+      </button>
+      <button
+        type="button"
+        className={clsx(styles.actionBtn, feedback === "down" && styles.actionBtnActive)}
+        onClick={() => onFeedback("down")}
+        aria-label="Bad answer"
+        aria-pressed={feedback === "down"}
+        title="Bad answer"
+      >
+        <ThumbsDown size={13} />
+      </button>
+    </div>
+  );
+}
+
 export function AssistantView() {
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
@@ -228,14 +321,10 @@ export function AssistantView() {
     });
   };
 
-  async function send(text: string) {
-    const trimmed = text.trim();
-    if (!trimmed || busy) return;
+  // Stream an assistant reply for `history` (which must end with a user turn).
+  // Shared by send() and regenerate().
+  async function streamAssistant(history: Msg[]) {
     setError(null);
-
-    const next: Msg[] = [...messages, { role: "user", content: trimmed }];
-    setMessages(next);
-    setInput("");
     setElapsed(0);
     setBusy(true);
     scrollToEnd();
@@ -246,7 +335,7 @@ export function AssistantView() {
     try {
       // Send only role+content, dropping any empty turns (e.g. a prior
       // thinking-only reply) the server's schema would reject.
-      const payload = next
+      const payload = history
         .filter((m) => m.content.trim().length > 0)
         .map((m) => ({
           role: m.role,
@@ -357,6 +446,37 @@ export function AssistantView() {
     }
   }
 
+  async function send(text: string) {
+    const trimmed = text.trim();
+    if (!trimmed || busy) return;
+    const history: Msg[] = [...messages, { role: "user", content: trimmed }];
+    setMessages(history);
+    setInput("");
+    await streamAssistant(history);
+  }
+
+  // Re-run the latest turn: drop the trailing assistant reply and stream a fresh
+  // one from the same user message.
+  function regenerate() {
+    if (busy) return;
+    let cut = messages.length;
+    while (cut > 0 && messages[cut - 1].role === "assistant") cut--;
+    const history = messages.slice(0, cut);
+    if (history.length === 0 || history[history.length - 1].role !== "user") return;
+    setMessages(history);
+    void streamAssistant(history);
+  }
+
+  // Toggle a thumbs rating on a message. Client-side only for now — there's no
+  // feedback store yet; the selection just reflects in the UI.
+  function recordFeedback(index: number, value: Feedback) {
+    setMessages((m) =>
+      m.map((msg, i) =>
+        i === index ? { ...msg, feedback: msg.feedback === value ? undefined : value } : msg
+      )
+    );
+  }
+
   const empty = messages.length === 0;
   const starters = mode === "reasoning" ? REASONING_STARTER_PROMPTS : STARTER_PROMPTS;
 
@@ -431,6 +551,15 @@ export function AssistantView() {
                   ) : null}
                   {m.role === "assistant" && m.evidence && m.content ? (
                     <EvidenceBlock text={m.evidence} />
+                  ) : null}
+                  {m.role === "assistant" && m.content && !isActive ? (
+                    <MessageActions
+                      content={m.content}
+                      canRegenerate={i === messages.length - 1 && !busy}
+                      feedback={m.feedback}
+                      onRegenerate={regenerate}
+                      onFeedback={(value) => recordFeedback(i, value)}
+                    />
                   ) : null}
                 </div>
               );
