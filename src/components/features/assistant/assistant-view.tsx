@@ -158,6 +158,26 @@ function ThinkingBlock({
   );
 }
 
+/**
+ * Collapsible "evidence" panel showing the server-computed rows and figures the
+ * answer was grounded in — the same block the model was given. It lets the user
+ * audit exactly what a reply was based on, and only appears when the turn
+ * actually fetched evidence (row-level, aggregate, or status questions; plain
+ * summary answers carry none).
+ */
+function EvidenceBlock({ text }: { text: string }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className={styles.evidence}>
+      <button type="button" className={styles.evidenceToggle} onClick={() => setOpen((o) => !o)}>
+        <ChevronRight size={12} className={open ? styles.thinkingChevronOpen : undefined} />
+        <span>Evidence</span>
+      </button>
+      {open ? <div className={styles.evidenceBody}>{text}</div> : null}
+    </div>
+  );
+}
+
 export function AssistantView() {
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
@@ -383,6 +403,9 @@ export function AssistantView() {
                         ""
                       )}
                     </div>
+                  ) : null}
+                  {m.role === "assistant" && m.evidence && m.content ? (
+                    <EvidenceBlock text={m.evidence} />
                   ) : null}
                 </div>
               );

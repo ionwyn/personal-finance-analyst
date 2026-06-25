@@ -301,6 +301,23 @@
   overflow-y: auto;
 }
 
+// Evidence panel sits below the answer; it reuses the reasoning toggle/body
+// styling and caps height so a long row dump (e.g. 50 transactions) scrolls.
+.evidence {
+  max-width: 78%;
+  margin-top: 6px;
+}
+
+.evidenceToggle {
+  composes: thinkingToggle;
+}
+
+.evidenceBody {
+  composes: thinkingBody;
+  max-height: 240px;
+  overflow-y: auto;
+}
+
 // Pulsing label while the model is actively reasoning.
 .thinkingLive {
   color: var(--text-2);
