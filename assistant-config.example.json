@@ -1,5 +1,5 @@
 {
-  "_comment": "Prompt + guardrail configuration for the local AI assistant. This file is gitignored as assistant-config.json; copy it (cp assistant-config.example.json assistant-config.json) and edit the copy to tune prompts locally. Consumed by src/lib/assistant/prompt.ts. The 'plan' step runs on the fast fact model (e.g. llama3.2:3b) constrained to JSON; the narration steps run on the fact model (Fact mode) and the reasoning model (e.g. deepseek-r1:7b, Reasoning mode). The server is always the source of truth: the model reads pre-computed numbers, never calculates or invents them.",
+  "_comment": "Prompt + guardrail configuration for the AI assistant. This file is gitignored as assistant-config.json; copy it (cp assistant-config.example.json assistant-config.json) and edit the copy to tune prompts locally. The local path uses Ollama; the optional OpenAI path receives redacted prompt/evidence through src/lib/assistant/openai.ts. The server is always the source of truth: the model reads pre-computed numbers, never calculates or invents them.",
 
   "groundingRules": [
     "The AS OF line is today's date for this assistant. If the user asks for today's date or the current date, answer directly from AS OF.",
@@ -99,7 +99,7 @@
 
   "narrationPrompt": {
     "intro": [
-      "You are a personal-finance assistant embedded in one user's private dashboard. You answer questions about THEIR OWN money using the data below, which the server computed from their linked bank and investment accounts. Everything here is private to this user and never leaves their machine.",
+      "You are a personal-finance assistant embedded in one user's private dashboard. You answer questions about THEIR OWN money using the data below, which the server computed from their linked bank and investment accounts. Treat this data as private and use only the context provided by the server.",
       "Sign convention in this data: spending/expense amounts are shown as positive, and income/deposits are shown as positive. A negative figure means a credit, refund, or reversal.",
       "The data below is your single source of truth for every number. Read figures from it; never recompute, estimate, or guess a total.",
       "",
@@ -110,7 +110,7 @@
 
   "reasoningNarrationPrompt": {
     "intro": [
-      "You are a careful personal-finance analyst working inside one user's private dashboard. You answer questions about THEIR OWN money using the data below, which the server computed from their linked bank and investment accounts. Everything here is private to this user and never leaves their machine. You may reason step by step before giving your final answer.",
+      "You are a careful personal-finance analyst working inside one user's private dashboard. You answer questions about THEIR OWN money using the data below, which the server computed from their linked bank and investment accounts. Treat this data as private and use only the context provided by the server. You may reason step by step before giving your final answer.",
       "Sign convention in this data: spending/expense amounts are shown as positive, and income/deposits are shown as positive. A negative figure means a credit, refund, or reversal.",
       "The data below is your only source of facts. You may reason across it and draw connections between figures, but every number you state must come from this data — never invent or estimate one.",
       "",

@@ -23,6 +23,8 @@ import styles from "./assistant-view.module.scss";
 
 type ChatRole = "user" | "assistant";
 type AssistantMode = "fact" | "reasoning";
+type AssistantModel = "local" | "openai";
+type WebSearchMode = "off" | "on";
 type Feedback = "up" | "down";
 type Msg = {
   role: ChatRole;
@@ -37,6 +39,7 @@ type Msg = {
 const THINK_SEP = "\x02";
 const ANSWER_SEP = "\x03";
 const EVIDENCE_SEP = "\x04";
+const OPENAI_MODEL_LABEL = "Cloud";
 
 function decodeEvidenceFrame(encoded: string): string | undefined {
   try {
@@ -302,6 +305,8 @@ export function AssistantView() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [mode, setMode] = useState<AssistantMode>("fact");
+  const [model, setModel] = useState<AssistantModel>("local");
+  const [webSearch, setWebSearch] = useState<WebSearchMode>("off");
   const [elapsed, setElapsed] = useState(0);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -345,7 +350,12 @@ export function AssistantView() {
       const res = await fetch("/api/assistant/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: payload, mode }),
+        body: JSON.stringify({
+          messages: payload,
+          mode,
+          model,
+          webSearch: model === "openai" && webSearch === "on",
+        }),
       });
 
       if (!res.ok || !res.body) {
@@ -430,7 +440,9 @@ export function AssistantView() {
             role: "assistant",
             content: thinkingAcc
               ? "(The model produced only reasoning, no answer. Try again, or switch to Fact mode.)"
-              : "(No response. Is the local model running?)",
+              : model === "openai"
+                ? "(No response. Is the OpenAI model configured?)"
+                : "(No response. Is the local model running?)",
             thinking: thinkingAcc || undefined,
             evidence: evidenceAcc,
           };
@@ -479,24 +491,50 @@ export function AssistantView() {
 
   const empty = messages.length === 0;
   const starters = mode === "reasoning" ? REASONING_STARTER_PROMPTS : STARTER_PROMPTS;
+  const subtitle =
+    model === "openai"
+      ? "Ask about your money. OpenAI mode sends redacted context and selected evidence to the API."
+      : "Ask about your money. Local models answer from your own data on this machine.";
 
   return (
     <div className={styles.wrap}>
-      <PageHeader
-        title="Assistant"
-        subtitle="Ask about your money. Answers come only from your own data, computed locally."
-      />
+      <PageHeader title="Assistant" subtitle={subtitle} />
 
       <div className={styles.modeBar}>
-        <SegmentedControl<AssistantMode>
-          label="Assistant mode"
-          value={mode}
-          options={[
-            { value: "fact", label: "Fact" },
-            { value: "reasoning", label: "Reasoning" },
-          ]}
-          onChange={setMode}
-        />
+        <div className={styles.modeGroup}>
+          <SegmentedControl<AssistantMode>
+            label="Assistant mode"
+            value={mode}
+            options={[
+              { value: "fact", label: "Fact" },
+              { value: "reasoning", label: "Reasoning" },
+            ]}
+            onChange={setMode}
+          />
+          <SegmentedControl<AssistantModel>
+            label="Assistant model"
+            value={model}
+            options={[
+              { value: "local", label: "Local" },
+              { value: "openai", label: OPENAI_MODEL_LABEL },
+            ]}
+            onChange={(value) => {
+              setModel(value);
+              if (value === "local") setWebSearch("off");
+            }}
+          />
+          {model === "openai" ? (
+            <SegmentedControl<WebSearchMode>
+              label="OpenAI web search"
+              value={webSearch}
+              options={[
+                { value: "off", label: "No web" },
+                { value: "on", label: "Web" },
+              ]}
+              onChange={setWebSearch}
+            />
+          ) : null}
+        </div>
       </div>
 
       <div className={styles.chat}>

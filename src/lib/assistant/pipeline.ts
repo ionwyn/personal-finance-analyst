@@ -18,6 +18,7 @@ import {
   streamChatText,
   streamChatWithThinking,
 } from "@/lib/assistant/ollama";
+import { chatOpenAIJSON, streamOpenAIChat } from "@/lib/assistant/openai";
 import {
   buildNarrationPrompt,
   buildPlanPrompt,
@@ -37,6 +38,7 @@ import { getOllamaModelFact, getOllamaModelReasoning } from "@/lib/env";
 import { logger, safeError } from "@/lib/logger";
 
 export type AssistantMode = "fact" | "reasoning";
+export type AssistantModel = "local" | "openai";
 
 export type AssistantChatMessage = {
   role: "user" | "assistant";
@@ -162,9 +164,13 @@ export async function createAssistantTurn(input: {
   tenantSlug: string;
   history: AssistantChatMessage[];
   mode: AssistantMode;
+  model?: AssistantModel;
+  webSearch?: boolean;
 }): Promise<AssistantTurnResult> {
   const factModel = getOllamaModelFact();
   const reasoningModel = getOllamaModelReasoning();
+  const model = input.model ?? "local";
+  const webSearch = model === "openai" && Boolean(input.webSearch);
   const lastUser = [...input.history].reverse().find((m) => m.role === "user");
   const priorEvidence = [...input.history]
     .reverse()
@@ -185,13 +191,14 @@ export async function createAssistantTurn(input: {
   let plan: AssistantPlan | undefined;
 
   try {
-    planRaw = await chatJSON(
-      [
-        { role: "system", content: buildPlanPrompt(facts.asOf) },
-        { role: "user", content: lastUser.content },
-      ],
-      { model: factModel }
-    );
+    const planMessages: ChatMessage[] = [
+      { role: "system", content: buildPlanPrompt(facts.asOf) },
+      { role: "user", content: lastUser.content },
+    ];
+    planRaw =
+      model === "openai"
+        ? await chatOpenAIJSON(planMessages)
+        : await chatJSON(planMessages, { model: factModel });
     logger.info({ planRaw }, "assistant plan raw output");
 
     const parsed = planSchema.safeParse(JSON.parse(planRaw));
@@ -224,9 +231,14 @@ export async function createAssistantTurn(input: {
   ];
 
   const stream =
-    input.mode === "reasoning"
-      ? await streamChatWithThinking(messages, { model: reasoningModel, temperature: 0.55 })
-      : await streamChatText(messages, { model: factModel, temperature: 0.3 });
+    model === "openai"
+      ? await streamOpenAIChat(messages, {
+          reasoning: input.mode === "reasoning",
+          webSearch,
+        })
+      : input.mode === "reasoning"
+        ? await streamChatWithThinking(messages, { model: reasoningModel, temperature: 0.55 })
+        : await streamChatText(messages, { model: factModel, temperature: 0.3 });
 
   return {
     stream,

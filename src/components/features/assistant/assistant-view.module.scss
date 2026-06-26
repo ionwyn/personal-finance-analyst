@@ -258,6 +258,13 @@
   padding: 0 2px 12px;
 }
 
+.modeGroup {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
 .thinking {
   max-width: 78%;
   margin-bottom: 4px;

@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { OllamaUnavailableError } from "@/lib/assistant/ollama";
+import { OpenAIUnavailableError } from "@/lib/assistant/openai";
 import { createAssistantTurn } from "@/lib/assistant/pipeline";
 import { authOptions } from "@/lib/auth";
 import { parseJson } from "@/lib/http";
@@ -25,6 +26,8 @@ const bodySchema = z.object({
     .min(1)
     .max(20),
   mode: z.enum(["fact", "reasoning"]).default("fact"),
+  model: z.enum(["local", "openai"]).default("local"),
+  webSearch: z.boolean().default(false),
 });
 
 const EVIDENCE_SEP = "\x04";
@@ -84,6 +87,8 @@ export async function POST(request: Request) {
     // Keep only the most recent turns to bound prompt size.
     const history = parsed.data.messages.slice(-12);
     const mode = parsed.data.mode;
+    const model = parsed.data.model;
+    const webSearch = model === "openai" && parsed.data.webSearch;
     if (!history.some((m) => m.role === "user")) {
       return NextResponse.json({ error: "No user message" }, { status: 400 });
     }
@@ -94,6 +99,8 @@ export async function POST(request: Request) {
         tenantSlug,
         history,
         mode,
+        model,
+        webSearch,
       });
       return new Response(withEvidenceMetadata(result.stream, result.evidence), {
         headers: {
@@ -108,6 +115,9 @@ export async function POST(request: Request) {
           { error: "The local AI model is unavailable. Is Ollama running?" },
           { status: 503 }
         );
+      }
+      if (error instanceof OpenAIUnavailableError) {
+        return NextResponse.json({ error: error.message }, { status: 503 });
       }
       throw error;
     }
