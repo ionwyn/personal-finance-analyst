@@ -18,6 +18,11 @@
   background: var(--surface-2);
   border: 1px solid var(--border);
   border-radius: var(--radius);
+  // In the tablet band the tab strip can be wider than the content column;
+  // let it shrink and scroll within itself rather than push the page wide.
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: auto;
 }
 .invest-tab {
   font-family: var(--font-sans);

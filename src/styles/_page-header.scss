@@ -8,6 +8,14 @@
   margin-bottom: 16px;
   border-bottom: 1px solid var(--border-subtle);
   gap: 24px;
+  // When the title + sub-nav + actions can't fit on one row (tablet band), let
+  // the action group drop to its own line instead of overflowing the page.
+  flex-wrap: wrap;
+}
+// Let the title/sub-nav block shrink below its content width rather than force
+// the row wider than the column.
+.page-header > div {
+  min-width: 0;
 }
 .page-title {
   font-size: 18px;
