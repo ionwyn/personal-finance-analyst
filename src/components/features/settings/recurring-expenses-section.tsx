@@ -11,7 +11,12 @@ import { FREQUENCIES } from "@/lib/cycles/types";
 import { ErrorLine, INPUT_STYLE, LABEL_STYLE, NUMBER_INPUT_STYLE, postJSON } from "./settings-form";
 import styles from "./settings.module.scss";
 
-type EditState = { anchorDate: string; merchantPattern: string };
+type EditState = { nextDueDate: string; merchantPattern: string };
+
+/** A Date (or serialized date) → YYYY-MM-DD for a <input type="date">. */
+function toDateInput(value: Date | string | null | undefined): string {
+  return value ? new Date(value).toISOString().slice(0, 10) : "";
+}
 
 const CELL_INPUT: React.CSSProperties = {
   background: "transparent",
@@ -44,8 +49,7 @@ export function RecurringExpensesSection({
     expenses.map((e) => [
       e.id,
       {
-        anchorDate:
-          localEdits[e.id]?.anchorDate ?? (e.anchorDate != null ? String(e.anchorDate) : ""),
+        nextDueDate: localEdits[e.id]?.nextDueDate ?? toDateInput(e.nextDueDate),
         merchantPattern: localEdits[e.id]?.merchantPattern ?? e.merchantPattern ?? "",
       },
     ])
@@ -57,15 +61,13 @@ export function RecurringExpensesSection({
     if (!expense) return;
     const value = edits[id]?.[field] ?? "";
     const original =
-      field === "anchorDate"
-        ? expense.anchorDate != null
-          ? String(expense.anchorDate)
-          : ""
+      field === "nextDueDate"
+        ? toDateInput(expense.nextDueDate)
         : (expense.merchantPattern ?? "");
     if (value === original) return;
     try {
       await postJSON(`/api/settings/recurring-expenses/${id}`, "PATCH", {
-        [field]: field === "anchorDate" ? (value ? Number(value) : null) : value.trim() || null,
+        [field]: field === "nextDueDate" ? value || null : value.trim() || null,
       });
       router.refresh();
     } catch (e) {
@@ -78,7 +80,7 @@ export function RecurringExpensesSection({
     merchantPattern: "",
     amount: "",
     frequency: "monthly" as (typeof FREQUENCIES)[number],
-    anchorDate: "",
+    nextDueDate: "",
   });
 
   async function create() {
@@ -94,10 +96,10 @@ export function RecurringExpensesSection({
         merchantPattern: draft.merchantPattern.trim() || null,
         amount: Number(draft.amount),
         frequency: draft.frequency,
-        anchorDate: draft.anchorDate ? Number(draft.anchorDate) : null,
+        nextDueDate: draft.nextDueDate || null,
         confirmed: true,
       });
-      setDraft({ name: "", merchantPattern: "", amount: "", frequency: "monthly", anchorDate: "" });
+      setDraft({ name: "", merchantPattern: "", amount: "", frequency: "monthly", nextDueDate: "" });
       router.refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to create recurring expense.");
@@ -144,11 +146,10 @@ export function RecurringExpensesSection({
               <th>Name</th>
               <th title="Merchant name fragment used to auto-match transactions">Pattern</th>
               <th
-                className="num"
-                style={{ width: 72 }}
-                title="Day of month the charge lands (1–31). Enables 'upcoming' status."
+                style={{ width: 130 }}
+                title="The next date this bill is due. Drives the cumulative-pot reservation: cycles before it ramp a set-aside; the cycle it lands in reserves the full amount."
               >
-                Anchor
+                Due date
               </th>
               <th>Frequency</th>
               <th className="num">Amount</th>
@@ -181,28 +182,23 @@ export function RecurringExpensesSection({
                       }}
                     />
                   </td>
-                  <td className="num" style={{ width: 72 }}>
+                  <td style={{ width: 130 }}>
                     <input
-                      type="number"
-                      min={1}
-                      max={31}
+                      type="date"
                       style={
-                        focusedCell === cellKey("anchor")
-                          ? { ...CELL_INPUT_FOCUS, textAlign: "right" }
-                          : { ...CELL_INPUT, textAlign: "right" }
+                        focusedCell === cellKey("due") ? CELL_INPUT_FOCUS : CELL_INPUT
                       }
-                      value={edits[e.id]?.anchorDate ?? ""}
-                      placeholder="—"
-                      onFocus={() => setFocusedCell(cellKey("anchor"))}
+                      value={edits[e.id]?.nextDueDate ?? ""}
+                      onFocus={() => setFocusedCell(cellKey("due"))}
                       onChange={(ev) =>
                         setLocalEdits((prev) => ({
                           ...prev,
-                          [e.id]: { ...prev[e.id], anchorDate: ev.target.value },
+                          [e.id]: { ...prev[e.id], nextDueDate: ev.target.value },
                         }))
                       }
                       onBlur={() => {
                         setFocusedCell(null);
-                        saveEdit(e.id, "anchorDate");
+                        saveEdit(e.id, "nextDueDate");
                       }}
                     />
                   </td>
@@ -274,15 +270,12 @@ export function RecurringExpensesSection({
           </select>
         </label>
         <label style={LABEL_STYLE}>
-          Anchor day
+          Due date
           <input
-            type="number"
-            min={1}
-            max={31}
-            value={draft.anchorDate}
-            onChange={(e) => setDraft({ ...draft, anchorDate: e.target.value })}
-            placeholder="—"
-            style={NUMBER_INPUT_STYLE}
+            type="date"
+            value={draft.nextDueDate}
+            onChange={(e) => setDraft({ ...draft, nextDueDate: e.target.value })}
+            style={INPUT_STYLE}
           />
         </label>
         <Button variant="primary" size="sm" onClick={create} disabled={busy}>

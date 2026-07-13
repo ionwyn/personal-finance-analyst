@@ -12,10 +12,19 @@ const bodySchema = z.object({
   merchantPattern: z.string().nullable().optional(),
   amount: z.number().optional(),
   frequency: z.enum(FREQUENCIES).optional(),
-  anchorDate: z.number().int().min(1).max(31).nullable().optional(),
+  nextDueDate: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .nullable()
+    .optional(),
   confirmed: z.boolean().optional(),
   active: z.boolean().optional(),
 });
+
+/** Parse a YYYY-MM-DD string as UTC midnight (matches occurrence projection). */
+function toUtcDate(value: string | null): Date | null {
+  return value ? new Date(`${value}T00:00:00.000Z`) : null;
+}
 
 export async function PATCH(request: Request, context: { params: Promise<{ id: string }> }) {
   const invalidOrigin = validateRequestOrigin(request);
@@ -47,7 +56,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
         : {}),
       ...(body.amount !== undefined ? { amount: body.amount } : {}),
       ...(body.frequency !== undefined ? { frequency: body.frequency } : {}),
-      ...(body.anchorDate !== undefined ? { anchorDate: body.anchorDate } : {}),
+      ...(body.nextDueDate !== undefined ? { nextDueDate: toUtcDate(body.nextDueDate) } : {}),
       ...(body.confirmed !== undefined ? { confirmed: body.confirmed } : {}),
       ...(body.active !== undefined ? { active: body.active } : {}),
       accrualPerCycle,

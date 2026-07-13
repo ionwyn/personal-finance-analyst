@@ -37,7 +37,7 @@ export function DiscoveryPanel({ candidates }: { candidates: DiscoveryCandidate[
           frequency: c.frequency,
           merchantPattern: c.merchantPattern ?? c.key,
           plaidStreamId: c.plaidStreamId,
-          anchorDate: c.anchorDate ?? undefined,
+          nextDueDate: c.nextDueDate ?? undefined,
         }),
       });
       if (!res.ok) throw new Error((await res.json()).error ?? "Failed to confirm");

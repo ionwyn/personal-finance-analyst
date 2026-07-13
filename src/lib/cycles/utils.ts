@@ -24,8 +24,8 @@ export type DiscoveryCandidate = {
   plaidStatus?: string;
   frequencyRaw?: string;
   predictedNextDate?: string | null;
-  /** Day-of-month derived from Plaid's predicted next date, prefilled on confirm. */
-  anchorDate?: number | null;
+  /** YYYY-MM-DD due date derived from Plaid's predicted next date, prefilled on confirm. */
+  nextDueDate?: string | null;
   /** How many times this merchant appears in the user's own 6-month history. */
   localOccurrences?: number;
 };

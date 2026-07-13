@@ -5,7 +5,8 @@ import { parseJson, requireUserTenant } from "@/lib/http";
 import { validateRequestOrigin } from "@/lib/origin";
 import { prisma } from "@/lib/prisma";
 import { ensureCycleForDate } from "@/lib/cycles/generate";
-import { dayOfMonthInCycle, startOfUtcDay } from "@/lib/cycles/getCurrentCycle";
+import { nextOccurrenceOnOrAfter, startOfUtcDay } from "@/lib/cycles/reservation";
+import type { Frequency } from "@/lib/cycles/types";
 import { SPENDING_FILTER } from "@/lib/spending/classify";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -40,22 +41,32 @@ export async function GET(request: Request) {
 
   const expense = await prisma.recurringExpense.findFirst({
     where: { id: recurringExpenseId, tenantId: auth.tenant.id },
-    select: { id: true, amount: true, anchorDate: true },
+    select: { id: true, amount: true, nextDueDate: true, frequency: true },
   });
   if (!expense) {
     return NextResponse.json({ error: "Recurring expense not found" }, { status: 404 });
   }
 
   const cycle = await ensureCycleForDate(auth.tenant.id, new Date());
-  const anchor = dayOfMonthInCycle(cycle.startDate, cycle.endDate, expense.anchorDate);
+  const cycleStart = startOfUtcDay(cycle.startDate);
+  const cycleEnd = startOfUtcDay(cycle.endDate);
 
-  // Window centres on the anchor date when set, otherwise spans the whole cycle.
-  const gte = anchor
-    ? new Date(anchor.getTime() - CANDIDATE_WINDOW_DAYS * DAY_MS)
-    : startOfUtcDay(cycle.startDate);
-  const lte = anchor
-    ? new Date(anchor.getTime() + CANDIDATE_WINDOW_DAYS * DAY_MS)
-    : startOfUtcDay(cycle.endDate);
+  // The occurrence that lands inside this cycle, when one does — used to centre
+  // the candidate window.
+  let anchor: Date | null = null;
+  if (expense.nextDueDate) {
+    const occ = nextOccurrenceOnOrAfter(
+      expense.nextDueDate,
+      expense.frequency as Frequency,
+      cycleStart
+    );
+    if (occ <= cycleEnd) anchor = occ;
+  }
+
+  // Window centres on the due occurrence when one is in this cycle, otherwise
+  // spans the whole cycle.
+  const gte = anchor ? new Date(anchor.getTime() - CANDIDATE_WINDOW_DAYS * DAY_MS) : cycleStart;
+  const lte = anchor ? new Date(anchor.getTime() + CANDIDATE_WINDOW_DAYS * DAY_MS) : cycleEnd;
 
   const rows = await prisma.plaidTransaction.findMany({
     where: { ...SPENDING_FILTER, tenantId: auth.tenant.id, date: { gte, lte } },

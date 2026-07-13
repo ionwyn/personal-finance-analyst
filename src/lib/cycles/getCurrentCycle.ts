@@ -3,6 +3,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { closeOverdueCycles } from "@/lib/cycles/close";
 import { computeSafeToSweep, type SafeToSweepResult } from "@/lib/cycles/safeToSweep";
+import { computeCycleReservation } from "@/lib/cycles/reservation";
 import { ensureCycleForDate } from "@/lib/cycles/generate";
 import {
   findPreviousCycleId,
@@ -17,12 +18,15 @@ export type CommittedItem = {
   id: string;
   name: string;
   amount: Prisma.Decimal;
+  /** Display-only nominal slice (amount/2, amount/26). Not used for the math. */
   accrualPerCycle: Prisma.Decimal;
+  /** Dollars fenced this cycle: the cumulative pot, or the full amount at due. */
+  reserved: Prisma.Decimal;
   frequency: string;
   status: CommittedStatus;
   /** True when the item no longer accrues this cycle: auto-debited or manually settled. */
   settled: boolean;
-  /** The scheduled date this expense lands in the cycle (from anchorDate), if any. */
+  /** The next occurrence this cycle is accruing toward / settling, if known. */
   dueDate: Date | null;
   /** For a manual "Paid" settlement: the recorded method (e.g. "e-transfer", "cash"). */
   settledMethod: string | null;
@@ -36,8 +40,8 @@ export type CommittedItem = {
    * from the stored expense. The UI surfaces these as "Apply" nudges.
    */
   plaidSuggestion?: {
-    /** Day-of-month from Plaid's predicted next date, when it differs from anchorDate. */
-    anchorDay?: number;
+    /** ISO date (YYYY-MM-DD) from Plaid's predicted next date, when it differs from nextDueDate. */
+    nextDueDate?: string;
     /** Plaid's average amount, when it differs from the stored amount. */
     amount?: number;
   };
@@ -156,7 +160,8 @@ export async function getCurrentCycleData(
       amount: true,
       accrualPerCycle: true,
       frequency: true,
-      anchorDate: true,
+      nextDueDate: true,
+      createdAt: true,
       plaidStreamId: true,
     },
   });
@@ -199,25 +204,29 @@ export async function getCurrentCycleData(
   const cycleEnd = startOfUtcDay(cycle.endDate);
 
   const committed: CommittedItem[] = recurring.map((rec) => {
-    const anchorOccurrence = dayOfMonthInCycle(cycle.startDate, cycle.endDate, rec.anchorDate);
+    const reservation = computeCycleReservation(rec, cycle);
+    const dueOccurrence = reservation.dueDate;
     const hasPattern = Boolean(rec.merchantPattern);
     const manual = settlementByExpense.get(rec.id);
 
     // Plan C: compute live divergence between the stored expense and its linked
     // Plaid stream. Surfaced as an "Apply" nudge — never auto-applied.
     const linkedStream = rec.plaidStreamId ? streamByStreamId.get(rec.plaidStreamId) : undefined;
-    let plaidSuggestion: { anchorDay?: number; amount?: number } | undefined;
+    let plaidSuggestion: { nextDueDate?: string; amount?: number } | undefined;
     if (linkedStream) {
-      const suggestion: { anchorDay?: number; amount?: number } = {};
+      const suggestion: { nextDueDate?: string; amount?: number } = {};
       if (linkedStream.predictedNextDate) {
-        const day = linkedStream.predictedNextDate.getUTCDate();
-        if (day !== rec.anchorDate) suggestion.anchorDay = day;
+        const predicted = startOfUtcDay(linkedStream.predictedNextDate);
+        const current = rec.nextDueDate ? startOfUtcDay(rec.nextDueDate).getTime() : null;
+        if (predicted.getTime() !== current) {
+          suggestion.nextDueDate = predicted.toISOString().slice(0, 10);
+        }
       }
       const streamAmt = Number(linkedStream.averageAmount.toString());
       if (streamAmt > 0 && Math.abs(streamAmt - Number(rec.amount.toString())) >= 0.01) {
         suggestion.amount = Math.round(streamAmt * 100) / 100;
       }
-      if (suggestion.anchorDay !== undefined || suggestion.amount !== undefined) {
+      if (suggestion.nextDueDate !== undefined || suggestion.amount !== undefined) {
         plaidSuggestion = suggestion;
       }
     }
@@ -229,10 +238,11 @@ export async function getCurrentCycleData(
         name: rec.name,
         amount: rec.amount,
         accrualPerCycle: rec.accrualPerCycle,
+        reserved: reservation.reserved,
         frequency: rec.frequency,
         status: "paid",
         settled: true,
-        dueDate: anchorOccurrence,
+        dueDate: dueOccurrence,
         settledMethod: manual.method,
         matchedTransactionId: manual.transactionId,
         hasPattern,
@@ -252,7 +262,7 @@ export async function getCurrentCycleData(
 
     let status: CommittedStatus;
     if (matched) status = "debited";
-    else if (anchorOccurrence && anchorOccurrence > today) status = "upcoming";
+    else if (reservation.isDueCycle && dueOccurrence && dueOccurrence > today) status = "upcoming";
     else status = "accrued";
 
     return {
@@ -260,10 +270,11 @@ export async function getCurrentCycleData(
       name: rec.name,
       amount: rec.amount,
       accrualPerCycle: rec.accrualPerCycle,
+      reserved: reservation.reserved,
       frequency: rec.frequency,
       status,
       settled: status === "debited",
-      dueDate: anchorOccurrence,
+      dueDate: dueOccurrence,
       settledMethod: null,
       matchedTransactionId: matched?.id ?? null,
       hasPattern,
@@ -273,9 +284,9 @@ export async function getCurrentCycleData(
 
   const unsettledAccruals = committed
     .filter((c) => !c.settled)
-    .reduce((sum, c) => sum.add(c.accrualPerCycle), new Prisma.Decimal(0));
+    .reduce((sum, c) => sum.add(c.reserved), new Prisma.Decimal(0));
   const committedTotalAccrued = committed.reduce(
-    (sum, c) => sum.add(c.accrualPerCycle),
+    (sum, c) => sum.add(c.reserved),
     new Prisma.Decimal(0)
   );
 

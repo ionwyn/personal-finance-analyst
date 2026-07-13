@@ -122,7 +122,9 @@ export async function getRecurringCandidates(
     const amount = Number(s.averageAmount.toString());
     const pattern = streamKey || merchantRaw.toUpperCase();
     const localOccurrences = localCounts.get(normalizeMerchant(merchantRaw)) ?? 0;
-    const anchorDate = s.predictedNextDate ? s.predictedNextDate.getUTCDate() : null;
+    const nextDueDate = s.predictedNextDate
+      ? s.predictedNextDate.toISOString().slice(0, 10)
+      : null;
     const accrual = Number(computeAccrualPerCycle(amount, frequency).toString());
 
     candidates.push({
@@ -142,7 +144,7 @@ export async function getRecurringCandidates(
       plaidStatus: s.status,
       frequencyRaw: s.frequencyRaw,
       predictedNextDate: s.predictedNextDate ? s.predictedNextDate.toISOString() : null,
-      anchorDate,
+      nextDueDate,
     });
   }
 

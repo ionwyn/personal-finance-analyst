@@ -1685,6 +1685,11 @@ export async function seedMockupDemo() {
   await prisma.payCycle.createMany({ data: cycles });
   console.log(`  ✓ Created ${cycles.length} PayCycles`);
 
+  // A due date on the given day-of-month in the current month; monthly projection
+  // steps from here, so only the day-of-month matters.
+  const dueDay = (day: number) =>
+    new Date(Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth(), day));
+
   await prisma.recurringExpense.createMany({
     data: [
       {
@@ -1693,8 +1698,8 @@ export async function seedMockupDemo() {
         merchantPattern: "FIDELITY REALTY",
         amount: 2500,
         frequency: "monthly",
-        anchorDate: 1,
-        accrualPerCycle: 2500,
+        nextDueDate: dueDay(1),
+        accrualPerCycle: 1250,
       },
       {
         tenantId: tenant.id,
@@ -1702,8 +1707,8 @@ export async function seedMockupDemo() {
         merchantPattern: "QUESTRADE",
         amount: 2000,
         frequency: "monthly",
-        anchorDate: 15,
-        accrualPerCycle: 2000,
+        nextDueDate: dueDay(15),
+        accrualPerCycle: 1000,
       },
       {
         tenantId: tenant.id,
@@ -1711,8 +1716,8 @@ export async function seedMockupDemo() {
         merchantPattern: "BELL CANADA",
         amount: 120,
         frequency: "monthly",
-        anchorDate: 10,
-        accrualPerCycle: 120,
+        nextDueDate: dueDay(10),
+        accrualPerCycle: 60,
       },
     ],
   });

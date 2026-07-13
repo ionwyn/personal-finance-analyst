@@ -16,13 +16,14 @@ export type CommittedRow = {
   status: CommittedStatus;
   settled: boolean;
   amount: number;
-  accrual: number;
+  /** Dollars fenced this cycle: the cumulative pot, or the full amount at due. */
+  reserved: number;
   dueDateMs: number | null;
   settledMethod: string | null;
   /** Whether this expense already has an auto-match pattern (hides the rule nudge). */
   hasPattern: boolean;
   /** Plaid "suggest, don't apply" divergence for a linked stream (Plan C). */
-  plaidSuggestion?: { anchorDay?: number; amount?: number };
+  plaidSuggestion?: { nextDueDate?: string; amount?: number };
 };
 
 type Candidate = {
@@ -197,7 +198,7 @@ export function CommittedTable({ rows }: { rows: CommittedRow[] }) {
   // route, which recomputes accrualPerCycle when amount/frequency changes.
   async function applySuggestion(
     recurringExpenseId: string,
-    patch: { anchorDate?: number; amount?: number }
+    patch: { nextDueDate?: string; amount?: number }
   ) {
     setBusy(true);
     setError(null);
@@ -224,7 +225,12 @@ export function CommittedTable({ rows }: { rows: CommittedRow[] }) {
           <th>Frequency</th>
           <th>Status</th>
           <th className="num">Amount</th>
-          <th className="num">Accrual</th>
+          <th
+            className="num"
+            title="Set aside this cycle: the running pot, or the full amount in the cycle the bill is due"
+          >
+            Reserved
+          </th>
           <th className="num" />
         </tr>
       </thead>
@@ -286,7 +292,7 @@ function FragmentRow({
   onUndo: () => void;
   onSaveRule: (pattern: string) => void;
   onDismissNudge: () => void;
-  onApplySuggestion: (patch: { anchorDate?: number; amount?: number }) => void;
+  onApplySuggestion: (patch: { nextDueDate?: string; amount?: number }) => void;
 }) {
   return (
     <>
@@ -306,7 +312,7 @@ function FragmentRow({
           <StatusBadge row={row} />
         </td>
         <td className="num mono">{formatMoney(row.amount)}</td>
-        <td className="num mono">{formatMoney(row.accrual)}</td>
+        <td className="num mono">{formatMoney(row.reserved)}</td>
         <td className="num">
           {row.status === "paid" ? (
             <button
@@ -529,12 +535,6 @@ function RuleNudge({
   );
 }
 
-function ordinal(n: number): string {
-  const s = ["th", "st", "nd", "rd"];
-  const v = n % 100;
-  return `${n}${s[(v - 20) % 10] ?? s[v] ?? s[0]}`;
-}
-
 /**
  * Plan C "suggest, don't apply" nudge: shows when a linked Plaid stream's predicted
  * due date or average amount diverges from the stored expense. Each Apply reuses the
@@ -545,13 +545,13 @@ function PlaidSuggestionNudge({
   busy,
   onApply,
 }: {
-  suggestion: { anchorDay?: number; amount?: number };
+  suggestion: { nextDueDate?: string; amount?: number };
   busy: boolean;
-  onApply: (patch: { anchorDate?: number; amount?: number }) => void;
+  onApply: (patch: { nextDueDate?: string; amount?: number }) => void;
 }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 4, marginTop: 4 }}>
-      {suggestion.anchorDay !== undefined ? (
+      {suggestion.nextDueDate !== undefined ? (
         <div
           style={{
             display: "flex",
@@ -562,11 +562,13 @@ function PlaidSuggestionNudge({
           }}
         >
           <AlertTriangle size={11} />
-          <span>Plaid predicts the {ordinal(suggestion.anchorDay)}</span>
+          <span>
+            Plaid predicts {formatUtcDate(new Date(`${suggestion.nextDueDate}T00:00:00.000Z`))}
+          </span>
           <button
             type="button"
             className="btn btn-sm"
-            onClick={() => onApply({ anchorDate: suggestion.anchorDay })}
+            onClick={() => onApply({ nextDueDate: suggestion.nextDueDate })}
             disabled={busy}
             style={{ fontSize: 10, padding: "1px 8px" }}
           >
@@ -600,7 +602,7 @@ function PlaidSuggestionNudge({
       {/* DEBUG:recurring remove after rollout */}
       {RECURRING_DEBUG ? (
         <div style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "var(--text-4)" }}>
-          [DEBUG:recurring] suggest anchorDay={suggestion.anchorDay ?? "—"} amount=
+          [DEBUG:recurring] suggest nextDueDate={suggestion.nextDueDate ?? "—"} amount=
           {suggestion.amount ?? "—"}
         </div>
       ) : null}

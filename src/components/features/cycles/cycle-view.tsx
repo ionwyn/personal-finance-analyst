@@ -60,7 +60,7 @@ export function CycleView({
     status: c.status,
     settled: c.settled,
     amount: toNumber(c.amount),
-    accrual: toNumber(c.accrualPerCycle),
+    reserved: toNumber(c.reserved),
     dueDateMs: c.dueDate ? c.dueDate.getTime() : null,
     settledMethod: c.settledMethod,
     hasPattern: c.hasPattern,
@@ -68,7 +68,7 @@ export function CycleView({
   }));
   const unsettledAccrualTotal = committed
     .filter((c) => !c.settled)
-    .reduce((sum, c) => sum + toNumber(c.accrualPerCycle), 0);
+    .reduce((sum, c) => sum + toNumber(c.reserved), 0);
 
   return (
     <>

@@ -24,9 +24,13 @@ const confirmSchema = z.object({
   frequency: z.enum(FREQUENCIES),
   merchantPattern: z.string().min(1),
   // Plaid linkage (Plan A/C): when the candidate came from a Plaid stream, store
-  // the stream id and prefill anchorDate from its predicted next-payment date.
+  // the stream id and prefill nextDueDate from its predicted next-payment date.
   plaidStreamId: z.string().min(1).optional(),
-  anchorDate: z.number().int().min(1).max(31).nullable().optional(),
+  nextDueDate: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .nullable()
+    .optional(),
 });
 
 export async function POST(request: Request) {
@@ -50,7 +54,7 @@ export async function POST(request: Request) {
       merchantPattern: pattern,
       amount: body.amount,
       frequency: body.frequency,
-      anchorDate: body.anchorDate ?? null,
+      nextDueDate: body.nextDueDate ? new Date(`${body.nextDueDate}T00:00:00.000Z`) : null,
       accrualPerCycle,
       confirmed: true,
       active: true,

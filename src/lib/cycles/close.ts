@@ -2,6 +2,7 @@ import { Prisma } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
 import { recomputeCycleTotals } from "@/lib/cycles/recomputeTotals";
+import { computeCycleReservation } from "@/lib/cycles/reservation";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -40,20 +41,32 @@ async function getBalancesAtCycleEnd(
 }
 
 /**
- * Sum accrualPerCycle for every active confirmed recurring expense that has no
- * matching transaction in the cycle. A recurring expense without a merchant
- * pattern can never match and is always treated as unsettled.
+ * Sum the cumulative-pot reservation for every active confirmed recurring expense
+ * that has no matching transaction in the cycle. A recurring expense without a
+ * merchant pattern can never match and is always treated as unsettled. Uses the
+ * same `computeCycleReservation` as the live view, so the cycle the bill lands in
+ * fences the full amount and the cycles before it fence the running pot.
  */
-async function getUnsettledAccruals(tenantId: string, cycleId: string): Promise<Prisma.Decimal> {
+async function getUnsettledAccruals(
+  tenantId: string,
+  cycle: { id: string; startDate: Date; endDate: Date }
+): Promise<Prisma.Decimal> {
   const recurring = await prisma.recurringExpense.findMany({
     where: { tenantId, active: true, confirmed: true },
-    select: { merchantPattern: true, accrualPerCycle: true },
+    select: {
+      merchantPattern: true,
+      amount: true,
+      frequency: true,
+      nextDueDate: true,
+      accrualPerCycle: true,
+      createdAt: true,
+    },
   });
 
   if (!recurring.length) return new Prisma.Decimal(0);
 
   const txns = await prisma.plaidTransaction.findMany({
-    where: { tenantId, cycleId, removed: false, supersededById: null },
+    where: { tenantId, cycleId: cycle.id, removed: false, supersededById: null },
     select: { name: true, merchantName: true },
   });
 
@@ -65,7 +78,7 @@ async function getUnsettledAccruals(tenantId: string, cycleId: string): Promise<
           `${tx.name ?? ""} ${tx.merchantName ?? ""}`.toUpperCase().includes(pattern)
         )
       : false;
-    if (!matched) total = total.add(rec.accrualPerCycle);
+    if (!matched) total = total.add(computeCycleReservation(rec, cycle).reserved);
   }
   return total;
 }
@@ -88,7 +101,7 @@ export async function closeOverdueCycles(
   const overdue = await prisma.payCycle.findMany({
     where: { tenantId, endDate: { lt: now } },
     orderBy: { startDate: "asc" },
-    select: { id: true, endDate: true, carryover: true, closedAt: true },
+    select: { id: true, startDate: true, endDate: true, carryover: true, closedAt: true },
   });
 
   if (!overdue.length) return 0;
@@ -102,7 +115,7 @@ export async function closeOverdueCycles(
   for (const cycle of overdue) {
     const { chequing, cc, hasSnapshot } = await getBalancesAtCycleEnd(tenantId, cycle.endDate);
     const newCarryover = hasSnapshot
-      ? chequing.sub(cc).sub(await getUnsettledAccruals(tenantId, cycle.id))
+      ? chequing.sub(cc).sub(await getUnsettledAccruals(tenantId, cycle))
       : null;
 
     const carryoverChanged =

@@ -1,10 +1,12 @@
 // ─── Source: recurring bill due dates (Personal Finance) ────────────────────
-// Projected from RecurringExpense. The model stores a day-of-month anchor only,
-// so each active+confirmed bill is projected monthly on that day — the same
-// derivation the pay-cycle view uses. Bills without an anchor are skipped.
+// Projected from RecurringExpense by stepping `frequency` from `nextDueDate` —
+// the same occurrence projection the pay-cycle reservation uses (so monthly,
+// annual, and weekly/biweekly all land correctly). Bills without a nextDueDate
+// are skipped.
 
-import { monthlyOccurrences } from "@/lib/calendar/sources/projections";
+import { fromISODate, toISODate } from "@/lib/calendar/dates";
 import type { CalendarEvent, CalendarSource } from "@/lib/calendar/types";
+import { occurrencesInRange } from "@/lib/cycles/reservation";
 import { prisma } from "@/lib/prisma";
 
 const num = (d: { toString(): string }) => Number(d.toString());
@@ -17,13 +19,19 @@ export const recurringBillsSource: CalendarSource = {
   async getEvents({ tenantId, range }): Promise<CalendarEvent[]> {
     const bills = await prisma.recurringExpense.findMany({
       where: { tenantId, active: true, confirmed: true },
-      select: { id: true, name: true, amount: true, anchorDate: true, frequency: true },
+      select: { id: true, name: true, amount: true, nextDueDate: true, frequency: true },
     });
 
     const events: CalendarEvent[] = [];
     for (const bill of bills) {
-      if (!bill.anchorDate) continue;
-      for (const date of monthlyOccurrences(range, bill.anchorDate)) {
+      if (!bill.nextDueDate) continue;
+      const occurrences = occurrencesInRange(
+        { nextDueDate: bill.nextDueDate, frequency: bill.frequency },
+        fromISODate(range.start),
+        fromISODate(range.end)
+      );
+      for (const occ of occurrences) {
+        const date = toISODate(occ);
         events.push({
           id: `bill:${bill.id}:${date}`,
           date,

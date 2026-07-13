@@ -746,7 +746,15 @@ model RecurringExpense {
   merchantPattern String?
   amount          Decimal   @db.Decimal(18, 2)
   frequency       String
-  anchorDate      Int?
+  // The next scheduled due date for this expense. Occurrences are projected by
+  // stepping `frequency` from this date (both directions). Drives the
+  // cumulative-pot reservation in lib/cycles/reservation.ts: cycles before the
+  // due date ramp a set-aside up to the full amount; the due cycle reserves the
+  // full amount. Null degrades to the flat `accrualPerCycle` slice.
+  nextDueDate     DateTime?
+  // Display-only nominal per-cycle slice (amount/2 monthly, amount/26 annual).
+  // The live reservation is computed dynamically; this is kept for the Settings
+  // table and discovery preview, and as the fallback when nextDueDate is null.
   accrualPerCycle Decimal   @db.Decimal(18, 2)
   confirmed       Boolean   @default(false)
   active          Boolean   @default(true)
