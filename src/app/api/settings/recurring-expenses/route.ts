@@ -10,7 +10,7 @@ import { FREQUENCIES } from "@/lib/cycles/types";
 const bodySchema = z.object({
   name: z.string().min(1).max(200),
   merchantPattern: z.string().nullable().optional(),
-  amount: z.number(),
+  amount: z.number().positive(),
   frequency: z.enum(FREQUENCIES),
   nextDueDate: z
     .string()

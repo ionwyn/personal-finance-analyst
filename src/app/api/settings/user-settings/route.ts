@@ -9,11 +9,16 @@ import { reclassifyTenant } from "@/lib/cycles/reclassify";
 import { seedCycleDefaultsForTenant } from "@/lib/cycles/seed";
 import { LANDING_VALUES } from "@/lib/settings/landing";
 
+const dateOnlySchema = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/)
+  .refine((v) => !Number.isNaN(new Date(`${v}T00:00:00.000Z`).getTime()), "Invalid date");
+
 const bodySchema = z.object({
-  lastPaycheckDate: z.string().nullable().optional(),
+  lastPaycheckDate: dateOnlySchema.nullable().optional(),
   employerMerchantPattern: z.string().nullable().optional(),
-  defaultFixedSavings: z.number().nullable().optional(),
-  sweepBuffer: z.number().nullable().optional(),
+  defaultFixedSavings: z.number().min(0).nullable().optional(),
+  sweepBuffer: z.number().min(0).nullable().optional(),
   ccPaymentDayOfMonth: z.number().int().min(1).max(31).nullable().optional(),
   // Only fixed-length strides are supported by the cycle engine (weekly/biweekly).
   // Semi-monthly / monthly need an engine overhaul — see SETTINGS_IMPLEMENTATION.md.

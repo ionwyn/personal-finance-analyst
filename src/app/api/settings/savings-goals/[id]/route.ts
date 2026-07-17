@@ -5,11 +5,16 @@ import { parseJson, requireUserTenant } from "@/lib/http";
 import { validateRequestOrigin } from "@/lib/origin";
 import { prisma } from "@/lib/prisma";
 
+const dateOnlySchema = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/)
+  .refine((v) => !Number.isNaN(new Date(`${v}T00:00:00.000Z`).getTime()), "Invalid date");
+
 const bodySchema = z.object({
   name: z.string().min(1).max(200).optional(),
   targetAmount: z.number().positive().optional(),
-  startDate: z.string().nullable().optional(),
-  targetDate: z.string().nullable().optional(),
+  startDate: dateOnlySchema.nullable().optional(),
+  targetDate: dateOnlySchema.nullable().optional(),
   savingsDestinationId: z.string().nullable().optional(),
   manualAmount: z.number().min(0).nullable().optional(),
   active: z.boolean().optional(),
