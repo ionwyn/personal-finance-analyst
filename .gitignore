@@ -11,3 +11,6 @@ prisma/dev.db-journal
 .vscode/
 .playwright-mcp/
 .vercel
+
+# AI assistant prompt/guardrail config (personal; commit assistant-config.example.json instead)
+assistant-config.json
