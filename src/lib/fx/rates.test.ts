@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 type FxRecord = {
   pair: string;
@@ -52,6 +52,12 @@ describe("Twelve Data FX cache", () => {
         },
       },
     }));
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.unstubAllEnvs();
+    vi.doUnmock("@/lib/prisma");
   });
 
   function okRate(rate: number) {
