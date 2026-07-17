@@ -10,7 +10,12 @@ import { isLikelySubscription } from "@/lib/analytics/subscriptions";
 import type { MonthlyCashflow, TransactionSummary } from "@/lib/analytics/types";
 import { categorizeForSpending } from "@/lib/spending/classify";
 
-export type TxWithAccount = Prisma.PlaidTransactionGetPayload<{ include: { account: true } }>;
+// `raw` (the full Plaid response JSON) is omitted: it is by far the widest
+// column on the table and nothing in the dashboard aggregation reads it.
+export type TxWithAccount = Prisma.PlaidTransactionGetPayload<{
+  include: { account: true };
+  omit: { raw: true };
+}>;
 
 type DateWindows = {
   monthKeys: string[];

@@ -84,6 +84,14 @@ async function getUnsettledAccruals(
 }
 
 /**
+ * How far back already-closed cycles are re-checked. Plaid can modify or
+ * remove transactions for roughly two weeks after they post; 35 days covers
+ * two full biweekly cycles beyond that. Cycles older than the window keep
+ * their stored carryover instead of being recomputed on every page render.
+ */
+const RECHECK_WINDOW_DAYS = 35;
+
+/**
  * Close any cycles that ended before `now`, computing carryover as:
  *
  *   carryover = chequing_balance_at_cycle_end
@@ -92,14 +100,21 @@ async function getUnsettledAccruals(
  *
  * Using real balance snapshots avoids the accounting-identity approach which
  * inflated carryover by ignoring unclassified outbound transfers.
- * All closed cycles are recalculated on each call so late syncs stay correct.
+ * Unclosed cycles are always processed; closed cycles are recalculated only
+ * while they end inside RECHECK_WINDOW_DAYS so late syncs stay correct
+ * without recomputing the entire history on every call.
  */
 export async function closeOverdueCycles(
   tenantId: string,
   now: Date = new Date()
 ): Promise<number> {
+  const recheckCutoff = new Date(now.getTime() - RECHECK_WINDOW_DAYS * DAY_MS);
   const overdue = await prisma.payCycle.findMany({
-    where: { tenantId, endDate: { lt: now } },
+    where: {
+      tenantId,
+      endDate: { lt: now },
+      OR: [{ closedAt: null }, { endDate: { gte: recheckCutoff } }],
+    },
     orderBy: { startDate: "asc" },
     select: { id: true, startDate: true, endDate: true, carryover: true, closedAt: true },
   });

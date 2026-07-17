@@ -4,7 +4,11 @@ import type { Prisma } from "@prisma/client";
 import { delta, numberValue } from "@/lib/analytics/dashboard-helpers";
 import type { BalancePoint } from "@/lib/analytics/types";
 
-type SnapshotWithAccount = Prisma.BalanceSnapshotGetPayload<{ include: { account: true } }>;
+// `raw` (the full Plaid balance response) is omitted — nothing here reads it.
+type SnapshotWithAccount = Prisma.BalanceSnapshotGetPayload<{
+  include: { account: true };
+  omit: { raw: true };
+}>;
 
 export function buildBalanceByDay(snapshots: SnapshotWithAccount[]) {
   const balanceByDay = new Map<string, { date: Date; balance: number }>();

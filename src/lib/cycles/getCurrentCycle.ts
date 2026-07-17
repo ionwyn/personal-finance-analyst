@@ -112,13 +112,74 @@ export async function getCurrentCycleData(
 
   const cycle = await ensureCycleForDate(tenantId, now);
 
-  const settings = await prisma.userSettings.findUnique({ where: { tenantId } });
-  const settingsConfigured = Boolean(settings?.lastPaycheckDate);
+  // Everything below depends only on tenantId + the resolved cycle, so the
+  // reads run in parallel.
+  const [
+    settings,
+    accounts,
+    expenseAgg,
+    pendingAgg,
+    recurring,
+    cycleMatches,
+    settlements,
+    lastClosedCycle,
+    previousCycleId,
+  ] = await Promise.all([
+    prisma.userSettings.findUnique({ where: { tenantId } }),
+    prisma.plaidAccount.findMany({
+      where: { tenantId, tracked: true },
+      select: { id: true, type: true, subtype: true, currentBalance: true },
+    }),
+    prisma.plaidTransaction.aggregate({
+      where: { ...SPENDING_FILTER, tenantId, cycleId: cycle.id },
+      _sum: { amount: true },
+    }),
+    prisma.plaidTransaction.aggregate({
+      where: { ...SPENDING_FILTER, tenantId, cycleId: cycle.id, pending: true },
+      _sum: { amount: true },
+      _count: { _all: true },
+    }),
+    prisma.recurringExpense.findMany({
+      where: { tenantId, active: true, confirmed: true },
+      select: {
+        id: true,
+        name: true,
+        merchantPattern: true,
+        amount: true,
+        accrualPerCycle: true,
+        frequency: true,
+        nextDueDate: true,
+        createdAt: true,
+        plaidStreamId: true,
+      },
+    }),
+    // Broader than SPENDING_FILTER: loan payments (e.g. Affirm BNPL) are excluded
+    // from spending stats but must still be matchable as committed expenses.
+    prisma.plaidTransaction.findMany({
+      where: {
+        removed: false,
+        supersededById: null,
+        tenantId,
+        cycleId: cycle.id,
+        amount: { gt: 0 },
+      },
+      select: { id: true, merchantName: true, name: true },
+    }),
+    // Manual settlements recorded for this cycle (one per recurring expense).
+    // A row means the user settled it: linked to a transaction or "Paid" (cash/cheque).
+    prisma.committedSettlement.findMany({
+      where: { tenantId, cycleId: cycle.id },
+      select: { recurringExpenseId: true, transactionId: true, method: true },
+    }),
+    prisma.payCycle.findFirst({
+      where: { tenantId, endDate: { lt: cycle.startDate }, closedAt: { not: null } },
+      orderBy: { startDate: "desc" },
+      select: { carryover: true },
+    }),
+    findPreviousCycleId(tenantId, cycle.startDate),
+  ]);
 
-  const accounts = await prisma.plaidAccount.findMany({
-    where: { tenantId, tracked: true },
-    select: { id: true, type: true, subtype: true, currentBalance: true },
-  });
+  const settingsConfigured = Boolean(settings?.lastPaycheckDate);
 
   let chequingBalance = new Prisma.Decimal(0);
   let creditCardBalance = new Prisma.Decimal(0);
@@ -137,34 +198,9 @@ export async function getCurrentCycleData(
     settings?.ccPaymentDayOfMonth ?? null
   );
 
-  const expenseAgg = await prisma.plaidTransaction.aggregate({
-    where: { ...SPENDING_FILTER, tenantId, cycleId: cycle.id },
-    _sum: { amount: true },
-  });
   const expenseAll = expenseAgg._sum.amount ?? new Prisma.Decimal(0);
-
-  const pendingAgg = await prisma.plaidTransaction.aggregate({
-    where: { ...SPENDING_FILTER, tenantId, cycleId: cycle.id, pending: true },
-    _sum: { amount: true },
-    _count: { _all: true },
-  });
   const pendingSum = pendingAgg._sum.amount ?? new Prisma.Decimal(0);
   const pendingCount = pendingAgg._count._all;
-
-  const recurring = await prisma.recurringExpense.findMany({
-    where: { tenantId, active: true, confirmed: true },
-    select: {
-      id: true,
-      name: true,
-      merchantPattern: true,
-      amount: true,
-      accrualPerCycle: true,
-      frequency: true,
-      nextDueDate: true,
-      createdAt: true,
-      plaidStreamId: true,
-    },
-  });
 
   // Linked Plaid streams for the "suggest, don't auto-apply" nudges (Plan C).
   // Read-only join against the locally-cached streams — no Plaid call here.
@@ -179,25 +215,6 @@ export async function getCurrentCycleData(
     : [];
   const streamByStreamId = new Map(streamRows.map((s) => [s.streamId, s]));
 
-  // Broader than SPENDING_FILTER: loan payments (e.g. Affirm BNPL) are excluded
-  // from spending stats but must still be matchable as committed expenses.
-  const cycleMatches = await prisma.plaidTransaction.findMany({
-    where: {
-      removed: false,
-      supersededById: null,
-      tenantId,
-      cycleId: cycle.id,
-      amount: { gt: 0 },
-    },
-    select: { id: true, merchantName: true, name: true },
-  });
-
-  // Manual settlements recorded for this cycle (one per recurring expense).
-  // A row means the user settled it: linked to a transaction or "Paid" (cash/cheque).
-  const settlements = await prisma.committedSettlement.findMany({
-    where: { tenantId, cycleId: cycle.id },
-    select: { recurringExpenseId: true, transactionId: true, method: true },
-  });
   const settlementByExpense = new Map(settlements.map((s) => [s.recurringExpenseId, s]));
 
   const today = startOfUtcDay(now);
@@ -291,12 +308,6 @@ export async function getCurrentCycleData(
   );
 
   const sweepBuffer = settings?.sweepBuffer ?? new Prisma.Decimal(100);
-
-  const lastClosedCycle = await prisma.payCycle.findFirst({
-    where: { tenantId, endDate: { lt: cycle.startDate }, closedAt: { not: null } },
-    orderBy: { startDate: "desc" },
-    select: { carryover: true },
-  });
   const lastCycleCarryover = lastClosedCycle?.carryover ?? null;
 
   const safeToSweep = computeSafeToSweep({
@@ -319,7 +330,6 @@ export async function getCurrentCycleData(
     incomeReceivedNum - fixedSavingsPullNum - committedAccrualsNum
   );
 
-  const previousCycleId = await findPreviousCycleId(tenantId, cycle.startDate);
   const breakdown = await getSpendingBreakdown(
     tenantId,
     cycle.id,

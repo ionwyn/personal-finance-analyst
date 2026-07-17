@@ -201,6 +201,7 @@ export async function getDashboardData(tenantSlug: string) {
     },
     orderBy: { date: "desc" },
     include: { account: true },
+    omit: { raw: true },
   });
 
   const recentTransactions: TransactionSummary[] = transactions.slice(0, 10).map((t) => {
@@ -227,6 +228,7 @@ export async function getDashboardData(tenantSlug: string) {
       account: { is: { tracked: true } },
     },
     include: { account: true },
+    omit: { raw: true },
     orderBy: { capturedAt: "asc" },
   });
 
@@ -382,6 +384,7 @@ export async function getTransactionsForTenant(input: {
       where,
       orderBy: { date: "desc" },
       include: { account: true },
+      omit: { raw: true },
       take: 500,
     }),
     prisma.plaidTransaction.count({ where }),
