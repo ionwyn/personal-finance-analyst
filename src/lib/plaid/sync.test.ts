@@ -342,6 +342,24 @@ describe("syncPlaidItem", () => {
         data: { removed: true },
       });
     });
+
+    it("recomputes cycle totals for the cycle a removed transaction belonged to", async () => {
+      mocks.plaidTransactionFindUnique.mockResolvedValue({ cycleId: "cycle_removed" });
+      mocks.transactionsSync.mockResolvedValue({
+        data: {
+          added: [],
+          modified: [],
+          removed: [{ transaction_id: "txn_gone" }],
+          next_cursor: "cursor_3",
+          has_more: false,
+          request_id: "req_4",
+        },
+      });
+
+      await syncPlaidItem(ITEM_ID, SyncSource.MANUAL);
+
+      expect(mocks.recomputeCycleTotals).toHaveBeenCalledWith(TENANT_ID, "cycle_removed");
+    });
   });
 
   describe("error handling", () => {

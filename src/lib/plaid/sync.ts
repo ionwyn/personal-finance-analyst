@@ -145,7 +145,15 @@ async function applyAddedOrModified(input: {
   });
 }
 
-async function applyRemoved(transaction: RemovedTransaction) {
+async function applyRemoved(transaction: RemovedTransaction, cycleState?: CycleSyncState) {
+  if (cycleState) {
+    const existing = await prisma.plaidTransaction.findUnique({
+      where: { plaidTransactionId: transaction.transaction_id },
+      select: { cycleId: true },
+    });
+    if (existing?.cycleId) cycleState.affectedCycleIds.add(existing.cycleId);
+  }
+
   await prisma.plaidTransaction.updateMany({
     where: {
       plaidTransactionId: transaction.transaction_id,
@@ -183,7 +191,7 @@ async function applyTransactionChanges(input: {
   }
 
   for (const transaction of input.removed) {
-    await applyRemoved(transaction);
+    await applyRemoved(transaction, input.cycleState);
   }
 
   return summarizeTransactionChanges(input);
@@ -320,7 +328,10 @@ async function syncPlaidItemWithContext(item: PlaidItemWithTenant, source: SyncS
           addedCount = 0;
           modifiedCount = 0;
           removedCount = 0;
-          if (cycleState) cycleState.affectedCycleIds.clear();
+          if (cycleState) {
+            cycleState.affectedCycleIds.clear();
+            cycleState.errors.length = 0;
+          }
           continue;
         }
         throw error;
