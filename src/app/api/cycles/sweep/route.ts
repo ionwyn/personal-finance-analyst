@@ -34,7 +34,7 @@ export async function POST(request: Request) {
   const cycle = await ensureCycleForDate(auth.tenant.id, now);
 
   const depositoryAccount = await prisma.plaidAccount.findFirst({
-    where: { tenantId: auth.tenant.id, type: "depository" },
+    where: { tenantId: auth.tenant.id, type: "depository", tracked: true },
     orderBy: { createdAt: "asc" },
   });
 

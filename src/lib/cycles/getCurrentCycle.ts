@@ -116,7 +116,7 @@ export async function getCurrentCycleData(
   const settingsConfigured = Boolean(settings?.lastPaycheckDate);
 
   const accounts = await prisma.plaidAccount.findMany({
-    where: { tenantId },
+    where: { tenantId, tracked: true },
     select: { id: true, type: true, subtype: true, currentBalance: true },
   });
 
