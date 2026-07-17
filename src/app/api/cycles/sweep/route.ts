@@ -69,11 +69,18 @@ export async function POST(request: Request) {
       },
     });
 
-    const prior = cycle.sweptAmount ?? new Prisma.Decimal(0);
+    // Atomic increment: concurrent sweeps must not lose each other's update.
+    // A null sweptAmount is normalised to 0 first (increment skips NULL rows).
+    if (cycle.sweptAmount == null) {
+      await tx.payCycle.updateMany({
+        where: { id: cycle.id, sweptAmount: null },
+        data: { sweptAmount: new Prisma.Decimal(0) },
+      });
+    }
     const updatedCycle = await tx.payCycle.update({
       where: { id: cycle.id },
       data: {
-        sweptAmount: prior.add(body.amount),
+        sweptAmount: { increment: body.amount },
         notes: body.note ? appendNote(cycle.notes, body.note) : cycle.notes,
       },
     });
