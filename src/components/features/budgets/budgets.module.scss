@@ -1,6 +1,8 @@
 /* Budgets & Goals workspace — ported from the designer mockup (styles-2.css),
    with --font-cond mapped to --font-sans and category colours via hashColor. */
 
+@use "breakpoints" as *;
+
 .grid2 {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -309,4 +311,17 @@
 .formActions {
   display: inline-flex;
   gap: 8px;
+}
+@include respond-to("sm") {
+  .capRowHead {
+    flex-wrap: wrap;
+  }
+  .capSpent {
+    margin-right: 0;
+  }
+  .capControls {
+    flex: 1 1 100%;
+    justify-content: flex-end;
+    margin-top: 4px;
+  }
 }

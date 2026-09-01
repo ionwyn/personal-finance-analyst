@@ -1,5 +1,7 @@
 // Page header — title, subtitle, action row.
 
+@use "breakpoints" as *;
+
 .page-header {
   display: flex;
   align-items: flex-end;
@@ -32,4 +34,9 @@
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
+}
+@include respond-to("sm") {
+  .page-header > div {
+    width: 100%;
+  }
 }
