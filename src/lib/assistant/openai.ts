@@ -1,5 +1,6 @@
 import OpenAI from "openai";
 import type { ResponseInput, ResponseStreamEvent } from "openai/resources/responses/responses";
+import { z } from "zod";
 
 import { sanitizeRemoteAssistantText } from "@/lib/assistant/remote-sanitize";
 import {
@@ -10,7 +11,7 @@ import {
 } from "@/lib/env";
 
 import { ANSWER_SEP, THINK_SEP, type ChatMessage } from "./ollama";
-import { PERIODS, PLAN_INTENTS } from "./query";
+import { PLAN_INTENTS, plannerFiltersSchema } from "./query";
 
 export class OpenAIUnavailableError extends Error {
   constructor(message = "OpenAI assistant model is unavailable", cause?: unknown) {
@@ -26,26 +27,19 @@ type OpenAIChatOptions = {
   webSearch?: boolean;
 };
 
+// Derived from plannerFiltersSchema (not hand-mirrored) so a new filter field
+// only ever needs to be added in one place — see query.ts.
+const plannerFiltersJsonSchema = Object.fromEntries(
+  Object.entries(z.toJSONSchema(plannerFiltersSchema)).filter(([key]) => key !== "$schema")
+);
+
 const plannerJsonSchema = {
   type: "object",
   additionalProperties: false,
   required: ["intent"],
   properties: {
     intent: { type: "string", enum: PLAN_INTENTS },
-    filters: {
-      type: "object",
-      additionalProperties: false,
-      properties: {
-        q: { type: "string", maxLength: 80 },
-        category: { type: "string", maxLength: 80 },
-        period: { type: "string", enum: PERIODS },
-        from: { type: "string", pattern: "^\\d{4}-\\d{2}-\\d{2}$" },
-        to: { type: "string", pattern: "^\\d{4}-\\d{2}-\\d{2}$" },
-        bucket: { type: "string", enum: ["spending", "income"] },
-        amountMin: { type: "number", minimum: 0 },
-        amountMax: { type: "number", minimum: 0 },
-      },
-    },
+    filters: plannerFiltersJsonSchema,
   },
 } as const;
 

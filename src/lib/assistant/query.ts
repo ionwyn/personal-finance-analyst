@@ -83,6 +83,7 @@ export const filtersSchema = z.object({
   bucket: z.enum(["spending", "income"]).optional(),
   amountMin: z.number().nonnegative().optional(),
   amountMax: z.number().nonnegative().optional(),
+  targetAmount: z.number().nonnegative().optional(),
 });
 
 function optionalPlannerField<T extends z.ZodType>(schema: T) {
@@ -93,7 +94,7 @@ function optionalPlannerField<T extends z.ZodType>(schema: T) {
   }, schema.optional());
 }
 
-const plannerFiltersSchema = z.object({
+export const plannerFiltersSchema = z.object({
   q: optionalPlannerField(z.string().max(80)),
   category: optionalPlannerField(z.string().max(80)),
   period: optionalPlannerField(z.enum(PERIODS)),
@@ -102,6 +103,7 @@ const plannerFiltersSchema = z.object({
   bucket: optionalPlannerField(z.enum(["spending", "income"])),
   amountMin: optionalPlannerField(z.coerce.number().nonnegative()),
   amountMax: optionalPlannerField(z.coerce.number().nonnegative()),
+  targetAmount: optionalPlannerField(z.coerce.number().nonnegative()),
 });
 
 export const PLAN_INTENTS = [
@@ -118,6 +120,7 @@ export const PLAN_INTENTS = [
   "savings_goals",
   "account_status",
   "investment_exposure",
+  "savings_advice",
   "prove_previous_answer",
 ] as const;
 export type PlanIntent = (typeof PLAN_INTENTS)[number];

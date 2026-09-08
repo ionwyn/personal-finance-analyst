@@ -1,4 +1,5 @@
 import { fetchAccountStatus, serializeAccountStatus } from "@/lib/assistant/accounts";
+import { fetchSavingsAdvice, serializeSavingsAdvice } from "@/lib/assistant/advice";
 import { buildFinancialContext } from "@/lib/assistant/context";
 import { fetchBudgetStatus, serializeBudgetStatus } from "@/lib/assistant/budget";
 import { fetchCashflowRunway, serializeCashflowRunway } from "@/lib/assistant/cashflow";
@@ -156,6 +157,14 @@ async function fetchEvidenceForPlan(input: {
     };
   }
 
+  if (input.plan.intent === "savings_advice") {
+    const result = await fetchSavingsAdvice(input.tenantId, input.tenantSlug, filters);
+    return {
+      evidence: serializeSavingsAdvice(result, input.currency),
+      evidenceKind: "savings_advice",
+    };
+  }
+
   return { evidence: undefined };
 }
 
@@ -223,8 +232,8 @@ export async function createAssistantTurn(input: {
 
   const systemPrompt =
     input.mode === "reasoning"
-      ? buildReasoningNarrationPrompt(block, evidence)
-      : buildNarrationPrompt(block, evidence);
+      ? buildReasoningNarrationPrompt(block, evidence, evidenceKind)
+      : buildNarrationPrompt(block, evidence, evidenceKind);
   const messages: ChatMessage[] = [
     { role: "system", content: systemPrompt },
     ...input.history.map((m) => ({ role: m.role, content: m.content })),

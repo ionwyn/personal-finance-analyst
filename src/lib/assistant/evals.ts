@@ -17,6 +17,7 @@ export type AssistantEvalCase = {
     | "savings_goals"
     | "account_status"
     | "investment_exposure"
+    | "savings_advice"
     | "previous_answer";
   priorEvidence?: string;
   groundingMustMention?: string[];
@@ -256,6 +257,22 @@ export const assistantEvalCases = [
     expectedPlan: { intent: "investment_exposure" },
     evidenceKind: "investment_exposure",
     groundingMustMention: ["INVESTMENT EXPOSURE STATUS", "do not recommend"],
+  },
+  {
+    id: "savings-advice-generic",
+    prompt: "How can I save more money?",
+    description: "Open-ended savings advice should not extract a targetAmount.",
+    expectedPlan: { intent: "savings_advice" },
+    evidenceKind: "savings_advice",
+    groundingMustMention: ["SAVINGS ADVICE CONTEXT", "FEASIBILITY"],
+  },
+  {
+    id: "savings-advice-goal-deadline",
+    prompt: "Can I have $500 saved by cycle end?",
+    description: "Goal-and-deadline savings questions should extract targetAmount for a server-computed feasibility verdict.",
+    expectedPlan: { intent: "savings_advice", filters: { targetAmount: 500 } },
+    evidenceKind: "savings_advice",
+    groundingMustMention: ["SAVINGS ADVICE CONTEXT", "FEASIBILITY"],
   },
   {
     id: "prove-prior-answer",
