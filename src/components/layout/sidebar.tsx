@@ -9,6 +9,7 @@ import {
   ArrowLeftRight,
   CalendarClock,
   CalendarDays,
+  Calculator,
   CandlestickChart,
   ChevronLeft,
   ChevronRight,
@@ -113,6 +114,12 @@ export function Sidebar({ mode, user }: { mode: "private" | "demo"; user?: Sideb
       href: "/app/budgets",
       icon: <Target size={ICON_SIZE} />,
       kbd: "⌘6",
+    },
+    {
+      key: "calculator",
+      label: "Calculator",
+      href: "/app/calculator",
+      icon: <Calculator size={ICON_SIZE} />,
     },
   ];
 
