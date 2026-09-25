@@ -62,7 +62,7 @@ describe("evaluateCalculation", () => {
       calculationWarnings([
         { type: "variable", variableId: "bills:next-30" },
         { type: "operator", operator: "−" },
-        { type: "variable", variableId: "bills:subscriptions-next-30" },
+        { type: "variable", variableId: "bills:monthly" },
       ])
     ).toHaveLength(1);
   });

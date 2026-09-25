@@ -107,12 +107,9 @@ export function calculationWarnings(tokens: CalculationToken[]): string[] {
       "This includes total balances and an individual account. Check that you are not counting an account twice."
     );
   }
-  if (
-    variableIds.includes("bills:next-30") &&
-    variableIds.includes("bills:subscriptions-next-30")
-  ) {
+  if (variableIds.includes("bills:next-30") && variableIds.includes("bills:monthly")) {
     warnings.push(
-      "Subscriptions are included in upcoming bills. Subtracting both may count them twice."
+      "Bills due in 30 days are part of your known monthly bills. Using both may count some bills twice."
     );
   }
   return warnings;
