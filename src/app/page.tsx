@@ -73,7 +73,7 @@ export default async function HomePage() {
               Login
               <span className={styles.kbd}>⏎</span>
             </Link>
-            <Link href="/demo" className={styles.landingBtn}>
+            <Link href="https://finance-demo.ionwyn.com/app" className={styles.landingBtn}>
               View public demo
               <span className={styles.arrow}>→</span>
             </Link>

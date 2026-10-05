@@ -45,7 +45,7 @@ export default async function SignInPage() {
             justifyContent: "space-between",
           }}
         >
-          <Link href="/demo" style={{ color: "var(--text-2)" }}>
+          <Link href="https://finance-demo.ionwyn.com/app" style={{ color: "var(--text-2)" }}>
             View public demo →
           </Link>
           <span style={{ fontFamily: "var(--font-mono)" }}>local · encrypted-at-rest</span>

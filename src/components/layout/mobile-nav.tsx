@@ -7,6 +7,7 @@ import clsx from "clsx";
 import {
   ArrowLeftRight,
   CalendarClock,
+  Calculator,
   CandlestickChart,
   LayoutGrid,
   LogOut,
@@ -60,6 +61,7 @@ const PRIMARY: MobileNavItem[] = [
   },
   { key: "cycles", label: "Pay", href: "/app/cycles", icon: <CalendarClock size={ICON} /> },
   { key: "budgets", label: "Budgets", href: "/app/budgets", icon: <Target size={ICON} /> },
+  { key: "calculator", label: "Calc", href: "/app/calculator", icon: <Calculator size={ICON} /> },
 ];
 
 const ROUTE_TITLES: Array<[string, string]> = [
@@ -70,6 +72,7 @@ const ROUTE_TITLES: Array<[string, string]> = [
   ["/app/markets", "Markets"],
   ["/app/cycles", "Pay Cycle"],
   ["/app/budgets", "Budgets"],
+  ["/app/calculator", "Calculator"],
   ["/app/settings", "Settings"],
   ["/demo", "Demo"],
   ["/app", "Overview"],
