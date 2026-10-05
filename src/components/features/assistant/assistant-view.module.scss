@@ -1,0 +1,487 @@
+.wrap {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.chat {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.messages {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.welcome {
+  margin: auto;
+  text-align: center;
+  color: var(--text-3);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  max-width: 460px;
+
+  p {
+    margin: 0;
+    font-size: 14px;
+  }
+}
+
+.starters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  margin-top: 6px;
+}
+
+.starter {
+  font-size: 12.5px;
+  color: var(--text-2);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 6px 12px;
+  cursor: pointer;
+  transition:
+    background 0.12s ease,
+    border-color 0.12s ease;
+
+  &:hover {
+    background: var(--surface-3);
+    border-color: var(--border-strong);
+  }
+}
+
+.userMsg,
+.assistantMsg {
+  display: flex;
+}
+
+.userMsg {
+  justify-content: flex-end;
+}
+
+.assistantMsg {
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.bubble {
+  max-width: 78%;
+  padding: 10px 14px;
+  border-radius: var(--radius);
+  font-size: 14px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.userMsg .bubble {
+  background: var(--accent);
+  color: #fff;
+  border-bottom-right-radius: 4px;
+}
+
+.assistantMsg .bubble {
+  background: var(--surface-2);
+  color: var(--text);
+  border: 1px solid var(--border-subtle);
+  border-bottom-left-radius: 4px;
+}
+
+// Rendered Markdown answer. Block elements manage their own spacing, so the
+// bubble's pre-wrap is reset here to avoid doubled gaps between paragraphs.
+.markdown {
+  white-space: normal;
+  font-size: 14px;
+  line-height: 1.55;
+
+  > :first-child {
+    margin-top: 0;
+  }
+
+  > :last-child {
+    margin-bottom: 0;
+  }
+
+  p {
+    margin: 0 0 8px;
+  }
+
+  ul,
+  ol {
+    margin: 0 0 8px;
+    padding-left: 20px;
+  }
+
+  li {
+    margin: 2px 0;
+  }
+
+  li > p {
+    margin: 0;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    margin: 12px 0 6px;
+    line-height: 1.3;
+    font-weight: 650;
+  }
+
+  h1 {
+    font-size: 16px;
+  }
+
+  h2 {
+    font-size: 15px;
+  }
+
+  h3,
+  h4 {
+    font-size: 14px;
+  }
+
+  strong {
+    font-weight: 650;
+    color: var(--text);
+  }
+
+  a {
+    color: var(--accent);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
+  code {
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    background: var(--surface-3);
+    border: 1px solid var(--border-subtle);
+    border-radius: 4px;
+    padding: 1px 5px;
+  }
+
+  pre {
+    margin: 0 0 8px;
+    padding: 10px 12px;
+    background: var(--surface-3);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius);
+    overflow-x: auto;
+
+    code {
+      background: none;
+      border: none;
+      padding: 0;
+    }
+  }
+
+  blockquote {
+    margin: 0 0 8px;
+    padding-left: 12px;
+    border-left: 3px solid var(--border-strong);
+    color: var(--text-2);
+  }
+
+  hr {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 12px 0;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 4px 0 10px;
+    font-size: 13px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  th,
+  td {
+    border: 1px solid var(--border);
+    padding: 6px 10px;
+    text-align: left;
+  }
+
+  th {
+    background: var(--surface-3);
+    font-weight: 600;
+    color: var(--text-2);
+  }
+
+  tbody tr:nth-child(even) {
+    background: var(--surface);
+  }
+
+  // In-progress trailing block during streaming: rendered as plain text (raw
+  // Markdown source) until its block closes, so it doesn't reflow per token.
+  .streamTail {
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
+  // Currency amounts wrapped by the rehype pass. Global class (set on a raw hast
+  // span) so it isn't CSS-module-hashed; mono + tabular figures make numbers pop
+  // and nowrap keeps an amount from breaking across lines.
+  :global(.assistant-currency) {
+    font-family: var(--font-mono);
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    color: var(--text);
+  }
+}
+
+.modeBar {
+  display: flex;
+  justify-content: flex-end;
+  padding: 0 2px 12px;
+}
+
+.modeGroup {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.thinking {
+  max-width: 78%;
+  margin-bottom: 4px;
+}
+
+.thinkingToggle {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 2px 0;
+  color: var(--text-3);
+  font-size: 11px;
+  font-family: var(--font-mono);
+
+  &:hover {
+    color: var(--text-2);
+  }
+
+  svg {
+    transition: transform 0.12s ease;
+  }
+}
+
+.thinkingChevronOpen {
+  transform: rotate(90deg);
+}
+
+.thinkingBody {
+  margin-top: 4px;
+  padding: 8px 10px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-3);
+  font-size: 12px;
+  font-family: var(--font-mono);
+  white-space: pre-wrap;
+  word-break: break-word;
+  line-height: 1.6;
+}
+
+// Live variant: caps height and scrolls so a long, still-streaming chain of
+// thought stays compact while the user watches it fill in.
+.thinkingBodyLive {
+  composes: thinkingBody;
+  max-height: 160px;
+  overflow-y: auto;
+}
+
+// Evidence panel sits below the answer; it reuses the reasoning toggle/body
+// styling and caps height so a long row dump (e.g. 50 transactions) scrolls.
+.evidence {
+  max-width: 78%;
+  margin-top: 6px;
+}
+
+.evidenceToggle {
+  composes: thinkingToggle;
+}
+
+.evidenceBody {
+  composes: thinkingBody;
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+// Pulsing label while the model is actively reasoning.
+.thinkingLive {
+  color: var(--text-2);
+  animation: thinkingPulse 1.4s ease-in-out infinite;
+}
+
+@keyframes thinkingPulse {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+// Loading state shown in the assistant bubble before any answer text arrives.
+.loading {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-3);
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.dots {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 1.2em;
+}
+
+.dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--text-3);
+  animation: dotPulse 1.2s ease-in-out infinite;
+
+  &:nth-child(2) {
+    animation-delay: 0.18s;
+  }
+
+  &:nth-child(3) {
+    animation-delay: 0.36s;
+  }
+}
+
+@keyframes dotPulse {
+  0%,
+  80%,
+  100% {
+    opacity: 0.3;
+    transform: scale(0.8);
+  }
+  40% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+// Copy / regenerate / feedback row beneath a finished answer.
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-top: 4px;
+  margin-left: -5px; // optically align the first icon with the bubble text
+}
+
+.actionBtn {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border: none;
+  background: none;
+  border-radius: 6px;
+  color: var(--text-3);
+  cursor: pointer;
+  transition:
+    color 0.12s ease,
+    background 0.12s ease;
+
+  &:hover {
+    color: var(--text);
+    background: var(--surface-3);
+  }
+}
+
+.actionBtnActive {
+  color: var(--accent);
+
+  &:hover {
+    color: var(--accent);
+  }
+}
+
+.error {
+  margin: 0 20px;
+  padding: 8px 12px;
+  font-size: 13px;
+  color: var(--neg);
+  background: var(--neg-bg);
+  border-radius: var(--radius);
+}
+
+.composer {
+  display: flex;
+  gap: 10px;
+  padding: 14px;
+  border-top: 1px solid var(--border);
+  background: var(--surface-2);
+}
+
+.field {
+  flex: 1;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  font-size: 14px;
+  color: var(--text);
+  font-family: var(--font-sans);
+
+  &:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+
+  &:disabled {
+    opacity: 0.6;
+  }
+}
+
+.sendBtn {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  border: none;
+  border-radius: var(--radius);
+  background: var(--accent);
+  color: #fff;
+  cursor: pointer;
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+}

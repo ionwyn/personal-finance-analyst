@@ -159,9 +159,9 @@ Legend: `[x]` done · `[~]` partial (see note) · `[ ]` not started · `[—]` i
 
 ### Impossible without overhaul
 
-- [—] Token-encryption key rotation w/ KMS + `kid` ("rotated 47d ago"). **Why:** single static
-  env key (`token-crypto.ts`), no KMS, no key versioning. Real rotation = key-version column +
-  re-encrypt-all migration + KMS integration. Mockup control is fictional.
+- [~] Token-encryption key rotation. **Status:** offline key-id rotation is supported by
+  `npm run token-key:rotate`; no in-app rotation status/audit metadata is tracked yet. KMS remains
+  unnecessary for the current local-first deployment.
 
 ---
 

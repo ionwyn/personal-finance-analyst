@@ -93,6 +93,23 @@ TOKEN_ENCRYPTION_KEY=""
 CRON_SECRET=""
 ```
 
+`TOKEN_ENCRYPTION_KEY` is the legacy single-key format. New installs and key rotations can use
+keyed encryption instead:
+
+```env
+TOKEN_ENCRYPTION_KEYS='{"2026-06":""}'
+TOKEN_ENCRYPTION_ACTIVE_KID="2026-06"
+```
+
+During a rotation from the legacy key, keep the old key available until rotation and verification
+finish:
+
+```env
+TOKEN_ENCRYPTION_KEY="old-key-for-current-v1-payloads"
+TOKEN_ENCRYPTION_KEYS='{"2026-06":"new-key"}'
+TOKEN_ENCRYPTION_ACTIVE_KID="2026-06"
+```
+
 Auth:
 
 ```env
@@ -120,13 +137,24 @@ SNAPTRADE_USER_ID=""
 SNAPTRADE_USER_SECRET_ENCRYPTED=""
 ```
 
-Generate the encrypted SnapTrade user secret after `TOKEN_ENCRYPTION_KEY` is set in `.env`:
+Generate the encrypted SnapTrade user secret after token encryption env vars are set in `.env`:
 
 ```bash
 npm run snaptrade:encrypt-secret
 ```
 
 Paste the printed `SNAPTRADE_USER_SECRET_ENCRYPTED="..."` value into `.env`.
+
+Rotate provider-token encryption only while the app and cron jobs are stopped, and after backing up
+Postgres and `.env`:
+
+```bash
+npm run token-key:rotate -- --dry-run
+npm run token-key:rotate -- --execute
+```
+
+The rotation script re-encrypts `PlaidItem.accessTokenEncrypted` rows in Postgres and prints a new
+`SNAPTRADE_USER_SECRET_ENCRYPTED="..."` value to paste into `.env`. It never prints plaintext tokens.
 
 Optional:
 
@@ -169,7 +197,12 @@ npm run backfill:cycles  # Generate cycles and classify historical transactions
 npm run seed:demo        # Alias for mock demo seeding
 npm run secrets          # Print local secret values
 npm run snaptrade:encrypt-secret # Encrypt the SnapTrade user secret for .env
+npm run eval:assistant-live        # Live Ollama assistant evals against local DB
+npm run eval:assistant-live:budget # Budget-only live assistant evals
 ```
+
+Assistant live evals are opt-in because they require local Ollama, a reachable
+database, and a `personal` tenant with data. They are not part of `npm test`.
 
 ## Application Routes
 
@@ -231,7 +264,9 @@ Core tenant-scoped tables include:
 - `SnapTradeConnection`, `SnapTradeAccount`, `SnapTradePosition`, `SnapTradeCashBalance`, `SnapTradeSyncRun`
 - `PayCycle`, `RecurringExpense`, `SavingsDestination`, `SettlementPattern`, `UserSettings`
 
-Plaid access tokens and optional SnapTrade user secrets are encrypted with AES-256-GCM using `TOKEN_ENCRYPTION_KEY`.
+Plaid access tokens and optional SnapTrade user secrets are encrypted with AES-256-GCM.
+Legacy payloads use `TOKEN_ENCRYPTION_KEY`; keyed payloads use `TOKEN_ENCRYPTION_KEYS` plus
+`TOKEN_ENCRYPTION_ACTIVE_KID`.
 
 ## Development Notes
 

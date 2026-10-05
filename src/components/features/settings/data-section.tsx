@@ -18,7 +18,7 @@ import styles from "./settings.module.scss";
  *   - Security (token-encryption rotation, sessions),
  *   - Danger zone (unlink-all, purge tenant).
  * The token-encryption copy is kept truthful (AES-256-GCM via a single env key;
- * the mockup's KMS "rotated 47d ago" is fictional, so it's not shown).
+ * rotation status is still not tracked in the database, so no "rotated 47d ago" claim is shown.
  */
 
 type Period = "30D" | "90D" | "ytd" | "12M" | "all";
@@ -166,8 +166,8 @@ export function DataSection({ tenantLabel, isDemo }: { tenantLabel: string; isDe
           <div className={styles.rowLabel}>
             <div className={styles.rowTitle}>Token encryption</div>
             <div className={styles.rowDesc}>
-              Plaid &amp; SnapTrade access tokens are encrypted at rest with AES-256-GCM. Today this
-              uses a single static env key; rotation would need key-versioning (KMS) work.
+              Plaid &amp; SnapTrade access tokens are encrypted at rest with AES-256-GCM. Keyed
+              payloads support offline rotation; rotation status is not tracked in-app yet.
             </div>
           </div>
           <div className={styles.rowControl}>
@@ -178,7 +178,7 @@ export function DataSection({ tenantLabel, isDemo }: { tenantLabel: string; isDe
               className="btn btn-sm"
               type="button"
               disabled
-              title="Requires KMS — not available"
+              title="Use npm run token-key:rotate from maintenance mode"
             >
               <KeyRound size={11} />
               Rotate

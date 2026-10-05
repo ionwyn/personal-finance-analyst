@@ -80,6 +80,57 @@ export function getEdgarUserAgent(): string {
   return `personal-finance-dashboard/1.0 (${contact})`;
 }
 
+/** Base URL of the local Ollama server. Defaults to the standard local port. */
+export function getOllamaBaseUrl(): string {
+  return (process.env.OLLAMA_BASE_URL ?? "http://localhost:11434").replace(/\/$/, "");
+}
+
+/** Ollama model used by the local AI assistant. */
+export function getOllamaModel(): string {
+  return process.env.OLLAMA_MODEL ?? "qwen2.5:7b";
+}
+
+/**
+ * Fact-mode model: fast, grounded answers. Defaults to a lighter model in dev
+ * (llama3.2:3b) and a stronger one in prod (qwen2.5:7b).
+ */
+export function getOllamaModelFact(): string {
+  return (
+    process.env.OLLAMA_MODEL_FACT ??
+    (process.env.NODE_ENV === "development" ? "llama3.2:3b" : "qwen2.5:7b")
+  );
+}
+
+/** Reasoning-mode model: analytical answers with a visible chain-of-thought. */
+export function getOllamaModelReasoning(): string {
+  return process.env.OLLAMA_MODEL_REASONING ?? "deepseek-r1:7b";
+}
+
+export function getOpenAIApiKey(): string | null {
+  return process.env.OPENAI_API_KEY || null;
+}
+
+export function getOpenAIModel(): string {
+  return process.env.OPENAI_MODEL ?? "gpt-5.4-nano";
+}
+
+export type OpenAIReasoningEffort = "none" | "minimal" | "low" | "medium" | "high" | "xhigh";
+
+export function getOpenAIReasoningEffort(): OpenAIReasoningEffort {
+  const value = process.env.OPENAI_REASONING_EFFORT;
+  if (
+    value === "none" ||
+    value === "minimal" ||
+    value === "low" ||
+    value === "medium" ||
+    value === "high" ||
+    value === "xhigh"
+  ) {
+    return value;
+  }
+  return "low";
+}
+
 export function getBaseUrl(): string {
   if (process.env.NEXTAUTH_URL) {
     return process.env.NEXTAUTH_URL.replace(/\/$/, "");
