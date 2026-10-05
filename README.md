@@ -83,6 +83,12 @@ Unauthenticated users see the demo tenant at `/app`. Private settings and provid
 
 ## Environment Variables
 
+The assistant prompt configuration is gitignored. For Vercel deployments, add an
+`ASSISTANT_CONFIG_JSON` environment variable containing the complete JSON object from
+`assistant-config.json` (in **Project Settings → Environment Variables**), then redeploy. The build
+creates the ignored file before Next.js compiles it. If the variable is unset, builds use the
+tracked `assistant-config.example.json`; local builds keep an existing `assistant-config.json`.
+
 Required for local app/database startup:
 
 ```env

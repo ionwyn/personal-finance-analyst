@@ -4,9 +4,9 @@
   "description": "Local-first personal finance analytics with Plaid, Postgres, and Next.js.",
   "private": true,
   "scripts": {
-    "predev": "prisma generate",
+    "predev": "node scripts/prepare-assistant-config.mjs && prisma generate",
     "dev": "next dev",
-    "prebuild": "prisma generate",
+    "prebuild": "node scripts/prepare-assistant-config.mjs && prisma generate",
     "build": "prisma migrate deploy && next build",
     "start": "next start",
     "lint": "eslint . --max-warnings=0",
